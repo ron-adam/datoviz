@@ -43,6 +43,7 @@ typedef enum
 {
     DVZ_BACKEND_NONE,
     DVZ_BACKEND_GLFW,
+    DVZ_BACKEND_QT5,
     DVZ_BACKEND_OFFSCREEN,
 } DvzBackend;
 

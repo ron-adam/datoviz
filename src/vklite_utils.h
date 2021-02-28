@@ -301,6 +301,14 @@ static const char** backend_extensions(DvzBackend backend, uint32_t* required_ex
         log_trace("%d extension(s) required by backend GLFW", *required_extension_count);
 
         break;
+
+    case DVZ_BACKEND_QT5:
+        *required_extension_count = 2;
+        required_extensions = calloc(*required_extension_count, sizeof(char*));
+        required_extensions[0] = strdup(VK_KHR_SURFACE_EXTENSION_NAME);
+        required_extensions[1] = strdup("VK_KHR_xcb_surface");
+        break;
+
     default:
         break;
     }
