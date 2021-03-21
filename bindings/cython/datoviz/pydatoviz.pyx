@@ -50,6 +50,8 @@ _KEYS = {
     cv.DVZ_KEY_UP: 'up',
     cv.DVZ_KEY_DOWN: 'down',
     cv.DVZ_KEY_HOME: 'home',
+    cv.DVZ_KEY_PAGE_UP: 'page_up',
+    cv.DVZ_KEY_PAGE_DOWN: 'page_down',
     cv.DVZ_KEY_END: 'end',
     cv.DVZ_KEY_KP_ADD: '+',
     cv.DVZ_KEY_KP_SUBTRACT: '-',
