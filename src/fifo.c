@@ -370,7 +370,7 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
             item_s = *deq_item;
             log_trace(
                 "dequeue item from FIFO queue #%d with type %d", item_s.deq_idx, item_s.type);
-            ASSERT(item_s.item != NULL);
+            // ASSERT(item_s.item != NULL);
             FREE(deq_item);
             break;
         }

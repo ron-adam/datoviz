@@ -30,6 +30,11 @@ extern "C" {
 #define DVZ_BUFFER_TYPE_STORAGE_SIZE (16 * 1024 * 1024)
 #define DVZ_BUFFER_TYPE_UNIFORM_SIZE (4 * 1024 * 1024)
 
+#define DVZ_CTX_DEQ_UL   0
+#define DVZ_CTX_DEQ_DL   1
+#define DVZ_CTX_DEQ_COPY 2
+#define DVZ_CTX_DEQ_EV   3
+
 #define DVZ_ZERO_OFFSET                                                                           \
     (uvec3) { 0, 0, 0 }
 
@@ -109,7 +114,11 @@ struct DvzContext
     DvzContainer computes;
 
     // Data transfers.
-    DvzFifo transfers;
+    DvzFifo transfers; // TO REMOVE
+
+    DvzDeq deq;
+    DvzThread thread; // transfer thread
+    // DvzThread thread_dl;
 
     // Font atlas.
     DvzFontAtlas font_atlas;

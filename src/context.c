@@ -205,6 +205,35 @@ void dvz_gpu_default(DvzGpu* gpu, DvzWindow* window)
 
 
 
+static void* _thread_transfers(void* user_data)
+{
+    DvzContext* ctx = (DvzContext*)user_data;
+    ASSERT(ctx != NULL);
+    DvzDeqItem item = {0};
+    while (true)
+    {
+        item = dvz_deq_dequeue(&ctx->deq, true);
+        if (item.item == NULL)
+        {
+            log_debug("stop the transfer thread");
+            break;
+        }
+    }
+    return NULL;
+}
+
+static void _transfer_upload(DvzDeq* deq, void* item, void* user_data)
+{
+    // memcpy
+    // enqueue copy task
+}
+
+static void _transfer_download(DvzDeq* deq, void* item, void* user_data)
+{
+    // memcpy
+    // raise DL_DONE
+}
+
 DvzContext* dvz_context(DvzGpu* gpu)
 {
     ASSERT(gpu != NULL);
@@ -232,7 +261,14 @@ DvzContext* dvz_context(DvzGpu* gpu)
     // context->transfer_cmd = dvz_commands(gpu, DVZ_DEFAULT_QUEUE_TRANSFER, 1);
 
     // FIFO queue with the pending transfers.
-    context->transfers = dvz_fifo(DVZ_MAX_FIFO_CAPACITY);
+    context->transfers = dvz_fifo(DVZ_MAX_FIFO_CAPACITY); // TO REMOVE
+
+    {
+        context->deq = dvz_deq(4);
+        dvz_deq_callback(&context->deq, DVZ_CTX_DEQ_UL, 0, _transfer_upload, NULL);
+        dvz_deq_callback(&context->deq, DVZ_CTX_DEQ_DL, 0, _transfer_download, NULL);
+        context->thread = dvz_thread(_thread_transfers, context);
+    }
 
     // HACK: the vklite module makes the assumption that the queue #0 supports transfers.
     // Here, in the context, we make the same assumption. The first queue is reserved to transfers.
@@ -292,7 +328,18 @@ void dvz_context_destroy(DvzContext* context)
     _destroy_resources(context);
 
     // Destroy the transfers queue.
-    dvz_fifo_destroy(&context->transfers);
+    {
+        dvz_fifo_destroy(&context->transfers); // TO REMOVE
+
+        // Enqueue a STOP task to stop the UL and DL threads.
+        dvz_deq_enqueue(&context->deq, 0, 0, NULL);
+        dvz_deq_enqueue(&context->deq, 1, 0, NULL);
+
+        // Join the UL and DL threads.
+        dvz_thread_join(&context->thread);
+
+        dvz_deq_destroy(&context->deq);
+    }
 
     // Free the allocated memory.
     dvz_container_destroy(&context->buffers);
