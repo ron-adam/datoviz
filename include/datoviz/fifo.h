@@ -87,6 +87,7 @@ struct DvzDeq
     // underlying FIFO queues.
     pthread_mutex_t lock;
     pthread_cond_t cond;
+    atomic(bool, is_processing);
 };
 
 

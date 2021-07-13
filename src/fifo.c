@@ -282,7 +282,7 @@ DvzDeq dvz_deq(uint32_t nq)
         log_error("mutex creation failed");
     if (pthread_cond_init(&deq.cond, NULL) != 0)
         log_error("cond creation failed");
-
+    atomic_init(&deq.is_processing, false);
     return deq;
 }
 
@@ -426,9 +426,11 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
     // Call the associated callbacks automatically.
     if (item_s.item != NULL)
     {
+        atomic_store(&deq->is_processing, true);
         _deq_callbacks(deq, item_s);
     }
 
+    atomic_store(&deq->is_processing, false);
     pthread_mutex_unlock(&deq->lock);
     return item_s;
 }
@@ -440,7 +442,7 @@ void dvz_deq_wait(DvzDeq* deq)
     ASSERT(deq != NULL);
     log_trace("start waiting until %d queues are empty", deq->queue_count);
 
-    while (_deq_size(deq) > 0)
+    while (_deq_size(deq) > 0 || atomic_load(&deq->is_processing))
         dvz_sleep(1);
     log_trace("finished waiting for empty queues");
 }

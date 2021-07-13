@@ -196,7 +196,7 @@ int test_context_transfer_texture(TestContext* tc)
 /*  Transfer dequeues                                                                            */
 /*************************************************************************************************/
 
-int test_context_transfers(TestContext* tc)
+int test_context_transfers_buffer_mappable(TestContext* tc)
 {
     DvzContext* ctx = tc->context;
     ASSERT(ctx != NULL);
@@ -230,6 +230,38 @@ int test_context_transfers(TestContext* tc)
     // Check that the copy worked.
     AT(data2[127] == 127);
     AT(memcmp(data2, data, 128) == 0);
+
+    return 0;
+}
+
+
+
+int test_context_transfers_buffer_large(TestContext* tc)
+{
+    DvzContext* ctx = tc->context;
+    ASSERT(ctx != NULL);
+
+    uint64_t size = 256 * 1024 * 1024;
+    uint8_t* data = calloc(size, 1);
+
+    DvzTransfer tr = {0};
+    tr.u.buf.size = size;
+    tr.u.buf.data = data;
+
+    // Allocate a staging buffer region.
+    DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_STAGING);
+    dvz_buffer_resize(staging, size);
+    tr.u.buf.staging = dvz_buffer_regions(staging, 1, 0, size, 0);
+
+    // Enqueue an upload transfer task.
+    tr.type = DVZ_TRANSFER_BUFFER_UPLOAD;
+    dvz_deq_enqueue(&ctx->deq, DVZ_CTX_DEQ_UL, tr.type, &tr);
+
+    // Wait for the transfer thread to process both transfer tasks.
+    dvz_app_wait(tc->app);
+    dvz_deq_wait(&ctx->deq);
+
+    FREE(data);
 
     return 0;
 }
