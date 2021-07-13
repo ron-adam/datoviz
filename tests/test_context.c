@@ -196,10 +196,20 @@ int test_context_transfer_texture(TestContext* tc)
 /*  Transfer dequeues                                                                            */
 /*************************************************************************************************/
 
+static void _dl_done(DvzDeq* deq, void* item, void* user_data)
+{
+    if (user_data != NULL)
+        *((int*)user_data) = 42;
+}
+
 int test_context_transfers_buffer_mappable(TestContext* tc)
 {
     DvzContext* ctx = tc->context;
     ASSERT(ctx != NULL);
+
+    // Callback for when the download has finished.
+    int res = 0; // should be set to 42 by _dl_done().
+    dvz_deq_callback(&ctx->deq, DVZ_CTX_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
 
     uint8_t data[128] = {0};
     for (uint32_t i = 0; i < 128; i++)
@@ -210,7 +220,7 @@ int test_context_transfers_buffer_mappable(TestContext* tc)
     tr.u.buf.data = data;
 
     // Allocate a staging buffer region.
-    tr.u.buf.staging = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
+    tr.u.buf.stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
 
     // Enqueue an upload transfer task.
     tr.type = DVZ_TRANSFER_BUFFER_UPLOAD;
@@ -223,6 +233,7 @@ int test_context_transfers_buffer_mappable(TestContext* tc)
 
     tr2.u.buf.data = data2;
     dvz_deq_enqueue(&ctx->deq, DVZ_CTX_DEQ_DL, tr2.type, &tr2);
+    AT(res == 0);
 
     // Wait for the transfer thread to process both transfer tasks.
     dvz_deq_wait(&ctx->deq);
@@ -230,6 +241,7 @@ int test_context_transfers_buffer_mappable(TestContext* tc)
     // Check that the copy worked.
     AT(data2[127] == 127);
     AT(memcmp(data2, data, 128) == 0);
+    AT(res == 42);
 
     return 0;
 }
@@ -251,7 +263,7 @@ int test_context_transfers_buffer_large(TestContext* tc)
     // Allocate a staging buffer region.
     DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_STAGING);
     dvz_buffer_resize(staging, size);
-    tr.u.buf.staging = dvz_buffer_regions(staging, 1, 0, size, 0);
+    tr.u.buf.stg = dvz_buffer_regions(staging, 1, 0, size, 0);
 
     // Enqueue an upload transfer task.
     tr.type = DVZ_TRANSFER_BUFFER_UPLOAD;

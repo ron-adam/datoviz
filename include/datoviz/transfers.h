@@ -18,11 +18,15 @@
 typedef enum
 {
     DVZ_TRANSFER_NONE,
+
     DVZ_TRANSFER_BUFFER_UPLOAD,
     DVZ_TRANSFER_BUFFER_DOWNLOAD,
+    DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE,
     DVZ_TRANSFER_BUFFER_COPY,
+
     DVZ_TRANSFER_TEXTURE_UPLOAD,
     DVZ_TRANSFER_TEXTURE_DOWNLOAD,
+    DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE,
     DVZ_TRANSFER_TEXTURE_COPY,
 } DvzDataTransferType;
 
@@ -37,6 +41,7 @@ typedef struct DvzTransferBuffer DvzTransferBuffer;
 typedef struct DvzTransferBufferCopy DvzTransferBufferCopy;
 typedef struct DvzTransferTexture DvzTransferTexture;
 typedef struct DvzTransferTextureCopy DvzTransferTextureCopy;
+typedef struct DvzTransferDownload DvzTransferDownload;
 typedef union DvzTransferUnion DvzTransferUnion;
 
 
@@ -47,9 +52,8 @@ typedef union DvzTransferUnion DvzTransferUnion;
 
 struct DvzTransferBuffer
 {
-    DvzBufferRegions staging;
-    DvzBufferRegions regions;
-    VkDeviceSize offset, size;
+    DvzBufferRegions stg, br; // staging (mappable) buffer, and source/destination buffer
+    VkDeviceSize stg_offset, br_offset, size;
     void* data;
 };
 
@@ -82,12 +86,21 @@ struct DvzTransferTextureCopy
 
 
 
+struct DvzTransferDownload
+{
+    VkDeviceSize size;
+    void* data;
+};
+
+
+
 union DvzTransferUnion
 {
     DvzTransferBuffer buf;
     DvzTransferTexture tex;
     DvzTransferBufferCopy buf_copy;
     DvzTransferTextureCopy tex_copy;
+    DvzTransferDownload download;
 };
 
 

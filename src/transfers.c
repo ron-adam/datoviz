@@ -47,12 +47,12 @@ static void _process_buffer_upload(DvzContext* context, DvzTransfer tr)
     ASSERT(gpu != NULL);
     ASSERT(tr.type == DVZ_TRANSFER_BUFFER_UPLOAD);
 
-    DvzBufferRegions br = tr.u.buf.regions;
+    DvzBufferRegions br = tr.u.buf.br;
     ASSERT(br.size > 0);
     ASSERT(br.count == 1);
     ASSERT(tr.u.buf.data != NULL);
     ASSERT(tr.u.buf.size > 0);
-    ASSERT(tr.u.buf.regions.buffer != VK_NULL_HANDLE);
+    ASSERT(tr.u.buf.br.buffer != VK_NULL_HANDLE);
     ASSERT(
         br.buffer->type != DVZ_BUFFER_TYPE_STAGING &&
         br.buffer->type != DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
@@ -64,7 +64,7 @@ static void _process_buffer_upload(DvzContext* context, DvzTransfer tr)
     dvz_buffer_upload(staging, 0, tr.u.buf.size, tr.u.buf.data);
 
     // Copy from the staging buffer to the target buffer.
-    _copy_buffer_from_staging(context, tr.u.buf.regions, tr.u.buf.offset, tr.u.buf.size);
+    _copy_buffer_from_staging(context, tr.u.buf.br, tr.u.buf.stg_offset, tr.u.buf.size);
 
     // IMPORTANT: need to wait for the texture to be copied to the staging buffer, *before*
     // downloading the data from the staging buffer.
@@ -78,12 +78,12 @@ static void _process_buffer_download(DvzContext* context, DvzTransfer tr)
     ASSERT(context != NULL);
     ASSERT(tr.type == DVZ_TRANSFER_BUFFER_DOWNLOAD);
 
-    DvzBufferRegions br = tr.u.buf.regions;
+    DvzBufferRegions br = tr.u.buf.br;
     ASSERT(br.size > 0);
     ASSERT(br.count == 1);
     ASSERT(tr.u.buf.data != NULL);
     ASSERT(tr.u.buf.size > 0);
-    ASSERT(tr.u.buf.regions.buffer != VK_NULL_HANDLE);
+    ASSERT(tr.u.buf.br.buffer != VK_NULL_HANDLE);
     ASSERT(
         br.buffer->type != DVZ_BUFFER_TYPE_STAGING &&
         br.buffer->type != DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
@@ -92,7 +92,7 @@ static void _process_buffer_download(DvzContext* context, DvzTransfer tr)
     DvzBuffer* staging = staging_buffer(context, tr.u.buf.size);
 
     // Copy from the source buffer to the staging buffer.
-    _copy_buffer_to_staging(context, tr.u.buf.regions, tr.u.buf.offset, tr.u.buf.size);
+    _copy_buffer_to_staging(context, tr.u.buf.br, tr.u.buf.stg_offset, tr.u.buf.size);
 
     // IMPORTANT: need to wait for the texture to be copied to the staging buffer, *before*
     // downloading the data from the staging buffer.
@@ -239,8 +239,8 @@ static void _enqueue_buffer_transfer(
     // Create the transfer object.
     DvzTransfer tr = {0};
     tr.type = type;
-    tr.u.buf.regions = br;
-    tr.u.buf.offset = offset;
+    tr.u.buf.br = br;
+    tr.u.buf.stg_offset = offset;
     tr.u.buf.size = size;
     tr.u.buf.data = data;
 

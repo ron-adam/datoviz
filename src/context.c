@@ -262,16 +262,29 @@ static void _transfer_buffer_upload(DvzDeq* deq, void* item, void* user_data)
     DvzTransferBuffer* trb = &tr->u.buf;
 
     // Copy the data to the staging buffer.
-    ASSERT(trb->staging.buffer != NULL);
-    ASSERT(trb->staging.size > 0);
+    ASSERT(trb->stg.buffer != NULL);
+    ASSERT(trb->stg.size > 0);
     ASSERT(trb->size > 0);
-    ASSERT(trb->offset + trb->size <= trb->staging.size);
+    ASSERT(trb->stg_offset + trb->size <= trb->stg.size);
 
     // Take offset and size into account in the staging buffer.
-    dvz_buffer_regions_upload(&trb->staging, 0, trb->offset, trb->size, trb->data);
+    // NOTE: this call blocks while the data is being copied from CPU to GPU (mapped memcpy).
+    dvz_buffer_regions_upload(&trb->stg, 0, trb->stg_offset, trb->size, trb->data);
 
-
-    // TODO: enqueue copy task
+    // Once the data has been transferred, enqueue a copy task from the staging buffer to the
+    // destination buffer.
+    {
+        DvzTransfer trc = {0};
+        trc.type = DVZ_TRANSFER_BUFFER_COPY;
+        // from staging buffer
+        trc.u.buf_copy.src = trb->stg;
+        trc.u.buf_copy.src_offset = trb->stg_offset;
+        // to destination buffer
+        trc.u.buf_copy.dst = trb->br;
+        trc.u.buf_copy.dst_offset = trb->br_offset;
+        trc.u.buf_copy.size = trb->size;
+        dvz_deq_enqueue(deq, DVZ_CTX_DEQ_COPY, trc.type, &trc);
+    }
 }
 
 static void _transfer_buffer_download(DvzDeq* deq, void* item, void* user_data)
@@ -283,20 +296,28 @@ static void _transfer_buffer_download(DvzDeq* deq, void* item, void* user_data)
     DvzTransferBuffer* trb = &tr->u.buf;
 
     // Copy the data to the staging buffer.
-    ASSERT(trb->staging.buffer != NULL);
-    ASSERT(trb->staging.size > 0);
+    ASSERT(trb->stg.buffer != NULL);
+    ASSERT(trb->stg.size > 0);
     ASSERT(trb->size > 0);
-    ASSERT(trb->offset + trb->size <= trb->staging.size);
+    ASSERT(trb->stg_offset + trb->size <= trb->stg.size);
 
     // Take offset and size into account in the staging buffer.
-    dvz_buffer_regions_download(&trb->staging, 0, trb->offset, trb->size, trb->data);
+    // NOTE: this call blocks while the data is being copied from GPU to CPU (mapped memcpy).
+    dvz_buffer_regions_download(&trb->stg, 0, trb->stg_offset, trb->size, trb->data);
 
-
-    // TODO: raise DL_DONE
+    // Raise a DOWNLOAD_DONE event when the download has finished.
+    {
+        DvzTransfer trd = {0};
+        trd.type = DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE;
+        trd.u.download.size = trb->size;
+        trd.u.download.data = trb->data;
+        dvz_deq_enqueue(deq, DVZ_CTX_DEQ_EV, trd.type, &trd);
+    }
 }
 
 static void _transfer_buffer_copy(DvzDeq* deq, void* item, void* user_data)
 {
+    // TODO
     // build cmd buf
     // wait for graphics Q
     // submit to transfer queue

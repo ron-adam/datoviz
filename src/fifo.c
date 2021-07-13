@@ -422,6 +422,9 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
             break;
         }
     }
+    // NOTE: we must unlock BEFORE caclling the callbacks if we want to permit callbacks to enqueue
+    // new tasks.
+    pthread_mutex_unlock(&deq->lock);
 
     // Call the associated callbacks automatically.
     if (item_s.item != NULL)
@@ -431,7 +434,6 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
     }
 
     atomic_store(&deq->is_processing, false);
-    pthread_mutex_unlock(&deq->lock);
     return item_s;
 }
 
