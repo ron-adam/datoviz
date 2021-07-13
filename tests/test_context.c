@@ -193,6 +193,50 @@ int test_context_transfer_texture(TestContext* tc)
 
 
 /*************************************************************************************************/
+/*  Transfer dequeues                                                                            */
+/*************************************************************************************************/
+
+int test_context_transfers(TestContext* tc)
+{
+    DvzContext* ctx = tc->context;
+    ASSERT(ctx != NULL);
+
+    uint8_t data[128] = {0};
+    for (uint32_t i = 0; i < 128; i++)
+        data[i] = i;
+
+    DvzTransfer tr = {0};
+    tr.u.buf.size = 128;
+    tr.u.buf.data = data;
+
+    // Allocate a staging buffer region.
+    tr.u.buf.staging = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
+
+    // Enqueue an upload transfer task.
+    tr.type = DVZ_TRANSFER_BUFFER_UPLOAD;
+    dvz_deq_enqueue(&ctx->deq, DVZ_CTX_DEQ_UL, tr.type, &tr);
+
+    // Enqueue a download transfer task.
+    DvzTransfer tr2 = tr;
+    tr2.type = DVZ_TRANSFER_BUFFER_DOWNLOAD;
+    uint8_t data2[128] = {0};
+
+    tr2.u.buf.data = data2;
+    dvz_deq_enqueue(&ctx->deq, DVZ_CTX_DEQ_DL, tr2.type, &tr2);
+
+    // Wait for the transfer thread to process both transfer tasks.
+    dvz_deq_wait(&ctx->deq);
+
+    // Check that the copy worked.
+    AT(data2[127] == 127);
+    AT(memcmp(data2, data, 128) == 0);
+
+    return 0;
+}
+
+
+
+/*************************************************************************************************/
 /*  Colormap                                                                                     */
 /*************************************************************************************************/
 

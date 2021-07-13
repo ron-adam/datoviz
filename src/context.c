@@ -205,6 +205,10 @@ void dvz_gpu_default(DvzGpu* gpu, DvzWindow* window)
 
 
 
+/*************************************************************************************************/
+/*  Transfer deq                                                                                 */
+/*************************************************************************************************/
+
 static void* _thread_transfers(void* user_data)
 {
     DvzContext* ctx = (DvzContext*)user_data;
@@ -212,27 +216,96 @@ static void* _thread_transfers(void* user_data)
     DvzDeqItem item = {0};
     while (true)
     {
+        log_trace("waiting for the deq");
         item = dvz_deq_dequeue(&ctx->deq, true);
         if (item.item == NULL)
         {
             log_debug("stop the transfer thread");
             break;
         }
+        log_trace("got a deq item");
     }
     return NULL;
 }
 
-static void _transfer_upload(DvzDeq* deq, void* item, void* user_data)
+
+
+// Get the staging buffer, and make sure it can contain `size` bytes.
+static DvzBuffer* _staging_buffer(DvzContext* context, VkDeviceSize size)
 {
-    // memcpy
-    // enqueue copy task
+    log_trace("requesting staging buffer of size %s", pretty_size(size));
+    DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STAGING);
+    ASSERT(staging != NULL);
+    ASSERT(staging->buffer != VK_NULL_HANDLE);
+
+    // Resize the staging buffer is needed.
+    // TODO: keep staging buffer fixed and copy parts of the data to staging buffer in several
+    // steps?
+    if (staging->size < size)
+    {
+        VkDeviceSize new_size = dvz_next_pow2(size);
+        log_debug("reallocating staging buffer to %s", pretty_size(new_size));
+        dvz_buffer_resize(staging, new_size);
+    }
+    ASSERT(staging->size >= size);
+    return staging;
 }
 
-static void _transfer_download(DvzDeq* deq, void* item, void* user_data)
+
+
+static void _transfer_buffer_upload(DvzDeq* deq, void* item, void* user_data)
 {
-    // memcpy
-    // raise DL_DONE
+    DvzTransfer* tr = (DvzTransfer*)item;
+    ASSERT(tr != NULL);
+    ASSERT(tr->type == DVZ_TRANSFER_BUFFER_UPLOAD);
+
+    DvzTransferBuffer* trb = &tr->u.buf;
+
+    // Copy the data to the staging buffer.
+    ASSERT(trb->staging.buffer != NULL);
+    ASSERT(trb->staging.size > 0);
+    ASSERT(trb->size > 0);
+    ASSERT(trb->offset + trb->size <= trb->staging.size);
+
+    // Take offset and size into account in the staging buffer.
+    dvz_buffer_regions_upload(&trb->staging, 0, trb->offset, trb->size, trb->data);
+
+
+    // TODO: enqueue copy task
 }
+
+static void _transfer_buffer_download(DvzDeq* deq, void* item, void* user_data)
+{
+    DvzTransfer* tr = (DvzTransfer*)item;
+    ASSERT(tr != NULL);
+    ASSERT(tr->type == DVZ_TRANSFER_BUFFER_DOWNLOAD);
+
+    DvzTransferBuffer* trb = &tr->u.buf;
+
+    // Copy the data to the staging buffer.
+    ASSERT(trb->staging.buffer != NULL);
+    ASSERT(trb->staging.size > 0);
+    ASSERT(trb->size > 0);
+    ASSERT(trb->offset + trb->size <= trb->staging.size);
+
+    // Take offset and size into account in the staging buffer.
+    dvz_buffer_regions_download(&trb->staging, 0, trb->offset, trb->size, trb->data);
+
+
+    // TODO: raise DL_DONE
+}
+
+static void _transfer_buffer_copy(DvzDeq* deq, void* item, void* user_data)
+{
+    // build cmd buf
+    // wait for graphics Q
+    // submit to transfer queue
+    // wait for transfer queue
+    // may enqueue DL task
+    // may raise COPY_DONE event
+}
+
+
 
 DvzContext* dvz_context(DvzGpu* gpu)
 {
@@ -263,10 +336,28 @@ DvzContext* dvz_context(DvzGpu* gpu)
     // FIFO queue with the pending transfers.
     context->transfers = dvz_fifo(DVZ_MAX_FIFO_CAPACITY); // TO REMOVE
 
+    // Transfer dequeues.
     {
         context->deq = dvz_deq(4);
-        dvz_deq_callback(&context->deq, DVZ_CTX_DEQ_UL, 0, _transfer_upload, NULL);
-        dvz_deq_callback(&context->deq, DVZ_CTX_DEQ_DL, 0, _transfer_download, NULL);
+
+        dvz_deq_callback(
+            &context->deq, DVZ_CTX_DEQ_UL, //
+            DVZ_TRANSFER_BUFFER_UPLOAD,    //
+            _transfer_buffer_upload, NULL);
+        // TODO: texture
+
+        dvz_deq_callback(
+            &context->deq, DVZ_CTX_DEQ_DL, //
+            DVZ_TRANSFER_BUFFER_DOWNLOAD,  //
+            _transfer_buffer_download, NULL);
+        // TODO: texture
+
+        dvz_deq_callback(
+            &context->deq, DVZ_CTX_DEQ_COPY, //
+            DVZ_TRANSFER_BUFFER_COPY,        //
+            _transfer_buffer_copy, NULL);
+        // TODO: texture
+
         context->thread = dvz_thread(_thread_transfers, context);
     }
 
@@ -332,8 +423,8 @@ void dvz_context_destroy(DvzContext* context)
         dvz_fifo_destroy(&context->transfers); // TO REMOVE
 
         // Enqueue a STOP task to stop the UL and DL threads.
-        dvz_deq_enqueue(&context->deq, 0, 0, NULL);
-        dvz_deq_enqueue(&context->deq, 1, 0, NULL);
+        dvz_deq_enqueue(&context->deq, DVZ_CTX_DEQ_UL, 0, NULL);
+        dvz_deq_enqueue(&context->deq, DVZ_CTX_DEQ_DL, 0, NULL);
 
         // Join the UL and DL threads.
         dvz_thread_join(&context->thread);

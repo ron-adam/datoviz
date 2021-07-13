@@ -47,9 +47,9 @@ typedef union DvzTransferUnion DvzTransferUnion;
 
 struct DvzTransferBuffer
 {
+    DvzBufferRegions staging;
     DvzBufferRegions regions;
     VkDeviceSize offset, size;
-    // bool update_all_buffer;
     void* data;
 };
 
@@ -65,6 +65,7 @@ struct DvzTransferBufferCopy
 
 struct DvzTransferTexture
 {
+    DvzTexture* staging;
     DvzTexture* texture;
     uvec3 offset, shape;
     VkDeviceSize size;
