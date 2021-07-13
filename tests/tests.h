@@ -83,6 +83,7 @@ int test_context_colormap_custom(TestContext*);
 
 int test_context_transfers_buffer_mappable(TestContext*);
 int test_context_transfers_buffer_large(TestContext*);
+int test_context_transfers_buffer_copy(TestContext*);
 
 // Test canvas.
 int test_canvas_blank(TestContext*);
@@ -240,6 +241,7 @@ static TestCase TEST_CASES[] = {
 
     CASE_FIXTURE(CONTEXT, test_context_transfers_buffer_mappable), //
     CASE_FIXTURE(CONTEXT, test_context_transfers_buffer_large),    //
+    CASE_FIXTURE(CONTEXT, test_context_transfers_buffer_copy),     //
 
     // Canvas.
     CASE_FIXTURE(APP, test_canvas_blank),              //

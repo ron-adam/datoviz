@@ -202,6 +202,40 @@ static void _dl_done(DvzDeq* deq, void* item, void* user_data)
         *((int*)user_data) = 42;
 }
 
+static void _enqueue_buffer_upload(
+    DvzDeq* deq, DvzBufferRegions br, VkDeviceSize br_offset, DvzBufferRegions stg,
+    VkDeviceSize stg_offset, VkDeviceSize size, void* data)
+{
+    ASSERT(deq != NULL);
+    DvzTransfer* tr = calloc(1, sizeof(DvzTransfer));
+    tr->type = DVZ_TRANSFER_BUFFER_UPLOAD;
+    tr->u.buf.stg = stg;
+    tr->u.buf.stg_offset = stg_offset;
+    tr->u.buf.br = br;
+    tr->u.buf.br_offset = br_offset;
+    tr->u.buf.size = size;
+    tr->u.buf.data = data;
+    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_UL, tr->type, tr);
+}
+
+static void _enqueue_buffer_download(
+    DvzDeq* deq, DvzBufferRegions br, VkDeviceSize br_offset, DvzBufferRegions stg,
+    VkDeviceSize stg_offset, VkDeviceSize size, void* data)
+{
+    ASSERT(deq != NULL);
+    ASSERT(size > 0);
+
+    DvzTransfer* tr = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
+    tr->type = DVZ_TRANSFER_BUFFER_DOWNLOAD;
+    tr->u.buf.br = br;
+    tr->u.buf.br_offset = br_offset;
+    tr->u.buf.stg = stg;
+    tr->u.buf.stg_offset = stg_offset;
+    tr->u.buf.size = size;
+    tr->u.buf.data = data;
+    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_DL, tr->type, tr);
+}
+
 int test_context_transfers_buffer_mappable(TestContext* tc)
 {
     DvzContext* ctx = tc->context;
@@ -215,24 +249,14 @@ int test_context_transfers_buffer_mappable(TestContext* tc)
     for (uint32_t i = 0; i < 128; i++)
         data[i] = i;
 
-    DvzTransfer tr = {0};
-    tr.u.buf.size = 128;
-    tr.u.buf.data = data;
-
     // Allocate a staging buffer region.
-    tr.u.buf.stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
-
+    DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
     // Enqueue an upload transfer task.
-    tr.type = DVZ_TRANSFER_BUFFER_UPLOAD;
-    dvz_deq_enqueue(&ctx->deq, DVZ_CTX_DEQ_UL, tr.type, &tr);
+    _enqueue_buffer_upload(&ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, 128, data);
 
     // Enqueue a download transfer task.
-    DvzTransfer tr2 = tr;
-    tr2.type = DVZ_TRANSFER_BUFFER_DOWNLOAD;
     uint8_t data2[128] = {0};
-
-    tr2.u.buf.data = data2;
-    dvz_deq_enqueue(&ctx->deq, DVZ_CTX_DEQ_DL, tr2.type, &tr2);
+    _enqueue_buffer_download(&ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, 128, data2);
     AT(res == 0);
 
     // Wait for the transfer thread to process both transfer tasks.
@@ -256,24 +280,58 @@ int test_context_transfers_buffer_large(TestContext* tc)
     uint64_t size = 256 * 1024 * 1024;
     uint8_t* data = calloc(size, 1);
 
-    DvzTransfer tr = {0};
-    tr.u.buf.size = size;
-    tr.u.buf.data = data;
-
     // Allocate a staging buffer region.
     DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_STAGING);
     dvz_buffer_resize(staging, size);
-    tr.u.buf.stg = dvz_buffer_regions(staging, 1, 0, size, 0);
+    DvzBufferRegions stg = dvz_buffer_regions(staging, 1, 0, size, 0);
 
     // Enqueue an upload transfer task.
-    tr.type = DVZ_TRANSFER_BUFFER_UPLOAD;
-    dvz_deq_enqueue(&ctx->deq, DVZ_CTX_DEQ_UL, tr.type, &tr);
+    _enqueue_buffer_upload(&ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, size, data);
 
     // Wait for the transfer thread to process both transfer tasks.
     dvz_app_wait(tc->app);
     dvz_deq_wait(&ctx->deq);
 
     FREE(data);
+
+    return 0;
+}
+
+
+
+int test_context_transfers_buffer_copy(TestContext* tc)
+{
+    DvzContext* ctx = tc->context;
+    ASSERT(ctx != NULL);
+
+    // Callback for when the download has finished.
+    int res = 0; // should be set to 42 by _dl_done().
+    dvz_deq_callback(&ctx->deq, DVZ_CTX_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
+
+    uint8_t data[128] = {0};
+    for (uint32_t i = 0; i < 128; i++)
+        data[i] = i;
+
+    DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
+    DvzBufferRegions br = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_VERTEX, 1, 1024);
+
+    // Enqueue an upload transfer task.
+    _enqueue_buffer_upload(&ctx->deq, br, 0, stg, 0, 128, data);
+
+    // Wait for the transfer thread to upload and copy to the target buffer.
+    dvz_deq_wait(&ctx->deq);
+
+    // Enqueue a download transfer task.
+    uint8_t data2[128] = {0};
+    _enqueue_buffer_download(&ctx->deq, br, 0, stg, 0, 128, data2);
+
+    // Wait for the transfer thread to process the download.
+    dvz_deq_wait(&ctx->deq);
+
+    // Check that the copy worked.
+    AT(data2[127] == 127);
+    AT(memcmp(data2, data, 128) == 0);
+    AT(res == 42);
 
     return 0;
 }

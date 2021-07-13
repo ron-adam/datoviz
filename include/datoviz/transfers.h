@@ -63,6 +63,7 @@ struct DvzTransferBufferCopy
 {
     DvzBufferRegions src, dst;
     VkDeviceSize src_offset, dst_offset, size;
+    void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
 };
 
 

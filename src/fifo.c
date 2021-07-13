@@ -414,15 +414,15 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
         deq_item = dvz_fifo_dequeue(fifo, false);
         if (deq_item != NULL)
         {
+            // Make a copy of the struct.
             item_s = *deq_item;
             log_trace(
                 "dequeue item from FIFO queue #%d with type %d", item_s.deq_idx, item_s.type);
-            // ASSERT(item_s.item != NULL);
             FREE(deq_item);
             break;
         }
     }
-    // NOTE: we must unlock BEFORE caclling the callbacks if we want to permit callbacks to enqueue
+    // NOTE: we must unlock BEFORE calling the callbacks if we want to permit callbacks to enqueue
     // new tasks.
     pthread_mutex_unlock(&deq->lock);
 
