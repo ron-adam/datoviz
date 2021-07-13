@@ -1294,8 +1294,11 @@ DVZ_EXPORT DvzBufferRegions dvz_buffer_regions(
  *
  * @param br the buffer regions
  * @param idx the index of the buffer region to map
+ * @param offset the offset
+ * @param size the size
  */
-DVZ_EXPORT void* dvz_buffer_regions_map(DvzBufferRegions* br, uint32_t idx);
+DVZ_EXPORT void*
+dvz_buffer_regions_map(DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size);
 
 /**
  * Unmap a set of buffer regions.
@@ -1305,19 +1308,28 @@ DVZ_EXPORT void* dvz_buffer_regions_map(DvzBufferRegions* br, uint32_t idx);
 DVZ_EXPORT void dvz_buffer_regions_unmap(DvzBufferRegions* br);
 
 /**
- * Upload data to a buffer region.
- *
- * !!! important
- *     This function does **not** use any GPU synchronization primitive: this is the responsibility
- *     of the caller. A simple (but not optimal) method is just to call the following function
- *     after every call to this function:
- *     `dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);`
+ * Upload data to a mappable buffer region.
  *
  * @param br the set of buffer regions
  * @param idx the index of the buffer region to upload data to
+ * @param offset the offset
+ * @param size the size
  * @param data the data to upload
  */
-DVZ_EXPORT void dvz_buffer_regions_upload(DvzBufferRegions* br, uint32_t idx, const void* data);
+DVZ_EXPORT void dvz_buffer_regions_upload(
+    DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size, const void* data);
+
+/**
+ * Download data to a mappable buffer region.
+ *
+ * @param br the set of buffer regions
+ * @param idx the index of the buffer region to download data from
+ * @param offset the offset
+ * @param size the size
+ * @param data pointer to the buffer where to download to
+ */
+void dvz_buffer_regions_download(
+    DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size, void* data);
 
 /**
  * Copy data between two buffer region.

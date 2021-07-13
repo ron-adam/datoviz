@@ -240,7 +240,7 @@ int main(int argc, char** argv)
         };
 
         // We upload the data to the GPU vertex buffer.
-        dvz_buffer_regions_upload(&vertex_buffer, 0, data);
+        dvz_buffer_regions_upload(&vertex_buffer, 0, 0, size, data);
     }
 
     // We create a command buffer.

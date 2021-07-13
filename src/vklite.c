@@ -1218,11 +1218,13 @@ DvzBufferRegions dvz_buffer_regions(
 
 
 
-void* dvz_buffer_regions_map(DvzBufferRegions* br, uint32_t idx)
+void* dvz_buffer_regions_map(
+    DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size)
 {
     ASSERT(br != NULL);
     DvzBuffer* buffer = br->buffer;
-    return dvz_buffer_map(buffer, br->offsets[idx], br->size);
+    ASSERT(br->offsets[idx] + offset + size <= br->size);
+    return dvz_buffer_map(buffer, br->offsets[idx] + offset, size);
 }
 
 
@@ -1237,11 +1239,14 @@ void dvz_buffer_regions_unmap(DvzBufferRegions* br)
 
 
 
-void dvz_buffer_regions_upload(DvzBufferRegions* br, uint32_t idx, const void* data)
+void dvz_buffer_regions_upload(
+    DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size, const void* data)
 {
     ASSERT(br != NULL);
     DvzBuffer* buffer = br->buffer;
-    VkDeviceSize size = br->size;
+
+    // VkDeviceSize size = br->size;
+    // NOTE: size is now passed as an argument to the function
 
     ASSERT(buffer != NULL);
     ASSERT(size != 0);
@@ -1253,7 +1258,7 @@ void dvz_buffer_regions_upload(DvzBufferRegions* br, uint32_t idx, const void* d
     bool need_unmap = false;
     if (buffer->mmap == NULL)
     {
-        mapped = dvz_buffer_regions_map(br, idx);
+        mapped = dvz_buffer_regions_map(br, idx, offset, size);
         need_unmap = true;
     }
     else
@@ -1264,6 +1269,43 @@ void dvz_buffer_regions_upload(DvzBufferRegions* br, uint32_t idx, const void* d
     ASSERT(mapped != NULL);
 
     memcpy(mapped, data, size);
+
+    if (need_unmap)
+        dvz_buffer_regions_unmap(br);
+}
+
+
+
+void dvz_buffer_regions_download(
+    DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size, void* data)
+{
+    ASSERT(br != NULL);
+    DvzBuffer* buffer = br->buffer;
+
+    // VkDeviceSize size = br->size;
+    // NOTE: size is now passed as an argument to the function
+
+    ASSERT(buffer != NULL);
+    ASSERT(size != 0);
+    ASSERT(data != NULL);
+
+    log_trace("downloading %s from GPU buffer", pretty_size(size));
+
+    void* mapped = NULL;
+    bool need_unmap = false;
+    if (buffer->mmap == NULL)
+    {
+        mapped = dvz_buffer_regions_map(br, idx, offset, size);
+        need_unmap = true;
+    }
+    else
+    {
+        mapped = buffer->mmap;
+        need_unmap = false;
+    }
+    ASSERT(mapped != NULL);
+
+    memcpy(data, mapped, size);
 
     if (need_unmap)
         dvz_buffer_regions_unmap(br);
