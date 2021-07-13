@@ -129,6 +129,8 @@ void* dvz_fifo_dequeue(DvzFifo* fifo, bool wait)
     {
         log_trace("waiting for the queue to be non-empty");
         while (fifo->tail == fifo->head)
+            // NOTE: this call automatically releases the mutex while waiting, and reacquires it
+            // afterwards
             pthread_cond_wait(&fifo->cond, &fifo->lock);
     }
 
@@ -173,6 +175,15 @@ int dvz_fifo_size(DvzFifo* fifo)
     ASSERT(0 <= size && size <= fifo->capacity);
     pthread_mutex_unlock(&fifo->lock);
     return size;
+}
+
+
+
+void dvz_fifo_wait(DvzFifo* fifo)
+{
+    ASSERT(fifo != NULL);
+    while (dvz_fifo_size(fifo) > 0)
+        dvz_sleep(1);
 }
 
 
@@ -266,6 +277,12 @@ DvzDeq dvz_deq(uint32_t nq)
     deq.queue_count = nq;
     for (uint32_t i = 0; i < nq; i++)
         deq.queues[i] = dvz_fifo(DVZ_MAX_FIFO_CAPACITY);
+
+    if (pthread_mutex_init(&deq.lock, NULL) != 0)
+        log_error("mutex creation failed");
+    if (pthread_cond_init(&deq.cond, NULL) != 0)
+        log_error("cond creation failed");
+
     return deq;
 }
 
@@ -298,7 +315,11 @@ void dvz_deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item)
     deq_item->deq_idx = deq_idx;
     deq_item->type = type;
     deq_item->item = item;
+
+    pthread_mutex_lock(&deq->lock);
     dvz_fifo_enqueue(fifo, deq_item);
+    pthread_cond_signal(&deq->cond);
+    pthread_mutex_unlock(&deq->lock);
 }
 
 
@@ -313,7 +334,11 @@ void dvz_deq_enqueue_first(DvzDeq* deq, uint32_t deq_idx, int type, void* item)
     deq_item->deq_idx = deq_idx;
     deq_item->type = type;
     deq_item->item = item;
+
+    pthread_mutex_lock(&deq->lock);
     dvz_fifo_enqueue_first(fifo, deq_item);
+    pthread_cond_signal(&deq->cond);
+    pthread_mutex_unlock(&deq->lock);
 }
 
 
@@ -352,6 +377,16 @@ DvzDeqItem dvz_deq_peek_last(DvzDeq* deq, uint32_t deq_idx)
 
 
 
+// Return the total size of the Deq.
+static int _deq_size(DvzDeq* deq)
+{
+    ASSERT(deq != NULL);
+    int size = 0;
+    for (uint32_t i = 0; i < deq->queue_count; i++)
+        size += dvz_fifo_size(&deq->queues[i]);
+    return size;
+}
+
 DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
 {
     ASSERT(deq != NULL);
@@ -360,11 +395,23 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
     DvzDeqItem* deq_item = NULL;
     DvzDeqItem item_s = {0};
 
+    pthread_mutex_lock(&deq->lock);
+
+    // Wait until the queue is not empty.
+    if (wait)
+    {
+        log_trace("waiting for the queue to be non-empty");
+        while (_deq_size(deq) == 0)
+            // NOTE: this call automatically releases the mutex while waiting, and reacquires it
+            // afterwards
+            pthread_cond_wait(&deq->cond, &deq->lock);
+    }
+
     // Find the first non-empty FIFO queue, and dequeue it.
     for (uint32_t deq_idx = 0; deq_idx < deq->queue_count; deq_idx++)
     {
         fifo = _deq_fifo(deq, deq_idx);
-        deq_item = dvz_fifo_dequeue(fifo, wait);
+        deq_item = dvz_fifo_dequeue(fifo, false);
         if (deq_item != NULL)
         {
             item_s = *deq_item;
@@ -382,7 +429,20 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
         _deq_callbacks(deq, item_s);
     }
 
+    pthread_mutex_unlock(&deq->lock);
     return item_s;
+}
+
+
+
+void dvz_deq_wait(DvzDeq* deq)
+{
+    ASSERT(deq != NULL);
+    log_trace("start waiting until %d queues are empty", deq->queue_count);
+
+    while (_deq_size(deq) > 0)
+        dvz_sleep(1);
+    log_trace("finished waiting for empty queues");
 }
 
 
@@ -392,4 +452,7 @@ void dvz_deq_destroy(DvzDeq* deq)
     ASSERT(deq != NULL);
     for (uint32_t i = 0; i < deq->queue_count; i++)
         dvz_fifo_destroy(&deq->queues[i]);
+
+    pthread_mutex_destroy(&deq->lock);
+    pthread_cond_destroy(&deq->cond);
 }

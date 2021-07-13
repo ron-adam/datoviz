@@ -82,6 +82,11 @@ struct DvzDeq
 
     uint32_t callback_count;
     DvzDeqCallbackRegister callbacks[DVZ_DEQ_MAX_CALLBACKS];
+
+    // Mutex and cond to signal when the deq is non-empty, and when to dequeue the first non-empty
+    // underlying FIFO queues.
+    pthread_mutex_t lock;
+    pthread_cond_t cond;
 };
 
 
@@ -132,6 +137,13 @@ DVZ_EXPORT void* dvz_fifo_dequeue(DvzFifo* fifo, bool wait);
 DVZ_EXPORT int dvz_fifo_size(DvzFifo* fifo);
 
 /**
+ * Wait until a FIFO queue is empty.
+ *
+ * @param fifo the FIFO queue
+ */
+DVZ_EXPORT void dvz_fifo_wait(DvzFifo* fifo);
+
+/**
  * Discard old items in a queue.
  *
  * This function will suppress all items in the queue except the `max_size` most recent ones.
@@ -177,6 +189,8 @@ DVZ_EXPORT DvzDeqItem dvz_deq_peek_first(DvzDeq* deq, uint32_t deq_idx);
 DVZ_EXPORT DvzDeqItem dvz_deq_peek_last(DvzDeq* deq, uint32_t deq_idx);
 
 DVZ_EXPORT DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait);
+
+DVZ_EXPORT void dvz_deq_wait(DvzDeq* deq);
 
 DVZ_EXPORT void dvz_deq_destroy(DvzDeq* deq);
 
