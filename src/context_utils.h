@@ -21,11 +21,6 @@ static DvzBuffer* staging_buffer(DvzContext* context, VkDeviceSize size)
     ASSERT(staging != NULL);
     ASSERT(staging->buffer != VK_NULL_HANDLE);
 
-    // Make sure the staging buffer is idle before using it.
-    // TODO: optimize this and avoid hard synchronization here before copying data into
-    // the staging buffer.
-    // dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
-
     // Resize the staging buffer is needed.
     // TODO: keep staging buffer fixed and copy parts of the data to staging buffer in several
     // steps?
@@ -319,29 +314,6 @@ static void* _thread_transfers(void* user_data)
 
 
 
-// Get the staging buffer, and make sure it can contain `size` bytes.
-static DvzBuffer* _staging_buffer(DvzContext* context, VkDeviceSize size)
-{
-    log_trace("requesting staging buffer of size %s", pretty_size(size));
-    DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STAGING);
-    ASSERT(staging != NULL);
-    ASSERT(staging->buffer != VK_NULL_HANDLE);
-
-    // Resize the staging buffer is needed.
-    // TODO: keep staging buffer fixed and copy parts of the data to staging buffer in several
-    // steps?
-    if (staging->size < size)
-    {
-        VkDeviceSize new_size = dvz_next_pow2(size);
-        log_debug("reallocating staging buffer to %s", pretty_size(new_size));
-        dvz_buffer_resize(staging, new_size);
-    }
-    ASSERT(staging->size >= size);
-    return staging;
-}
-
-
-
 static void _enqueue_buffer_upload(
     DvzDeq* deq, DvzBufferRegions br, VkDeviceSize br_offset, DvzBufferRegions stg,
     VkDeviceSize stg_offset, VkDeviceSize size, void* data)
@@ -366,15 +338,15 @@ static void _enqueue_buffer_download(
     ASSERT(size > 0);
     log_trace("enqueue buffer download");
 
-    DvzTransfer* trd = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
-    trd->type = DVZ_TRANSFER_BUFFER_DOWNLOAD;
-    trd->u.buf.br = br;
-    trd->u.buf.br_offset = br_offset;
-    trd->u.buf.stg = stg;
-    trd->u.buf.stg_offset = stg_offset;
-    trd->u.buf.size = size;
-    trd->u.buf.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_DL, trd->type, trd);
+    DvzTransfer* tr = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
+    tr->type = DVZ_TRANSFER_BUFFER_DOWNLOAD;
+    tr->u.buf.br = br;
+    tr->u.buf.br_offset = br_offset;
+    tr->u.buf.stg = stg;
+    tr->u.buf.stg_offset = stg_offset;
+    tr->u.buf.size = size;
+    tr->u.buf.data = data;
+    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_DL, tr->type, tr);
 }
 
 static void _enqueue_buffer_copy(
@@ -404,11 +376,11 @@ static void _enqueue_buffer_download_done(DvzDeq* deq, VkDeviceSize size, void* 
     ASSERT(size > 0);
     log_trace("enqueue buffer download done");
 
-    DvzTransfer* trd = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
-    trd->type = DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE;
-    trd->u.download.size = size;
-    trd->u.download.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_EV, trd->type, trd);
+    DvzTransfer* tr = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
+    tr->type = DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE;
+    tr->u.download.size = size;
+    tr->u.download.data = data;
+    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_EV, tr->type, tr);
 }
 
 
@@ -528,10 +500,10 @@ static void _enqueue_texture_upload(
     ASSERT(deq != NULL);
     DvzTransfer* tr = calloc(1, sizeof(DvzTransfer));
     tr->type = DVZ_TRANSFER_TEXTURE_UPLOAD;
-    tr->u.tex.staging = stg;
-    // tr->u.tex.stg_offset = stg_offset; // TODO
-    tr->u.tex.texture = tex;
-    memcpy(tr->u.tex.offset, tex_offset, sizeof(uvec3));
+    tr->u.tex.stg = stg;
+    tr->u.tex.tex = tex;
+    memcpy(tr->u.tex.stg_offset, stg_offset, sizeof(uvec3));
+    memcpy(tr->u.tex.tex_offset, tex_offset, sizeof(uvec3));
     memcpy(tr->u.tex.shape, shape, sizeof(uvec3));
     tr->u.tex.size = size;
     tr->u.tex.data = data;
@@ -546,16 +518,16 @@ static void _enqueue_texture_download(
     ASSERT(stg != NULL);
     log_trace("enqueue texture download");
 
-    DvzTransfer* trd = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
-    trd->type = DVZ_TRANSFER_TEXTURE_DOWNLOAD;
-    trd->u.tex.texture = tex;
-    trd->u.tex.staging = stg;
-    // trd->u.tex. = stg_offset; // TODO
-    memcpy(trd->u.tex.offset, tex_offset, sizeof(uvec3));
-    memcpy(trd->u.tex.shape, shape, sizeof(uvec3));
-    trd->u.tex.size = size;
-    trd->u.tex.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_DL, trd->type, trd);
+    DvzTransfer* tr = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
+    tr->type = DVZ_TRANSFER_TEXTURE_DOWNLOAD;
+    tr->u.tex.tex = tex;
+    tr->u.tex.stg = stg;
+    memcpy(tr->u.tex.stg_offset, stg_offset, sizeof(uvec3));
+    memcpy(tr->u.tex.tex_offset, tex_offset, sizeof(uvec3));
+    memcpy(tr->u.tex.shape, shape, sizeof(uvec3));
+    tr->u.tex.size = size;
+    tr->u.tex.data = data;
+    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_DL, tr->type, tr);
 }
 
 static void _enqueue_texture_copy(
@@ -585,11 +557,11 @@ static void _enqueue_texture_download_done(DvzDeq* deq, VkDeviceSize size, void*
     ASSERT(size > 0);
     log_trace("enqueue texture download done");
 
-    DvzTransfer* trd = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
-    trd->type = DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE;
-    trd->u.download.size = size;
-    trd->u.download.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_EV, trd->type, trd);
+    DvzTransfer* tr = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
+    tr->type = DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE;
+    tr->u.download.size = size;
+    tr->u.download.data = data;
+    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_EV, tr->type, tr);
 }
 
 
@@ -601,23 +573,23 @@ static void _transfer_texture_upload(DvzDeq* deq, void* item, void* user_data)
     ASSERT(tr->type == DVZ_TRANSFER_TEXTURE_UPLOAD);
     log_trace("process texture upload");
 
-    DvzTransferTexture* trb = &tr->u.tex;
+    DvzTransferTexture* trt = &tr->u.tex;
 
     // Copy the data to the staging buffer.
-    ASSERT(trb->staging != NULL);
-    ASSERT(trb->size > 0);
+    ASSERT(trt->stg != NULL);
+    ASSERT(trt->size > 0);
 
     // Take offset and size into account in the staging buffer.
     // NOTE: this call blocks while the data is being copied from CPU to GPU (mapped memcpy).
-    // TODO: staging offset
-    dvz_texture_upload(trb->staging, (uvec3){0}, trb->shape, trb->size, trb->data);
+    dvz_texture_upload(trt->stg, trt->stg_offset, trt->shape, trt->size, trt->data);
 
     // Once the data has been transferred, enqueue a copy task from the staging buffer to the
     // destination buffer.
-    if (trb->texture != NULL)
+    if (trt->tex != NULL)
     {
         _enqueue_texture_copy(
-            deq, trb->staging, (uvec3){0}, trb->texture, trb->offset, trb->shape, trb->size, NULL);
+            deq, trt->stg, trt->stg_offset, trt->tex, trt->tex_offset, trt->shape, trt->size,
+            NULL);
     }
 }
 
@@ -628,20 +600,20 @@ static void _transfer_texture_download(DvzDeq* deq, void* item, void* user_data)
     ASSERT(tr->type == DVZ_TRANSFER_TEXTURE_DOWNLOAD);
     log_trace("process texture download");
 
-    DvzTransferTexture* trb = &tr->u.tex;
+    DvzTransferTexture* trt = &tr->u.tex;
 
     // Copy the data to the staging buffer.
-    ASSERT(trb->staging != NULL);
-    ASSERT(trb->size > 0);
+    ASSERT(trt->stg != NULL);
+    ASSERT(trt->size > 0);
 
     // If the data is to be downloaded from a non-mappable buffer, we need to enqueue a copy and
     // stop here the download callback. We'll specify, in the copy task, that the download must be
     // enqueued afterwards.
-    if (trb->texture != NULL)
+    if (trt->tex != NULL)
     {
         _enqueue_texture_copy(
-            deq, trb->texture, trb->offset, trb->staging, (uvec3){0}, trb->shape, trb->size,
-            trb->data);
+            deq, trt->tex, trt->tex_offset, trt->stg, trt->stg_offset, trt->shape, trt->size,
+            trt->data);
     }
 
     // If the data is to be downloaded from a mappable (staging) buffer, we can download the data
@@ -650,10 +622,10 @@ static void _transfer_texture_download(DvzDeq* deq, void* item, void* user_data)
     {
         // Take offset and size into account in the staging buffer.
         // NOTE: this call blocks while the data is being copied from GPU to CPU (mapped memcpy).
-        dvz_texture_download(trb->staging, (uvec3){0}, trb->shape, trb->size, trb->data);
+        dvz_texture_download(trt->stg, trt->stg_offset, trt->shape, trt->size, trt->data);
 
         // Raise a DOWNLOAD_DONE event when the download has finished.
-        _enqueue_texture_download_done(deq, trb->size, trb->data);
+        _enqueue_texture_download_done(deq, trt->size, trt->data);
     }
 }
 
@@ -667,20 +639,20 @@ static void _transfer_texture_copy(DvzDeq* deq, void* item, void* user_data)
     ASSERT(tr != NULL);
     ASSERT(tr->type == DVZ_TRANSFER_TEXTURE_COPY);
 
-    DvzTransferTextureCopy* trb = &tr->u.tex_copy;
+    DvzTransferTextureCopy* trt = &tr->u.tex_copy;
 
     // Make the GPU-GPU buffer copy (block the GPU and wait for the copy to finish).
     dvz_queue_wait(ctx->gpu, DVZ_DEFAULT_QUEUE_RENDER);
-    dvz_texture_copy(trb->src, trb->src_offset, trb->dst, trb->dst_offset, trb->shape);
+    dvz_texture_copy(trt->src, trt->src_offset, trt->dst, trt->dst_offset, trt->shape);
     dvz_queue_wait(ctx->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // If needed, enqueue a download task after the copy. The destination buffer of the copy then
     // needs to be a mappable buffer (typically, a staging buffer).
-    if (trb->to_download != NULL)
+    if (trt->to_download != NULL)
     {
         _enqueue_texture_download(
-            deq, NULL, trb->src_offset, trb->dst, trb->dst_offset, trb->shape, trb->size,
-            trb->to_download);
+            deq, NULL, trt->src_offset, trt->dst, trt->dst_offset, trt->shape, trt->size,
+            trt->to_download);
     }
 }
 

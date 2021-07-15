@@ -132,7 +132,7 @@ static void _process_texture_upload(DvzContext* context, DvzTransfer tr)
     ASSERT(tr.type == DVZ_TRANSFER_TEXTURE_UPLOAD);
 
     dvz_texture_upload(
-        tr.u.tex.texture, tr.u.tex.offset, tr.u.tex.shape, tr.u.tex.size, tr.u.tex.data);
+        tr.u.tex.tex, tr.u.tex.tex_offset, tr.u.tex.shape, tr.u.tex.size, tr.u.tex.data);
 }
 
 
@@ -143,7 +143,7 @@ static void _process_texture_download(DvzContext* context, DvzTransfer tr)
     ASSERT(tr.type == DVZ_TRANSFER_TEXTURE_DOWNLOAD);
 
     dvz_texture_download(
-        tr.u.tex.texture, tr.u.tex.offset, tr.u.tex.shape, tr.u.tex.size, tr.u.tex.data);
+        tr.u.tex.tex, tr.u.tex.tex_offset, tr.u.tex.shape, tr.u.tex.size, tr.u.tex.data);
 }
 
 
@@ -332,11 +332,11 @@ static void _enqueue_texture_transfer(
     for (uint32_t i = 0; i < 3; i++)
     {
         tr.u.tex.shape[i] = shape[i];
-        tr.u.tex.offset[i] = offset[i];
+        tr.u.tex.tex_offset[i] = offset[i];
     }
     tr.u.tex.size = size;
     tr.u.tex.data = data;
-    tr.u.tex.texture = texture;
+    tr.u.tex.tex = texture;
 
     _transfer_enqueue(&context->transfers, tr);
 }

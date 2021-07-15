@@ -70,9 +70,8 @@ struct DvzTransferBufferCopy
 
 struct DvzTransferTexture
 {
-    DvzTexture* staging;
-    DvzTexture* texture;
-    uvec3 offset, shape;
+    DvzTexture *stg, *tex;
+    uvec3 stg_offset, tex_offset, shape;
     VkDeviceSize size;
     void* data;
 };
