@@ -387,7 +387,7 @@ static int _deq_size(DvzDeq* deq)
     return size;
 }
 
-DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
+static DvzDeqItem _deq_dequeue(DvzDeq* deq, bool wait, uint32_t queue_count, uint32_t* queue_ids)
 {
     ASSERT(deq != NULL);
 
@@ -407,10 +407,16 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
             pthread_cond_wait(&deq->cond, &deq->lock);
     }
 
-    // Find the first non-empty FIFO queue, and dequeue it.
-    for (uint32_t deq_idx = 0; deq_idx < deq->queue_count; deq_idx++)
+    // Go through the passed queue indices.
+    uint32_t deq_idx = 0;
+    for (uint32_t i = 0; i < queue_count; i++)
     {
+        // This is the ID of the queue.
+        deq_idx = queue_ids[i];
+        ASSERT(deq_idx < deq->queue_count);
+        // Get that FIFO queue.
         fifo = _deq_fifo(deq, deq_idx);
+        // Dequeue it immediately, return NULL if the queue was empty.
         deq_item = dvz_fifo_dequeue(fifo, false);
         if (deq_item != NULL)
         {
@@ -435,6 +441,26 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
 
     atomic_store(&deq->is_processing, false);
     return item_s;
+}
+
+DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait)
+{
+    ASSERT(deq != NULL);
+    ASSERT(deq->queue_count > 0);
+    // Create an array with {0, 1, 2, ..., queue_count}.
+    uint32_t* queue_ids = calloc(deq->queue_count, sizeof(uint32_t));
+    for (uint32_t i = 0; i < deq->queue_count; i++)
+        queue_ids[i] = i;
+    DvzDeqItem item = _deq_dequeue(deq, wait, deq->queue_count, queue_ids);
+    FREE(queue_ids);
+    return item;
+}
+
+DvzDeqItem
+dvz_deq_dequeue_partial(DvzDeq* deq, bool wait, uint32_t queue_count, uint32_t* queue_ids)
+{
+    ASSERT(deq != NULL);
+    return _deq_dequeue(deq, wait, queue_count, queue_ids);
 }
 
 
