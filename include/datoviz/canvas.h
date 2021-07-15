@@ -51,11 +51,25 @@ extern "C" {
 #define DVZ_DEFAULT_COMMANDS_RENDER   1
 #define DVZ_MAX_FRAMES_IN_FLIGHT      2
 
+// Three Deq queues: for canvas updates, sync event callbacks, async event callbacks.
+#define DVZ_CANVAS_DEQ_UPDATES 0
+#define DVZ_CANVAS_DEQ_SYNC    1
+#define DVZ_CANVAS_DEQ_ASYNC   2
+
 
 
 /*************************************************************************************************/
 /*  Enums                                                                                        */
 /*************************************************************************************************/
+
+typedef enum
+{
+    DVZ_CANVAS_UPDATE_NONE,
+    DVZ_CANVAS_UPDATE_TO_REFILL,
+    DVZ_CANVAS_UPDATE_TO_CLOSE,
+} DvzCanvasUpdates;
+
+
 
 // Canvas creation flags.
 typedef enum
@@ -617,6 +631,10 @@ struct DvzCanvas
     // Event callbacks, running in the background thread, may be slow, for end-users.
     uint32_t callbacks_count;
     DvzEventCallbackRegister callbacks[DVZ_MAX_EVENT_CALLBACKS];
+
+    // Deq
+    DvzDeq deq;
+    DvzThread thread; // processes the async events
 
     // Event queue.
     DvzFifo event_queue;

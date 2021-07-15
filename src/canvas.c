@@ -752,6 +752,26 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
         backend_event_callbacks(canvas);
     }
 
+    // Canvas Deq.
+    {
+        canvas->deq = dvz_deq(3);
+
+        // One proc per queue: all queues are processed independently.
+        dvz_deq_proc(
+            &canvas->deq, DVZ_CANVAS_DEQ_UPDATES, 1, (uint32_t[]){DVZ_CANVAS_DEQ_UPDATES});
+        dvz_deq_proc(&canvas->deq, DVZ_CANVAS_DEQ_SYNC, 1, (uint32_t[]){DVZ_CANVAS_DEQ_SYNC});
+        dvz_deq_proc(&canvas->deq, DVZ_CANVAS_DEQ_ASYNC, 1, (uint32_t[]){DVZ_CANVAS_DEQ_ASYNC});
+
+        // Deq callbacks.
+        dvz_deq_callback(
+            &canvas->deq, DVZ_CANVAS_DEQ_UPDATES, //
+            DVZ_CANVAS_UPDATE_TO_REFILL,          //
+            _canvas_to_refill, canvas);
+
+        // Thread processing the async events.
+        canvas->thread = dvz_thread(_canvas_thread, canvas);
+    }
+
     dvz_obj_created(&canvas->obj);
 
     // Update the viewport field.

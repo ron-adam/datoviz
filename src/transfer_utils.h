@@ -15,42 +15,12 @@
 /*  New transfers                                                                                */
 /*************************************************************************************************/
 
-static void* _transfer_loop(DvzContext* ctx, uint32_t proc_idx)
-{
-    ASSERT(ctx != NULL);
-    DvzDeqItem item = {0};
-
-    // These are the two queues that should be dequeued in the transfer thread. The two other
-    // queues, the copy thread, and the event thread, are to be dequeued by the main thread
-    // instead, in the main event loop.
-    while (true)
-    {
-        log_trace("waiting for proc #%d", proc_idx);
-        // This call dequeues an item and also calls all registered callbacks if the item is not
-        // null.
-        item = dvz_deq_dequeue(&ctx->deq, proc_idx, true);
-        if (item.item == NULL)
-        {
-            log_debug("stop the transfer loop for proc #%d", proc_idx);
-            break;
-        }
-        else
-        {
-            // WARNING: the DvzTransfer pointer MUST be alloc-ed on the heap, because it is always
-            // freed here after dequeue and callbacks.
-            log_trace("free item");
-            FREE(item.item);
-        }
-        log_trace("got a deq item on proc #%d", proc_idx);
-    }
-    return NULL;
-}
-
 // Process for the deq proc #0, which encompasses the two queues UPLOAD and DOWNLOAD.
 static void* _thread_transfers(void* user_data)
 {
     DvzContext* ctx = (DvzContext*)user_data;
-    return _transfer_loop(ctx, DVZ_TRANSFER_PROC_UD);
+    ASSERT(ctx != NULL);
+    return _deq_loop(&ctx->deq, DVZ_TRANSFER_PROC_UD);
 }
 
 

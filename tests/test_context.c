@@ -25,7 +25,6 @@ int test_context_buffer(TestContext* tc)
     // Allocate buffers.
     DvzBufferRegions br = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, 1, 1024);
     VkDeviceSize offset = br.alignment;
-    // DBG(br.alignment);
     // AT(br.aligned_size == 128);
     AT(br.count == 1);
 
@@ -203,23 +202,7 @@ static void _dl_done(DvzDeq* deq, void* item, void* user_data)
         *((int*)user_data) = 42;
 }
 
-// static void _enqueue_buffer_download(
-//     DvzDeq* deq, DvzBufferRegions br, VkDeviceSize br_offset, DvzBufferRegions stg,
-//     VkDeviceSize stg_offset, VkDeviceSize size, void* data)
-// {
-//     ASSERT(deq != NULL);
-//     ASSERT(size > 0);
 
-//     DvzTransfer* tr = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
-//     tr->type = DVZ_TRANSFER_BUFFER_DOWNLOAD;
-//     tr->u.buf.br = br;
-//     tr->u.buf.br_offset = br_offset;
-//     tr->u.buf.stg = stg;
-//     tr->u.buf.stg_offset = stg_offset;
-//     tr->u.buf.size = size;
-//     tr->u.buf.data = data;
-//     dvz_deq_enqueue(deq, DVZ_TRANSFER_DEQ_DL, tr->type, tr);
-// }
 
 int test_context_transfers_buffer_mappable(TestContext* tc)
 {

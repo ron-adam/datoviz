@@ -123,11 +123,9 @@ int test_utils_container(TestContext* tc)
         {
             obj = iter.item;
             AT(obj != NULL);
-            // log_info("%d", obj);
             if (i == 0)
                 AT(obj->x == 3);
             if (i == 1)
-                //     DBG(obj->x);
                 AT(obj->x == 2);
             if (i == 2)
                 AT(obj->x == 4);
