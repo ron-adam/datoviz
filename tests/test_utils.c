@@ -471,6 +471,29 @@ int test_utils_deq_proc(TestContext* tc)
 
 
 
+int test_utils_deq_circular(TestContext* tc)
+{
+    DvzDeq deq = dvz_deq(2);
+    dvz_deq_proc(&deq, 0, 2, (uint32_t[]){0, 1});
+
+    // Enqueue in the queue with a callback.
+    dvz_deq_enqueue(&deq, 0, 0, (int[]){(int)0});
+    dvz_deq_enqueue(&deq, 0, 0, (int[]){(int)1});
+    dvz_deq_enqueue(&deq, 0, 0, (int[]){(int)2});
+    dvz_deq_enqueue(&deq, 1, 0, (int[]){42});
+
+    // Item 42 in queue #1 should be obtained at the second dequeue() call thanks to the circular
+    // dequeueing logic.
+    int expected[4] = {0, 42, 1, 2};
+    for (uint32_t i = 0; i < 4; i++)
+        AT(*(int*)(dvz_deq_dequeue(&deq, 0, false).item) == expected[i]);
+
+    dvz_deq_destroy(&deq);
+    return 0;
+}
+
+
+
 /*************************************************************************************************/
 /*  Array tests                                                                                  */
 /*************************************************************************************************/

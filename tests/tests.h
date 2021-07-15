@@ -21,6 +21,7 @@ int test_utils_fifo_discard(TestContext*);
 int test_utils_fifo_first(TestContext*);
 int test_utils_deq_1(TestContext*);
 int test_utils_deq_2(TestContext*);
+int test_utils_deq_circular(TestContext*);
 int test_utils_deq_proc(TestContext*);
 
 int test_utils_array_1(TestContext*);
@@ -186,6 +187,7 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(NONE, test_utils_fifo_first),       //
     CASE_FIXTURE(NONE, test_utils_deq_1),            //
     CASE_FIXTURE(NONE, test_utils_deq_2),            //
+    CASE_FIXTURE(NONE, test_utils_deq_circular),     //
     CASE_FIXTURE(NONE, test_utils_deq_proc),         //
     CASE_FIXTURE(NONE, test_utils_array_1),          //
     CASE_FIXTURE(NONE, test_utils_array_2),          //

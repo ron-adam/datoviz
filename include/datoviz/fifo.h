@@ -85,6 +85,7 @@ struct DvzDeqProc
     // Which queues constitute this process.
     uint32_t queue_count;
     uint32_t queue_indices[DVZ_DEQ_MAX_PROC_SIZE];
+    uint32_t queue_offset; // offset that regularly increases at every call of dequeue()
 
     // Mutex and cond to signal when the deq is non-empty, and when to dequeue the first non-empty
     // underlying FIFO queues.

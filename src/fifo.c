@@ -465,7 +465,9 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
     for (uint32_t i = 0; i < proc->queue_count; i++)
     {
         // This is the ID of the queue.
-        deq_idx = proc->queue_indices[i];
+        // NOTE: process the queues circularly so that all queues successively get a chance to be
+        // dequeued, even if another queue is getting filled more quickly.
+        deq_idx = proc->queue_indices[(i + proc->queue_offset) % proc->queue_count];
         ASSERT(deq_idx < deq->queue_count);
 
         // Get that FIFO queue.
@@ -497,6 +499,7 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
     }
 
     atomic_store(&proc->is_processing, false);
+    proc->queue_offset = (proc->queue_offset + 1) % proc->queue_count;
     return item_s;
 }
 
