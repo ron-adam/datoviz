@@ -246,44 +246,44 @@ DvzContext* dvz_context(DvzGpu* gpu)
 
         // Three producer/consumer pairs (deq processes).
         dvz_deq_proc(
-            &context->deq, DVZ_CTX_DEQ_PUD, //
-            2, (uint32_t[]){DVZ_CTX_DEQ_UL, DVZ_CTX_DEQ_DL});
+            &context->deq, DVZ_TRANSFER_PROC_UD, //
+            2, (uint32_t[]){DVZ_TRANSFER_DEQ_UL, DVZ_TRANSFER_DEQ_DL});
         dvz_deq_proc(
-            &context->deq, DVZ_CTX_DEQ_PCPY, //
-            1, (uint32_t[]){DVZ_CTX_DEQ_COPY});
+            &context->deq, DVZ_TRANSFER_PROC_CPY, //
+            1, (uint32_t[]){DVZ_TRANSFER_DEQ_COPY});
         dvz_deq_proc(
-            &context->deq, DVZ_CTX_DEQ_PEV, //
-            1, (uint32_t[]){DVZ_CTX_DEQ_EV});
+            &context->deq, DVZ_TRANSFER_PROC_EV, //
+            1, (uint32_t[]){DVZ_TRANSFER_DEQ_EV});
 
         // Transfer deq callbacks.
         // Uploads.
         dvz_deq_callback(
-            &context->deq, DVZ_CTX_DEQ_UL, //
-            DVZ_TRANSFER_BUFFER_UPLOAD,    //
+            &context->deq, DVZ_TRANSFER_DEQ_UL, //
+            DVZ_TRANSFER_BUFFER_UPLOAD,         //
             _transfer_buffer_upload, context);
         dvz_deq_callback(
-            &context->deq, DVZ_CTX_DEQ_UL, //
-            DVZ_TRANSFER_TEXTURE_UPLOAD,   //
+            &context->deq, DVZ_TRANSFER_DEQ_UL, //
+            DVZ_TRANSFER_TEXTURE_UPLOAD,        //
             _transfer_texture_upload, context);
 
         // Downloads.
         dvz_deq_callback(
-            &context->deq, DVZ_CTX_DEQ_DL, //
-            DVZ_TRANSFER_BUFFER_DOWNLOAD,  //
+            &context->deq, DVZ_TRANSFER_DEQ_DL, //
+            DVZ_TRANSFER_BUFFER_DOWNLOAD,       //
             _transfer_buffer_download, context);
         dvz_deq_callback(
-            &context->deq, DVZ_CTX_DEQ_DL, //
-            DVZ_TRANSFER_TEXTURE_DOWNLOAD, //
+            &context->deq, DVZ_TRANSFER_DEQ_DL, //
+            DVZ_TRANSFER_TEXTURE_DOWNLOAD,      //
             _transfer_texture_download, context);
 
         // Copies.
         dvz_deq_callback(
-            &context->deq, DVZ_CTX_DEQ_COPY, //
-            DVZ_TRANSFER_BUFFER_COPY,        //
+            &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+            DVZ_TRANSFER_BUFFER_COPY,             //
             _transfer_buffer_copy, context);
         dvz_deq_callback(
-            &context->deq, DVZ_CTX_DEQ_COPY, //
-            DVZ_TRANSFER_TEXTURE_COPY,       //
+            &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+            DVZ_TRANSFER_TEXTURE_COPY,            //
             _transfer_texture_copy, context);
 
         // Transfer thread.
@@ -352,8 +352,8 @@ void dvz_context_destroy(DvzContext* context)
         dvz_fifo_destroy(&context->transfers); // TO REMOVE
 
         // Enqueue a STOP task to stop the UL and DL threads.
-        dvz_deq_enqueue(&context->deq, DVZ_CTX_DEQ_UL, 0, NULL);
-        dvz_deq_enqueue(&context->deq, DVZ_CTX_DEQ_DL, 0, NULL);
+        dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_UL, 0, NULL);
+        dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_DL, 0, NULL);
 
         // Join the UL and DL threads.
         dvz_thread_join(&context->thread);

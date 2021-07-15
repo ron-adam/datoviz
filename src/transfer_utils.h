@@ -50,7 +50,7 @@ static void* _transfer_loop(DvzContext* ctx, uint32_t proc_idx)
 static void* _thread_transfers(void* user_data)
 {
     DvzContext* ctx = (DvzContext*)user_data;
-    return _transfer_loop(ctx, DVZ_CTX_DEQ_PUD);
+    return _transfer_loop(ctx, DVZ_TRANSFER_PROC_UD);
 }
 
 
@@ -72,7 +72,7 @@ static void _enqueue_buffer_upload(
     tr->u.buf.br_offset = br_offset;
     tr->u.buf.size = size;
     tr->u.buf.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_UL, tr->type, tr);
+    dvz_deq_enqueue(deq, DVZ_TRANSFER_DEQ_UL, tr->type, tr);
 }
 
 static void _enqueue_buffer_download(
@@ -92,7 +92,7 @@ static void _enqueue_buffer_download(
     tr->u.buf.stg_offset = stg_offset;
     tr->u.buf.size = size;
     tr->u.buf.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_DL, tr->type, tr);
+    dvz_deq_enqueue(deq, DVZ_TRANSFER_DEQ_DL, tr->type, tr);
 }
 
 static void _enqueue_buffer_copy(
@@ -114,7 +114,7 @@ static void _enqueue_buffer_copy(
     trc->u.buf_copy.dst_offset = dst_offset;
     trc->u.buf_copy.size = size;
     trc->u.buf_copy.to_download = to_download;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_COPY, trc->type, trc);
+    dvz_deq_enqueue(deq, DVZ_TRANSFER_DEQ_COPY, trc->type, trc);
 }
 
 static void _enqueue_buffer_download_done(DvzDeq* deq, VkDeviceSize size, void* data)
@@ -128,7 +128,7 @@ static void _enqueue_buffer_download_done(DvzDeq* deq, VkDeviceSize size, void* 
     tr->type = DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE;
     tr->u.download.size = size;
     tr->u.download.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_EV, tr->type, tr);
+    dvz_deq_enqueue(deq, DVZ_TRANSFER_DEQ_EV, tr->type, tr);
 }
 
 
@@ -263,7 +263,7 @@ static void _enqueue_texture_upload(
     memcpy(tr->u.tex.shape, shape, sizeof(uvec3));
     tr->u.tex.size = size;
     tr->u.tex.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_UL, tr->type, tr);
+    dvz_deq_enqueue(deq, DVZ_TRANSFER_DEQ_UL, tr->type, tr);
 }
 
 static void _enqueue_texture_download(
@@ -284,7 +284,7 @@ static void _enqueue_texture_download(
     memcpy(tr->u.tex.shape, shape, sizeof(uvec3));
     tr->u.tex.size = size;
     tr->u.tex.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_DL, tr->type, tr);
+    dvz_deq_enqueue(deq, DVZ_TRANSFER_DEQ_DL, tr->type, tr);
 }
 
 static void _enqueue_texture_copy(
@@ -306,7 +306,7 @@ static void _enqueue_texture_copy(
     memcpy(trc->u.tex_copy.src_offset, src_offset, sizeof(uvec3));
     memcpy(trc->u.tex_copy.dst_offset, dst_offset, sizeof(uvec3));
     memcpy(trc->u.tex_copy.shape, shape, sizeof(uvec3));
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_COPY, trc->type, trc);
+    dvz_deq_enqueue(deq, DVZ_TRANSFER_DEQ_COPY, trc->type, trc);
 }
 
 static void _enqueue_texture_download_done(DvzDeq* deq, VkDeviceSize size, void* data)
@@ -320,7 +320,7 @@ static void _enqueue_texture_download_done(DvzDeq* deq, VkDeviceSize size, void*
     tr->type = DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE;
     tr->u.download.size = size;
     tr->u.download.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_EV, tr->type, tr);
+    dvz_deq_enqueue(deq, DVZ_TRANSFER_DEQ_EV, tr->type, tr);
 }
 
 

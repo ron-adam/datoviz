@@ -218,7 +218,7 @@ static void _dl_done(DvzDeq* deq, void* item, void* user_data)
 //     tr->u.buf.stg_offset = stg_offset;
 //     tr->u.buf.size = size;
 //     tr->u.buf.data = data;
-//     dvz_deq_enqueue(deq, DVZ_CTX_DEQ_DL, tr->type, tr);
+//     dvz_deq_enqueue(deq, DVZ_TRANSFER_DEQ_DL, tr->type, tr);
 // }
 
 int test_context_transfers_buffer_mappable(TestContext* tc)
@@ -228,7 +228,8 @@ int test_context_transfers_buffer_mappable(TestContext* tc)
 
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().
-    dvz_deq_callback(&ctx->deq, DVZ_CTX_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
+    dvz_deq_callback(
+        &ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
 
     uint8_t data[128] = {0};
     for (uint32_t i = 0; i < 128; i++)
@@ -245,7 +246,7 @@ int test_context_transfers_buffer_mappable(TestContext* tc)
     AT(res == 0);
 
     // Wait until the download_done event has been raised, dequeue it, and finish the test.
-    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PEV, true);
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
 
     // Check that the copy worked.
     AT(data2[127] == 127);
@@ -268,7 +269,8 @@ int test_context_transfers_buffer_large(TestContext* tc)
     data[size - 1] = 2;
 
     int res = 0; // should be set to 42 by _dl_done().
-    dvz_deq_callback(&ctx->deq, DVZ_CTX_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
+    dvz_deq_callback(
+        &ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
 
     // Allocate a staging buffer region.
     DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_STAGING);
@@ -289,7 +291,7 @@ int test_context_transfers_buffer_large(TestContext* tc)
     AT(res == 0);
 
     // Wait until the download_done event has been raised, dequeue it, and finish the test.
-    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PEV, true);
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
 
     // Check that the copy worked.
     AT(data2[0] == 1);
@@ -312,7 +314,8 @@ int test_context_transfers_buffer_copy(TestContext* tc)
 
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().
-    dvz_deq_callback(&ctx->deq, DVZ_CTX_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
+    dvz_deq_callback(
+        &ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
 
     uint8_t data[128] = {0};
     for (uint32_t i = 0; i < 128; i++)
@@ -325,15 +328,15 @@ int test_context_transfers_buffer_copy(TestContext* tc)
     _enqueue_buffer_upload(&ctx->deq, br, 0, stg, 0, 128, data);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
-    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PCPY, true);
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Enqueue a download transfer task.
     uint8_t data2[128] = {0};
     _enqueue_buffer_download(&ctx->deq, br, 0, stg, 0, 128, data2);
-    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PCPY, true);
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Wait until the download_done event has been raised, dequeue it, and finish the test.
-    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PEV, true);
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
 
     dvz_app_wait(tc->app);
 
@@ -370,21 +373,21 @@ int test_context_transfers_texture(TestContext* tc)
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().
     dvz_deq_callback(
-        &ctx->deq, DVZ_CTX_DEQ_EV, DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE, _dl_done, &res);
+        &ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE, _dl_done, &res);
 
     // Enqueue an upload transfer task.
     _enqueue_texture_upload(&ctx->deq, tex, offset, stg, (uvec3){0}, shape, size, data);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
-    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PCPY, true);
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Enqueue a download transfer task.
     uint8_t data2[256] = {0};
     _enqueue_texture_download(&ctx->deq, tex, offset, stg, (uvec3){0}, shape, size, data2);
-    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PCPY, true);
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Wait until the download_done event has been raised, dequeue it, and finish the test.
-    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PEV, true);
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
 
     dvz_app_wait(tc->app);
 
