@@ -28,7 +28,17 @@ static void _canvas_to_refill(DvzDeq* deq, void* item, void* user_data)
     ASSERT(deq != NULL);
     DvzCanvas* canvas = (DvzCanvas*)user_data;
     ASSERT(canvas != NULL);
-    // TODO
+    // TODO: set canvas->to_refill=true?
+}
+
+
+
+static void _canvas_to_close(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    DvzCanvas* canvas = (DvzCanvas*)user_data;
+    ASSERT(canvas != NULL);
+    // TODO: set canvas->to_close=true?
 }
 
 

@@ -762,11 +762,15 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
         dvz_deq_proc(&canvas->deq, DVZ_CANVAS_DEQ_SYNC, 1, (uint32_t[]){DVZ_CANVAS_DEQ_SYNC});
         dvz_deq_proc(&canvas->deq, DVZ_CANVAS_DEQ_ASYNC, 1, (uint32_t[]){DVZ_CANVAS_DEQ_ASYNC});
 
-        // Deq callbacks.
+        // Deq callbacks: canvas updates.
         dvz_deq_callback(
             &canvas->deq, DVZ_CANVAS_DEQ_UPDATES, //
             DVZ_CANVAS_UPDATE_TO_REFILL,          //
             _canvas_to_refill, canvas);
+        dvz_deq_callback(
+            &canvas->deq, DVZ_CANVAS_DEQ_UPDATES, //
+            DVZ_CANVAS_UPDATE_TO_CLOSE,           //
+            _canvas_to_close, canvas);
 
         // Thread processing the async events.
         canvas->thread = dvz_thread(_canvas_thread, canvas);
@@ -2660,9 +2664,26 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
 
     // Stop the event thread.
     dvz_gpu_wait(canvas->gpu);
+
+    // OLD: to remove
     dvz_event_stop(canvas);
     dvz_thread_join(&canvas->event_thread);
     dvz_fifo_destroy(&canvas->event_queue);
+
+
+    // Destroy the canvas deq.
+    {
+        // Enqueue a STOP task to stop the UL and DL threads.
+        // dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_UPDATES, 0, NULL);
+        // dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_SYNC, 0, NULL);
+        dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_ASYNC, 0, NULL);
+
+        // Join the UL and DL threads.
+        dvz_thread_join(&canvas->thread);
+
+        dvz_deq_destroy(&canvas->deq);
+    }
+
 
     // Destroy callbacks.
     _destroy_callbacks(canvas);
