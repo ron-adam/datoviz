@@ -1,3 +1,7 @@
+/*************************************************************************************************/
+/*  Input system (mouse, keyboard)                                                               */
+/*************************************************************************************************/
+
 #ifndef DVZ_INPUT_HEADER
 #define DVZ_INPUT_HEADER
 
@@ -11,6 +15,17 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+
+/*************************************************************************************************/
+/*  Constants                                                                                    */
+/*************************************************************************************************/
+
+#define DVZ_INPUT_DEQ_MOUSE    0
+#define DVZ_INPUT_DEQ_KEYBOARD 1
+
+#define DVZ_INPUT_MAX_CALLBACKS 64
 
 
 
@@ -104,7 +119,7 @@ typedef struct DvzInputMouseLocal DvzInputMouseLocal;
 typedef union DvzInputEvent DvzInputEvent;
 typedef struct DvzInput DvzInput;
 
-
+typedef struct DvzInputCallbackPayload DvzInputCallbackPayload;
 typedef void (*DvzInputCallback)(DvzInput*, DvzInputEvent, void*);
 
 
@@ -227,11 +242,25 @@ struct DvzInputKeyboard
 
 
 
+struct DvzInputCallbackPayload
+{
+    DvzInput* input;
+    DvzInputCallback callback;
+};
+
+
+
 struct DvzInput
 {
+    DvzBackend backend;
     DvzDeq deq;
     DvzInputMouse mouse;
     DvzInputKeyboard keyboard;
+
+    uint32_t callback_count;
+    DvzInputCallbackPayload callbacks[DVZ_INPUT_MAX_CALLBACKS];
+
+    void* window;
 };
 
 
@@ -242,12 +271,18 @@ struct DvzInput
 
 /**
  * Create an input struct.
- *
- * @param backend the backend
- * @param window the backend-specific window object
  * @returns the input struct
  */
-DVZ_EXPORT DvzInput dvz_input(DvzBackend backend, void* window);
+DVZ_EXPORT DvzInput dvz_input(void);
+
+/**
+ * Setup an input for a given backend and window object.
+ *
+ * @param input the input
+ * @param backend the backend
+ * @param window the backend-specific window object
+ */
+DVZ_EXPORT void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window);
 
 /**
  * Register an input callback.
@@ -268,6 +303,7 @@ dvz_input_callback(DvzInput* input, DvzInputType type, DvzInputCallback callback
  * @param ev the event union
  */
 DVZ_EXPORT void dvz_input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev);
+
 
 
 #ifdef __cplusplus
