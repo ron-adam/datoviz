@@ -18,6 +18,28 @@ extern "C" {
 /*  Enums                                                                                        */
 /*************************************************************************************************/
 
+typedef enum
+{
+    DVZ_INPUT_NONE,
+
+    DVZ_INPUT_MOUSE_MOVE,
+    DVZ_INPUT_MOUSE_PRESS,
+    DVZ_INPUT_MOUSE_RELEASE,
+    DVZ_INPUT_MOUSE_CLICK,
+    DVZ_INPUT_MOUSE_DOUBLE_CLICK,
+    DVZ_INPUT_MOUSE_WHEEL,
+    DVZ_INPUT_MOUSE_DRAG_BEGIN,
+    DVZ_INPUT_MOUSE_DRAG,
+    DVZ_INPUT_MOUSE_DRAG_END,
+
+    DVZ_INPUT_KEYBOARD_PRESS,
+    DVZ_INPUT_KEYBOARD_RELEASE,
+    DVZ_INPUT_KEYBOARD_STROKE,
+
+} DvzInputType;
+
+
+
 // Key modifiers
 // NOTE: must match GLFW values! no mapping is done for now
 typedef enum
@@ -69,10 +91,77 @@ typedef enum
 /*  Typedefs                                                                                     */
 /*************************************************************************************************/
 
+typedef struct DvzKeyEvent DvzKeyEvent;
+typedef struct DvzMouseButtonEvent DvzMouseButtonEvent;
+typedef struct DvzMouseClickEvent DvzMouseClickEvent;
+typedef struct DvzMouseDragEvent DvzMouseDragEvent;
+typedef struct DvzMouseMoveEvent DvzMouseMoveEvent;
+typedef struct DvzMouseWheelEvent DvzMouseWheelEvent;
+
 typedef struct DvzInputMouse DvzInputMouse;
 typedef struct DvzInputKeyboard DvzInputKeyboard;
 typedef struct DvzInputMouseLocal DvzInputMouseLocal;
+typedef union DvzInputEvent DvzInputEvent;
 typedef struct DvzInput DvzInput;
+
+
+typedef void (*DvzInputCallback)(DvzInput*, DvzInputEvent, void*);
+
+
+
+/*************************************************************************************************/
+/*  Event structs                                                                                */
+/*************************************************************************************************/
+
+struct DvzMouseButtonEvent
+{
+    DvzMouseButton button;
+    int modifiers;
+};
+
+
+
+struct DvzMouseMoveEvent
+{
+    vec2 pos;
+    int modifiers;
+};
+
+
+
+struct DvzMouseWheelEvent
+{
+    vec2 pos;
+    vec2 dir;
+    int modifiers;
+};
+
+
+
+struct DvzMouseDragEvent
+{
+    vec2 pos;
+    DvzMouseButton button;
+    int modifiers;
+};
+
+
+
+struct DvzMouseClickEvent
+{
+    vec2 pos;
+    DvzMouseButton button;
+    int modifiers;
+    bool double_click;
+};
+
+
+
+struct DvzKeyEvent
+{
+    DvzKeyCode key_code;
+    int modifiers;
+};
 
 
 
@@ -96,6 +185,18 @@ struct DvzInputMouse
     double press_time;
     double click_time;
     bool is_active;
+};
+
+
+
+union DvzInputEvent
+{
+    DvzKeyEvent k;         // for KEY events
+    DvzMouseButtonEvent b; // for BUTTON events
+    DvzMouseClickEvent c;  // for CLICK events
+    DvzMouseDragEvent d;   // for DRAG events
+    DvzMouseMoveEvent m;   // for MOVE events
+    DvzMouseWheelEvent w;  // for WHEEL events
 };
 
 
@@ -139,8 +240,34 @@ struct DvzInput
 /*  Functions                                                                                    */
 /*************************************************************************************************/
 
+/**
+ * Create an input struct.
+ *
+ * @param backend the backend
+ * @param window the backend-specific window object
+ * @returns the input struct
+ */
 DVZ_EXPORT DvzInput dvz_input(DvzBackend backend, void* window);
 
+/**
+ * Register an input callback.
+ *
+ * @param input the input
+ * @param type the input type
+ * @param callback the callback function
+ * @param user_data pointer to arbitrary data
+ */
+DVZ_EXPORT void
+dvz_input_callback(DvzInput* input, DvzInputType type, DvzInputCallback callback, void* user_data);
+
+/**
+ * Raise an input event, which will call all associated callbacks.
+ *
+ * @param input the input
+ * @param type the input type
+ * @param ev the event union
+ */
+DVZ_EXPORT void dvz_input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev);
 
 
 #ifdef __cplusplus

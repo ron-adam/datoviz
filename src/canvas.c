@@ -2507,10 +2507,10 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
         // Enqueue a STOP task to stop the UL and DL threads.
         // dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_UPDATES, 0, NULL);
         // dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_SYNC, 0, NULL);
-        dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_PROC_ASYNC, 0, NULL);
+        // dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_PROC_ASYNC, 0, NULL);
 
         // Join the UL and DL threads.
-        dvz_thread_join(&canvas->thread);
+        // dvz_thread_join(&canvas->thread);
 
         dvz_deq_destroy(&canvas->deq);
     }

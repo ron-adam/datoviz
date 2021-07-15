@@ -346,58 +346,6 @@ struct DvzViewport
 /*  Event structs                                                                                */
 /*************************************************************************************************/
 
-struct DvzMouseButtonEvent
-{
-    DvzMouseButton button;
-    int modifiers;
-};
-
-
-
-struct DvzMouseMoveEvent
-{
-    vec2 pos;
-    int modifiers;
-};
-
-
-
-struct DvzMouseWheelEvent
-{
-    vec2 pos;
-    vec2 dir;
-    int modifiers;
-};
-
-
-
-struct DvzMouseDragEvent
-{
-    vec2 pos;
-    DvzMouseButton button;
-    int modifiers;
-};
-
-
-
-struct DvzMouseClickEvent
-{
-    vec2 pos;
-    DvzMouseButton button;
-    int modifiers;
-    bool double_click;
-};
-
-
-
-struct DvzKeyEvent
-{
-    DvzKeyCode key_code;
-    int modifiers;
-};
-
-
-
 struct DvzFrameEvent
 {
     uint64_t idx;    // frame index
