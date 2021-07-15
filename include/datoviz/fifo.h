@@ -78,8 +78,8 @@ struct DvzDeqItem
     void* item;
 };
 
-// A Proc represents a pair consumer/producer, where typically one thread enqueues tasks in a
-// subset of the queues, and another thread dequeues tasks from that subset.
+// A Proc represents a pair consumer/producer, where typically one thread enqueues items in a
+// subset of the queues, and another thread dequeues items from that subset.
 struct DvzDeqProc
 {
     // Which queues constitute this process.
@@ -190,28 +190,123 @@ DVZ_EXPORT void dvz_fifo_destroy(DvzFifo* fifo);
 /*  Dequeues                                                                                     */
 /*************************************************************************************************/
 
+/**
+ * Create a Deq structure.
+ *
+ * A Deq is a set of dequeues, or double-ended queue. One can enqueue items in any of these queues,
+ * and dequeue items.
+ *
+ * A item is defined by a pointer, a queue index, and a type (integer).
+ *
+ * The Deq is thread-safe.
+ *
+ * The Deq is multi-producer, single consumer. Multiple threads may enqueue items, but only a
+ * single thread is supposed to dequeue items. That thread may also enqueue items.
+ *
+ * Function callbacks can be registered: they are called every time a item is dequeue. A callback
+ * is defined by its queue index, and a item type. It will only be called for items that were
+ * dequeued from the specified queue, if these items have the appropriate type.
+ *
+ * A Proc represents a pair of "processes" (to be understood in the general sense, not OS
+ * processes), with a producer and a consumer. It is defined by a subset of the queues, which are
+ * supposed to be dequeued from the item dequeueing loop (typically in a dedicated thread).
+ *
+ * @param capacity the maximum size
+ * @returns a Deq
+ */
 DVZ_EXPORT DvzDeq dvz_deq(uint32_t nq);
 
+/**
+ * Define a callback.
+ *
+ * @param deq the Deq
+ * @param deq_idx the queue index
+ * @param type the type to register the callback to
+ * @param user_data pointer to arbitrary data to be passed to the callback
+ */
 DVZ_EXPORT void dvz_deq_callback(
     DvzDeq* deq, uint32_t deq_idx, int type, DvzDeqCallback callback, void* user_data);
 
+/**
+ * Define a Proc.
+ *
+ * @param deq the Deq
+ * @param proc_idx the Proc index (should be regularly increasing: 0, 1, 2, ...)
+ * @param queue_count the number of queues in the Proc
+ * @param queue_ids the indices of the queues in the Proc
+ */
 DVZ_EXPORT void
 dvz_deq_proc(DvzDeq* deq, uint32_t proc_idx, uint32_t queue_count, uint32_t* queue_ids);
 
+/**
+ * Enqueue an item.
+ *
+ * @param deq the Deq
+ * @param deq_idx the queue index
+ * @param type the item type
+ * @param item a pointer to the item
+ */
 DVZ_EXPORT void dvz_deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item);
 
+/**
+ * Enqueue an item at the first position.
+ *
+ * @param deq the Deq
+ * @param deq_idx the queue index
+ * @param type the item type
+ * @param item a pointer to the item
+ */
 DVZ_EXPORT void dvz_deq_enqueue_first(DvzDeq* deq, uint32_t deq_idx, int type, void* item);
 
+/**
+ * Delete a number of items in a given queue.
+ *
+ * @param deq the Deq
+ * @param deq_idx the queue index
+ * @param max_size the maximum number of items to delete
+ */
 DVZ_EXPORT void dvz_deq_discard(DvzDeq* deq, uint32_t deq_idx, int max_size);
 
+/**
+ * Return the first item item in a given queue.
+ *
+ * @param deq the Deq
+ * @param deq_idx the queue index
+ * @returns the item
+ */
 DVZ_EXPORT DvzDeqItem dvz_deq_peek_first(DvzDeq* deq, uint32_t deq_idx);
 
+/**
+ * Return thea last item item in a given queue.
+ *
+ * @param deq the Deq
+ * @param deq_idx the queue index
+ * @returns the item
+ */
 DVZ_EXPORT DvzDeqItem dvz_deq_peek_last(DvzDeq* deq, uint32_t deq_idx);
 
+/**
+ * Dequeue a non-empty item from one of the queues of a given proc.
+ *
+ * @param deq the Deq
+ * @param proc_idx the Proc index
+ * @param wait whether this call should be blocking
+ */
 DVZ_EXPORT DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait);
 
+/**
+ * Wait until all queues within a given Proc are empty.
+ *
+ * @param deq the Deq
+ * @param proc_idx the Proc index
+ */
 DVZ_EXPORT void dvz_deq_wait(DvzDeq* deq, uint32_t proc_idx);
 
+/**
+ * Destroy a Deq.
+ *
+ * @param deq the Deq
+ */
 DVZ_EXPORT void dvz_deq_destroy(DvzDeq* deq);
 
 
