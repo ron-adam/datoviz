@@ -51,10 +51,17 @@ extern "C" {
 #define DVZ_DEFAULT_COMMANDS_RENDER   1
 #define DVZ_MAX_FRAMES_IN_FLIGHT      2
 
-// Three Deq queues: for canvas updates, sync event callbacks, async event callbacks.
-#define DVZ_CANVAS_DEQ_UPDATES 0
-#define DVZ_CANVAS_DEQ_SYNC    1
-#define DVZ_CANVAS_DEQ_ASYNC   2
+// Three Deq queues: for canvas updates, sync event callbacks, async event callbacks (mouse,
+// keyboard).
+#define DVZ_CANVAS_DEQ_UPDATES  0
+#define DVZ_CANVAS_DEQ_SYNC     1
+#define DVZ_CANVAS_DEQ_MOUSE    2
+#define DVZ_CANVAS_DEQ_KEYBOARD 3
+
+// Three groups of queues. The Async proc is for mouse and keyboard events.
+#define DVZ_CANVAS_PROC_UPDATES 0
+#define DVZ_CANVAS_PROC_SYNC    1
+#define DVZ_CANVAS_PROC_ASYNC   2
 
 
 
@@ -68,6 +75,14 @@ typedef enum
     DVZ_CANVAS_UPDATE_TO_REFILL,
     DVZ_CANVAS_UPDATE_TO_CLOSE,
 } DvzCanvasUpdates;
+
+
+
+typedef enum
+{
+    DVZ_CANVAS_MOUSE_NONE, //
+    DVZ_CANVAS_MOUSE_MOVE, // called when the mouse moves
+} DvzCanvasMouseType;
 
 
 

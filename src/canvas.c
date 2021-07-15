@@ -143,6 +143,15 @@ static void _glfw_button_callback(GLFWwindow* window, int button, int action, in
         dvz_event_mouse_release(canvas, b, mods);
 }
 
+static void _enqueue_mouse_move(DvzCanvas* canvas, vec2 pos, int modifiers)
+{
+    DvzMouseMoveEvent* ev = calloc(1, sizeof(DvzMouseMoveEvent));
+    ev->pos[0] = pos[0];
+    ev->pos[1] = pos[1];
+    ev->modifiers = modifiers;
+    dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_MOUSE, DVZ_CANVAS_MOUSE_MOVE, ev);
+}
+
 static void _glfw_move_callback(GLFWwindow* window, double xpos, double ypos)
 {
     DvzCanvas* canvas = (DvzCanvas*)glfwGetWindowUserPointer(window);
@@ -151,7 +160,9 @@ static void _glfw_move_callback(GLFWwindow* window, double xpos, double ypos)
     if (!canvas->mouse.is_active)
         return;
 
-    dvz_event_mouse_move(canvas, (vec2){xpos, ypos}, canvas->mouse.modifiers);
+    // TODO: get modifier from canvas struct
+    _enqueue_mouse_move(canvas, (vec2){xpos, ypos}, 0);
+    // dvz_event_mouse_move(canvas, (vec2){xpos, ypos}, canvas->mouse.modifiers);
 }
 
 static void _glfw_frame_callback(DvzCanvas* canvas, DvzEvent ev)
@@ -220,7 +231,8 @@ static void backend_event_callbacks(DvzCanvas* canvas)
         glfwSetMouseButtonCallback(w, _glfw_button_callback);
 
         // Register the mouse move callback.
-        // glfwSetCursorPosCallback(w, _glfw_move_callback);
+        // TODO: comment?? if commented, see _glfw_frame_callback
+        glfwSetCursorPosCallback(w, _glfw_move_callback);
 
         // Register a function called at every frame, after event polling and state update
         dvz_event_callback(
@@ -754,13 +766,16 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
 
     // Canvas Deq.
     {
-        canvas->deq = dvz_deq(3);
+        canvas->deq = dvz_deq(4);
 
-        // One proc per queue: all queues are processed independently.
+        // Procs
         dvz_deq_proc(
-            &canvas->deq, DVZ_CANVAS_DEQ_UPDATES, 1, (uint32_t[]){DVZ_CANVAS_DEQ_UPDATES});
-        dvz_deq_proc(&canvas->deq, DVZ_CANVAS_DEQ_SYNC, 1, (uint32_t[]){DVZ_CANVAS_DEQ_SYNC});
-        dvz_deq_proc(&canvas->deq, DVZ_CANVAS_DEQ_ASYNC, 1, (uint32_t[]){DVZ_CANVAS_DEQ_ASYNC});
+            &canvas->deq, DVZ_CANVAS_PROC_UPDATES, 1, (uint32_t[]){DVZ_CANVAS_DEQ_UPDATES});
+        dvz_deq_proc(&canvas->deq, DVZ_CANVAS_PROC_SYNC, 1, (uint32_t[]){DVZ_CANVAS_DEQ_SYNC});
+        // One Proc for mouse and keyboard events in the async thread.
+        dvz_deq_proc(
+            &canvas->deq, DVZ_CANVAS_PROC_ASYNC, 2,
+            (uint32_t[]){DVZ_CANVAS_DEQ_MOUSE, DVZ_CANVAS_DEQ_KEYBOARD});
 
         // Deq callbacks: canvas updates.
         dvz_deq_callback(
@@ -771,6 +786,11 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
             &canvas->deq, DVZ_CANVAS_DEQ_UPDATES, //
             DVZ_CANVAS_UPDATE_TO_CLOSE,           //
             _canvas_to_close, canvas);
+
+        dvz_deq_callback(
+            &canvas->deq, DVZ_CANVAS_DEQ_MOUSE, //
+            DVZ_CANVAS_MOUSE_MOVE,              //
+            _canvas_mouse_move, canvas);
 
         // Thread processing the async events.
         canvas->thread = dvz_thread(_canvas_thread, canvas);
@@ -2676,7 +2696,7 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
         // Enqueue a STOP task to stop the UL and DL threads.
         // dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_UPDATES, 0, NULL);
         // dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_SYNC, 0, NULL);
-        dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_ASYNC, 0, NULL);
+        dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_PROC_ASYNC, 0, NULL);
 
         // Join the UL and DL threads.
         dvz_thread_join(&canvas->thread);
