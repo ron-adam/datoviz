@@ -6,8 +6,8 @@
 #define DVZ_CANVAS_HEADER
 
 #include "context.h"
-#include "events.h"
 #include "fifo.h"
+#include "input.h"
 #include "keycode.h"
 #include "transfers.h"
 #include "vklite.h"
@@ -140,29 +140,6 @@ typedef enum
     DVZ_INTERACT_FIXED_AXIS_ALL = 0x7000,
     DVZ_INTERACT_FIXED_AXIS_NONE = 0x8000,
 } DvzInteractAxis;
-
-
-
-// Mouse state type
-typedef enum
-{
-    DVZ_MOUSE_STATE_INACTIVE,
-    DVZ_MOUSE_STATE_DRAG,
-    DVZ_MOUSE_STATE_WHEEL,
-    DVZ_MOUSE_STATE_CLICK,
-    DVZ_MOUSE_STATE_DOUBLE_CLICK,
-    DVZ_MOUSE_STATE_CAPTURE,
-} DvzMouseStateType;
-
-
-
-// Key state type
-typedef enum
-{
-    DVZ_KEYBOARD_STATE_INACTIVE,
-    DVZ_KEYBOARD_STATE_ACTIVE,
-    DVZ_KEYBOARD_STATE_CAPTURE,
-} DvzKeyboardStateType;
 
 
 

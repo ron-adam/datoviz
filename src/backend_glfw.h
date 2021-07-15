@@ -2,7 +2,7 @@
 #define DVZ_CANVAS_BACKEND_GLFW_HEADER
 
 #include "../include/datoviz/canvas.h"
-#include "../include/datoviz/events.h"
+#include "../include/datoviz/input.h"
 #include "../include/datoviz/keycode.h"
 
 #ifdef __cplusplus
