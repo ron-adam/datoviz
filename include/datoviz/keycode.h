@@ -1,3 +1,8 @@
+#ifndef DVZ_KEYCODE_HEADER
+#define DVZ_KEYCODE_HEADER
+
+
+
 /*************************************************************************************************/
 /*  Keyboard key codes (must correspond to glfw for now)                                         */
 /*************************************************************************************************/
@@ -128,3 +133,7 @@ typedef enum
     DVZ_KEY_MENU = 348,
     DVZ_KEY_LAST = 348,
 } DvzKeyCode;
+
+
+
+#endif
