@@ -83,6 +83,8 @@ struct DvzTransferTextureCopy
 {
     DvzTexture *src, *dst;
     uvec3 src_offset, dst_offset, shape;
+    VkDeviceSize size;
+    void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
 };
 
 

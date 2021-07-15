@@ -1,4 +1,5 @@
 #include "../include/datoviz/context.h"
+#include "../src/context_utils.h"
 #include "proto.h"
 #include "tests.h"
 
@@ -202,39 +203,23 @@ static void _dl_done(DvzDeq* deq, void* item, void* user_data)
         *((int*)user_data) = 42;
 }
 
-static void _enqueue_buffer_upload(
-    DvzDeq* deq, DvzBufferRegions br, VkDeviceSize br_offset, DvzBufferRegions stg,
-    VkDeviceSize stg_offset, VkDeviceSize size, void* data)
-{
-    ASSERT(deq != NULL);
-    DvzTransfer* tr = calloc(1, sizeof(DvzTransfer));
-    tr->type = DVZ_TRANSFER_BUFFER_UPLOAD;
-    tr->u.buf.stg = stg;
-    tr->u.buf.stg_offset = stg_offset;
-    tr->u.buf.br = br;
-    tr->u.buf.br_offset = br_offset;
-    tr->u.buf.size = size;
-    tr->u.buf.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_UL, tr->type, tr);
-}
+// static void _enqueue_buffer_download(
+//     DvzDeq* deq, DvzBufferRegions br, VkDeviceSize br_offset, DvzBufferRegions stg,
+//     VkDeviceSize stg_offset, VkDeviceSize size, void* data)
+// {
+//     ASSERT(deq != NULL);
+//     ASSERT(size > 0);
 
-static void _enqueue_buffer_download(
-    DvzDeq* deq, DvzBufferRegions br, VkDeviceSize br_offset, DvzBufferRegions stg,
-    VkDeviceSize stg_offset, VkDeviceSize size, void* data)
-{
-    ASSERT(deq != NULL);
-    ASSERT(size > 0);
-
-    DvzTransfer* tr = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
-    tr->type = DVZ_TRANSFER_BUFFER_DOWNLOAD;
-    tr->u.buf.br = br;
-    tr->u.buf.br_offset = br_offset;
-    tr->u.buf.stg = stg;
-    tr->u.buf.stg_offset = stg_offset;
-    tr->u.buf.size = size;
-    tr->u.buf.data = data;
-    dvz_deq_enqueue(deq, DVZ_CTX_DEQ_DL, tr->type, tr);
-}
+//     DvzTransfer* tr = calloc(1, sizeof(DvzTransfer)); // will be free-ed by the callbacks
+//     tr->type = DVZ_TRANSFER_BUFFER_DOWNLOAD;
+//     tr->u.buf.br = br;
+//     tr->u.buf.br_offset = br_offset;
+//     tr->u.buf.stg = stg;
+//     tr->u.buf.stg_offset = stg_offset;
+//     tr->u.buf.size = size;
+//     tr->u.buf.data = data;
+//     dvz_deq_enqueue(deq, DVZ_CTX_DEQ_DL, tr->type, tr);
+// }
 
 int test_context_transfers_buffer_mappable(TestContext* tc)
 {
@@ -356,6 +341,57 @@ int test_context_transfers_buffer_copy(TestContext* tc)
     AT(data2[127] == 127);
     AT(memcmp(data2, data, 128) == 0);
     AT(res == 42);
+
+    return 0;
+}
+
+
+
+int test_context_transfers_texture(TestContext* tc)
+{
+    DvzContext* ctx = tc->context;
+    ASSERT(ctx != NULL);
+
+    uvec3 shape_full = {16, 48, 1};
+    uvec3 offset = {0, 16, 0};
+    uvec3 shape = {16, 16, 1};
+    VkDeviceSize size = 256;
+    VkFormat format = VK_FORMAT_R8G8B8A8_UINT;
+
+    // Texture data.
+    uint8_t data[256] = {0};
+    for (uint32_t i = 0; i < 256; i++)
+        data[i] = i;
+
+    // Texture.
+    DvzTexture* tex = dvz_ctx_texture(ctx, 2, shape_full, format);
+    DvzTexture* stg = dvz_ctx_texture(ctx, 2, shape, format);
+
+    // Callback for when the download has finished.
+    int res = 0; // should be set to 42 by _dl_done().
+    dvz_deq_callback(
+        &ctx->deq, DVZ_CTX_DEQ_EV, DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE, _dl_done, &res);
+
+    // Enqueue an upload transfer task.
+    _enqueue_texture_upload(&ctx->deq, tex, offset, stg, (uvec3){0}, shape, size, data);
+    // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
+    // (the background thread only processes download/upload tasks).
+    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PCPY, true);
+
+    // Enqueue a download transfer task.
+    uint8_t data2[256] = {0};
+    _enqueue_texture_download(&ctx->deq, tex, offset, stg, (uvec3){0}, shape, size, data2);
+    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PCPY, true);
+
+    // Wait until the download_done event has been raised, dequeue it, and finish the test.
+    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PEV, true);
+
+    dvz_app_wait(tc->app);
+
+    // Check.
+    AT(memcmp(data2, data, 256) == 0);
+    for (uint32_t i = 0; i < 256; i++)
+        AT(data2[i] == i);
 
     return 0;
 }
