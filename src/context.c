@@ -1,6 +1,7 @@
 #include "../include/datoviz/context.h"
 #include "../include/datoviz/atlas.h"
 #include "context_utils.h"
+#include "transfer_utils.h"
 #include "vklite_utils.h"
 #include <stdlib.h>
 
@@ -206,7 +207,7 @@ void dvz_gpu_default(DvzGpu* gpu, DvzWindow* window)
 
 
 /*************************************************************************************************/
-/*  Transfer deq                                                                                 */
+/*  Context                                                                                      */
 /*************************************************************************************************/
 
 DvzContext* dvz_context(DvzGpu* gpu)
