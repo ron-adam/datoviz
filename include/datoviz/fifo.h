@@ -19,6 +19,8 @@ extern "C" {
 
 #define DVZ_MAX_FIFO_CAPACITY 256
 #define DVZ_DEQ_MAX_QUEUES    8
+#define DVZ_DEQ_MAX_PROC_SIZE 4
+#define DVZ_DEQ_MAX_PROCS     4
 #define DVZ_DEQ_MAX_CALLBACKS 32
 
 
@@ -30,6 +32,7 @@ extern "C" {
 typedef struct DvzFifo DvzFifo;
 typedef struct DvzDeq DvzDeq;
 typedef struct DvzDeqItem DvzDeqItem;
+typedef struct DvzDeqProc DvzDeqProc;
 typedef struct DvzDeqCallbackRegister DvzDeqCallbackRegister;
 
 typedef void (*DvzDeqCallback)(DvzDeq* deq, void* item, void* user_data);
@@ -75,6 +78,21 @@ struct DvzDeqItem
     void* item;
 };
 
+// A Proc represents a pair consumer/producer, where typically one thread enqueues tasks in a
+// subset of the queues, and another thread dequeues tasks from that subset.
+struct DvzDeqProc
+{
+    // Which queues constitute this process.
+    uint32_t queue_count;
+    uint32_t queue_indices[DVZ_DEQ_MAX_PROC_SIZE];
+
+    // Mutex and cond to signal when the deq is non-empty, and when to dequeue the first non-empty
+    // underlying FIFO queues.
+    pthread_mutex_t lock;
+    pthread_cond_t cond;
+    atomic(bool, is_processing);
+};
+
 struct DvzDeq
 {
     uint32_t queue_count;
@@ -83,11 +101,9 @@ struct DvzDeq
     uint32_t callback_count;
     DvzDeqCallbackRegister callbacks[DVZ_DEQ_MAX_CALLBACKS];
 
-    // Mutex and cond to signal when the deq is non-empty, and when to dequeue the first non-empty
-    // underlying FIFO queues.
-    pthread_mutex_t lock;
-    pthread_cond_t cond;
-    atomic(bool, is_processing);
+    uint32_t proc_count;
+    DvzDeqProc procs[DVZ_DEQ_MAX_PROCS];
+    uint32_t q_to_proc[DVZ_DEQ_MAX_QUEUES]; // for each queue, which proc idx is handling it
 };
 
 
@@ -179,6 +195,9 @@ DVZ_EXPORT DvzDeq dvz_deq(uint32_t nq);
 DVZ_EXPORT void dvz_deq_callback(
     DvzDeq* deq, uint32_t deq_idx, int type, DvzDeqCallback callback, void* user_data);
 
+DVZ_EXPORT void
+dvz_deq_proc(DvzDeq* deq, uint32_t proc_idx, uint32_t queue_count, uint32_t* queue_ids);
+
 DVZ_EXPORT void dvz_deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item);
 
 DVZ_EXPORT void dvz_deq_enqueue_first(DvzDeq* deq, uint32_t deq_idx, int type, void* item);
@@ -189,12 +208,9 @@ DVZ_EXPORT DvzDeqItem dvz_deq_peek_first(DvzDeq* deq, uint32_t deq_idx);
 
 DVZ_EXPORT DvzDeqItem dvz_deq_peek_last(DvzDeq* deq, uint32_t deq_idx);
 
-DVZ_EXPORT DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, bool wait);
+DVZ_EXPORT DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait);
 
-DVZ_EXPORT DvzDeqItem
-dvz_deq_dequeue_partial(DvzDeq* deq, bool wait, uint32_t queue_count, uint32_t* queue_ids);
-
-DVZ_EXPORT void dvz_deq_wait(DvzDeq* deq);
+DVZ_EXPORT void dvz_deq_wait(DvzDeq* deq, uint32_t proc_idx);
 
 DVZ_EXPORT void dvz_deq_destroy(DvzDeq* deq);
 

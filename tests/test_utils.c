@@ -364,11 +364,12 @@ int test_utils_deq_1(TestContext* tc)
 
     int data = 0;
     dvz_deq_callback(&deq, 0, 0, _deq_1_callback, &data);
+    dvz_deq_proc(&deq, 0, 2, (uint32_t[]){0, 1});
     AT(data == 0);
 
     // Enqueue in the queue with a callback.
     dvz_deq_enqueue(&deq, 0, 0, (int[]){2});
-    item = dvz_deq_dequeue(&deq, false);
+    item = dvz_deq_dequeue(&deq, 0, false);
     AT(item.deq_idx == 0);
     AT(item.type == 0);
     AT(data == 2);
@@ -376,28 +377,28 @@ int test_utils_deq_1(TestContext* tc)
     // Enqueue in the queue without a callback.
     data = 0;
     dvz_deq_enqueue(&deq, 1, 10, (int[]){2});
-    item = dvz_deq_dequeue(&deq, false);
+    item = dvz_deq_dequeue(&deq, 0, false);
     AT(item.deq_idx == 1);
     AT(item.type == 10);
     AT(data == 0);
 
     // Enqueue in the queue with a callback.
     dvz_deq_enqueue(&deq, 0, 10, (int[]){3});
-    item = dvz_deq_dequeue(&deq, false);
+    item = dvz_deq_dequeue(&deq, 0, false);
     AT(item.deq_idx == 0);
     AT(item.type == 10);
     AT(data == 0);
 
     dvz_deq_callback(&deq, 0, 10, _deq_1_callback, &data);
     dvz_deq_enqueue(&deq, 0, 10, (int[]){4});
-    item = dvz_deq_dequeue(&deq, false);
+    item = dvz_deq_dequeue(&deq, 0, false);
     AT(item.deq_idx == 0);
     AT(item.type == 10);
     AT(item.item != NULL);
     AT(data == 4);
 
     // Supbsequent dequeues are empty.
-    item = dvz_deq_dequeue(&deq, false);
+    item = dvz_deq_dequeue(&deq, 0, false);
     AT(item.item == NULL);
 
     dvz_deq_destroy(&deq);
@@ -409,6 +410,7 @@ int test_utils_deq_1(TestContext* tc)
 int test_utils_deq_2(TestContext* tc)
 {
     DvzDeq deq = dvz_deq(2);
+    dvz_deq_proc(&deq, 0, 2, (uint32_t[]){0, 1});
     DvzDeqItem item = {0};
 
     // Enqueue in the queue with a callback.
@@ -432,6 +434,36 @@ int test_utils_deq_2(TestContext* tc)
     item = dvz_deq_peek_last(&deq, 1);
     AT(item.type == 10);
     AT(*(int*)(item.item) == 4);
+
+    dvz_deq_destroy(&deq);
+    return 0;
+}
+
+
+
+int test_utils_deq_proc(TestContext* tc)
+{
+    DvzDeq deq = dvz_deq(3);
+    dvz_deq_proc(&deq, 0, 2, (uint32_t[]){0, 1});
+    dvz_deq_proc(&deq, 1, 1, (uint32_t[]){2});
+    DvzDeqItem item = {0};
+
+    // Enqueue in the queue with a callback.
+    dvz_deq_enqueue(&deq, 1, 0, (int[]){1});
+    dvz_deq_enqueue(&deq, 2, 0, (int[]){2});
+
+    // Dequeue the first proc.
+    item = dvz_deq_dequeue(&deq, 0, true);
+    AT(*((uint8_t*)item.item) == 1);
+
+    // Here the queue #2 is non-empty, but the wait still returns because only for proc 0 that does
+    // not contain queue #2.
+    dvz_deq_wait(&deq, 0);
+
+    // Dequeue the second proc.
+    item = dvz_deq_dequeue(&deq, 1, true);
+    AT(*((uint8_t*)item.item) == 2);
+    dvz_deq_wait(&deq, 1);
 
     dvz_deq_destroy(&deq);
     return 0;
