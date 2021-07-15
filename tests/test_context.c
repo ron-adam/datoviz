@@ -259,8 +259,8 @@ int test_context_transfers_buffer_mappable(TestContext* tc)
     _enqueue_buffer_download(&ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, 128, data2);
     AT(res == 0);
 
-    // Wait for the transfer thread to process both transfer tasks.
-    dvz_deq_wait(&ctx->deq);
+    // Wait until the download_done event has been raised, dequeue it, and finish the test.
+    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PEV, true);
 
     // Check that the copy worked.
     AT(data2[127] == 127);
@@ -277,8 +277,13 @@ int test_context_transfers_buffer_large(TestContext* tc)
     DvzContext* ctx = tc->context;
     ASSERT(ctx != NULL);
 
-    uint64_t size = 256 * 1024 * 1024;
+    uint64_t size = 64 * 1024 * 1024;
     uint8_t* data = calloc(size, 1);
+    data[0] = 1;
+    data[size - 1] = 2;
+
+    int res = 0; // should be set to 42 by _dl_done().
+    dvz_deq_callback(&ctx->deq, DVZ_CTX_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
 
     // Allocate a staging buffer region.
     DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_STAGING);
@@ -290,9 +295,25 @@ int test_context_transfers_buffer_large(TestContext* tc)
 
     // Wait for the transfer thread to process both transfer tasks.
     dvz_app_wait(tc->app);
-    dvz_deq_wait(&ctx->deq);
+
+    // Enqueue a download transfer task.
+    uint8_t* data2 = calloc(size, 1);
+    _enqueue_buffer_download(&ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, size, data2);
+    // This download task will be processed by the background transfer thread. At the end, it will
+    // enqueue a DOWNLOAD_DONE task in the EV queue.
+    AT(res == 0);
+
+    // Wait until the download_done event has been raised, dequeue it, and finish the test.
+    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PEV, true);
+
+    // Check that the copy worked.
+    AT(data2[0] == 1);
+    AT(data2[size - 1] == 2);
+    AT(memcmp(data2, data, size) == 0); // SHOULD FAIL
+    AT(res == 42);
 
     FREE(data);
+    FREE(data2);
 
     return 0;
 }
@@ -317,16 +338,19 @@ int test_context_transfers_buffer_copy(TestContext* tc)
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&ctx->deq, br, 0, stg, 0, 128, data);
-
-    // Wait for the transfer thread to upload and copy to the target buffer.
-    dvz_deq_wait(&ctx->deq);
+    // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
+    // (the background thread only processes download/upload tasks).
+    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PCPY, true);
 
     // Enqueue a download transfer task.
     uint8_t data2[128] = {0};
     _enqueue_buffer_download(&ctx->deq, br, 0, stg, 0, 128, data2);
+    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PCPY, true);
 
-    // Wait for the transfer thread to process the download.
-    dvz_deq_wait(&ctx->deq);
+    // Wait until the download_done event has been raised, dequeue it, and finish the test.
+    dvz_deq_dequeue(&ctx->deq, DVZ_CTX_DEQ_PEV, true);
+
+    dvz_app_wait(tc->app);
 
     // Check that the copy worked.
     AT(data2[127] == 127);

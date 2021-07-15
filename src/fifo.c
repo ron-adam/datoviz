@@ -360,6 +360,7 @@ static void _deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item, bo
         dvz_fifo_enqueue(fifo, deq_item);
     else
         dvz_fifo_enqueue_first(fifo, deq_item);
+    log_trace("signal cond of proc #%d", proc_idx);
     pthread_cond_signal(&proc->cond);
     pthread_mutex_unlock(&proc->lock);
 }
@@ -418,6 +419,8 @@ DvzDeqItem dvz_deq_peek_last(DvzDeq* deq, uint32_t deq_idx)
 static int _deq_size(DvzDeq* deq, uint32_t queue_count, uint32_t* queue_ids)
 {
     ASSERT(deq != NULL);
+    ASSERT(queue_count > 0);
+    ASSERT(queue_ids != NULL);
     int size = 0;
     uint32_t deq_idx = 0;
     for (uint32_t i = 0; i < queue_count; i++)
@@ -445,11 +448,16 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
     // Wait until the queue is not empty.
     if (wait)
     {
-        log_trace("waiting for the queue to be non-empty");
+        log_trace("waiting for one of the queues in proc #%d to be non-empty", proc_idx);
         while (_deq_size(deq, proc->queue_count, proc->queue_indices) == 0)
+        {
+            log_trace("waiting for proc #%d cond", proc_idx);
             // NOTE: this call automatically releases the mutex while waiting, and reacquires it
             // afterwards
             pthread_cond_wait(&proc->cond, &proc->lock);
+            log_trace("proc #%d cond signaled!", proc_idx);
+        }
+        log_trace("proc #%d has an item", proc_idx);
     }
 
     // Go through the passed queue indices.

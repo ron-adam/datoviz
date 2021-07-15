@@ -34,6 +34,10 @@ extern "C" {
 #define DVZ_CTX_DEQ_DL   1
 #define DVZ_CTX_DEQ_COPY 2
 #define DVZ_CTX_DEQ_EV   3
+// Three deq processes: upload/download, copy, event (incl. download_done)
+#define DVZ_CTX_DEQ_PUD  0
+#define DVZ_CTX_DEQ_PCPY 1
+#define DVZ_CTX_DEQ_PEV  2
 
 #define DVZ_ZERO_OFFSET                                                                           \
     (uvec3) { 0, 0, 0 }

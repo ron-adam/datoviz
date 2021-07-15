@@ -209,20 +209,23 @@ void dvz_gpu_default(DvzGpu* gpu, DvzWindow* window)
 /*  Transfer deq                                                                                 */
 /*************************************************************************************************/
 
-static void* _thread_transfers(void* user_data)
+static void* _transfer_loop(DvzContext* ctx, uint32_t proc_idx)
 {
-    DvzContext* ctx = (DvzContext*)user_data;
     ASSERT(ctx != NULL);
     DvzDeqItem item = {0};
+
+    // These are the two queues that should be dequeued in the transfer thread. The two other
+    // queues, the copy thread, and the event thread, are to be dequeued by the main thread
+    // instead, in the main event loop.
     while (true)
     {
-        log_trace("waiting for the deq");
+        log_trace("waiting for proc #%d", proc_idx);
         // This call dequeues an item and also calls all registered callbacks if the item is not
         // null.
-        item = dvz_deq_dequeue(&ctx->deq, true);
+        item = dvz_deq_dequeue(&ctx->deq, proc_idx, true);
         if (item.item == NULL)
         {
-            log_debug("stop the transfer thread");
+            log_debug("stop the transfer loop for proc #%d", proc_idx);
             break;
         }
         else
@@ -232,9 +235,16 @@ static void* _thread_transfers(void* user_data)
             log_trace("free item");
             FREE(item.item);
         }
-        log_trace("got a deq item");
+        log_trace("got a deq item on proc #%d", proc_idx);
     }
     return NULL;
+}
+
+// Process for the deq proc #0, which encompasses the two queues UPLOAD and DOWNLOAD.
+static void* _thread_transfers(void* user_data)
+{
+    DvzContext* ctx = (DvzContext*)user_data;
+    return _transfer_loop(ctx, DVZ_CTX_DEQ_PUD);
 }
 
 
@@ -442,6 +452,18 @@ DvzContext* dvz_context(DvzGpu* gpu)
     {
         context->deq = dvz_deq(4);
 
+        // Three producer/consumer pairs (deq processes).
+        dvz_deq_proc(
+            &context->deq, DVZ_CTX_DEQ_PUD, //
+            2, (uint32_t[]){DVZ_CTX_DEQ_UL, DVZ_CTX_DEQ_DL});
+        dvz_deq_proc(
+            &context->deq, DVZ_CTX_DEQ_PCPY, //
+            1, (uint32_t[]){DVZ_CTX_DEQ_COPY});
+        dvz_deq_proc(
+            &context->deq, DVZ_CTX_DEQ_PEV, //
+            1, (uint32_t[]){DVZ_CTX_DEQ_EV});
+
+        // Transfer deq callbacks.
         dvz_deq_callback(
             &context->deq, DVZ_CTX_DEQ_UL, //
             DVZ_TRANSFER_BUFFER_UPLOAD,    //
