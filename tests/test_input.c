@@ -330,30 +330,68 @@ int test_input_keyboard(TestContext* tc)
 static void _on_timer_tick(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
     ASSERT(input != NULL);
-    log_debug("timer tick #%d", ev.t.tick);
+    log_debug("timer tick #%d, period %d, interval %.6f s", ev.t.tick, ev.t.period, ev.t.interval);
     ASSERT(user_data != NULL);
-    *((uint64_t*)user_data) = ev.t.tick;
+    *((int64_t*)user_data) = ev.t.tick;
 }
 
 int test_input_timer(TestContext* tc)
 {
     // Create an input and window.
     DvzInput input = dvz_input();
-    // GLFWwindow* w = _glfw_window();
     dvz_input_backend(&input, DVZ_BACKEND_GLFW, NULL);
 
     // Timer tick callback.
-    uint64_t tick = 0;
+    int64_t tick = 0;
     dvz_input_callback(&input, DVZ_INPUT_TIMER_TICK, _on_timer_tick, &tick);
 
     // Add a timer.
     dvz_input_event(&input, DVZ_INPUT_TIMER_ADD, (DvzInputEvent){.ta = {.period = 10}});
-    dvz_sleep(105);
+    dvz_sleep(50);
+    AT(tick >= 3);
 
-    AT(tick >= 8);
+
+    // Pause.
+    log_debug("pause");
+    dvz_input_event(&input, DVZ_INPUT_TIMER_RUNNING, (DvzInputEvent){.tp = {.is_running = false}});
+    dvz_deq_wait(&input.deq, 0);
+    int64_t tick_checkpoint = tick;
+    dvz_sleep(50);
+    AT(tick == tick_checkpoint);
+
+    // Resume.
+    log_debug("resume");
+    dvz_input_event(&input, DVZ_INPUT_TIMER_RUNNING, (DvzInputEvent){.tp = {.is_running = true}});
+    dvz_sleep(50);
+    dvz_deq_wait(&input.deq, 0);
+    AT((uint64_t)tick >= (uint64_t)tick_checkpoint + 3);
+    AT(tick <= 9);
+
+
+    // Update.
+    log_debug("change timer period");
+    dvz_input_event(
+        &input, DVZ_INPUT_TIMER_UPDATE, (DvzInputEvent){.tu = {.period = 5, .after = 50}});
+    dvz_deq_wait(&input.deq, 0);
+    tick_checkpoint = tick;
+    // Do not start before 50 ms.
+    dvz_sleep(30);
+    AT(tick == tick_checkpoint);
+
+    // After 50 ms, tick every 5 ms.
+    dvz_sleep(100);
+    AT(tick >= 40);
+
+
+    // Remove timer.
+    dvz_input_event(&input, DVZ_INPUT_TIMER_REMOVE, (DvzInputEvent){.tr = {.timer_id = 0}});
+    dvz_deq_wait(&input.deq, 0);
+    tick_checkpoint = tick;
+    dvz_sleep(50);
+    AT(tick == tick_checkpoint);
+
 
     // Destroy the resources.
     dvz_input_destroy(&input);
-    // _glfw_destroy(w);
     return 0;
 }

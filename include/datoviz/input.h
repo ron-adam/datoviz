@@ -57,6 +57,7 @@ typedef enum
 
     DVZ_INPUT_TIMER_ADD,
     DVZ_INPUT_TIMER_RUNNING,
+    DVZ_INPUT_TIMER_UPDATE,
     DVZ_INPUT_TIMER_TICK,
     DVZ_INPUT_TIMER_REMOVE,
 
@@ -206,10 +207,10 @@ struct DvzKeyEvent
 
 struct DvzTimerAddEvent
 {
-    uint32_t timer_id;  // which timer
-    uint64_t max_count; // maximum number of iterations
-    uint32_t after;     // after how many seconds the first event should be raised
-    uint32_t period;    // period of the associated timer
+    uint32_t timer_id; // which timer
+    int64_t max_count; // maximum number of iterations
+    uint32_t after;    // after how many seconds the first event should be raised
+    uint32_t period;   // period of the associated timer
 };
 
 
@@ -231,9 +232,9 @@ struct DvzTimerRemoveEvent
 
 struct DvzTimerTickEvent
 {
-    uint32_t timer_id;  // which timer
-    uint64_t tick;      // increasing at every event emission
-    uint64_t max_count; // maximum number of iterations
+    uint32_t timer_id; // which timer
+    int64_t tick;      // increasing at every event emission
+    int64_t max_count; // maximum number of iterations
 
     uint32_t after;  // after how many milliseconds the first event should be raised
     uint32_t period; // period of the associated timer
@@ -259,6 +260,7 @@ union DvzInputEvent
 
     DvzTimerTickEvent t;     // for TIMER events
     DvzTimerAddEvent ta;     // for TIMER_ADD events
+    DvzTimerAddEvent tu;     // for TIMER_UPDATE events
     DvzTimerRunningEvent tp; // for TIMER_RUNNING events (pause/continue)
     DvzTimerRemoveEvent tr;  // for TIMER_REMOVE events
 };
@@ -328,13 +330,18 @@ struct DvzTimer
 {
     DvzObject obj;
     DvzInput* input;
-    bool is_running;
 
-    uint32_t timer_id;  // unique ID of this timer among all timers registered in a given input
-    uint64_t tick;      // current tick number
-    uint64_t max_count; // specified maximum number of ticks for this timer
-    uint32_t after;     // number of milliseconds before the first tick
-    uint32_t period;    // expected number of milliseconds between ticks
+    bool is_running; // whether the timer is running or paused
+
+    uint32_t timer_id; // unique ID of this timer among all timers registered in a given input
+    int64_t tick;      // current tick number
+    int64_t max_count; // specified maximum number of ticks for this timer
+    uint32_t after;    // number of milliseconds before the first tick
+    uint32_t period;   // expected number of milliseconds between ticks
+
+    double start_time;  // the time of the last checkpoint
+    int64_t start_tick; // tick number at the last checkpoint
+
     DvzInputCallback callback;
 };
 

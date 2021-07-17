@@ -587,6 +587,8 @@ static void _timer_add(DvzInput* input, DvzInputEvent ev, void* user_data)
     timer->after = ev.ta.after;
     timer->period = ev.ta.period;
 
+    timer->start_time = timer->input->clock.elapsed;
+
     dvz_obj_created(&timer->obj);
     log_debug("add timer #%d", timer->timer_id);
 }
@@ -600,7 +602,33 @@ static void _timer_running(DvzInput* input, DvzInputEvent ev, void* user_data)
     // Look for the timer with the passed timer idx, and mark it as destroyed.
     DvzTimer* timer = _timer_get(input, ev.tr.timer_id);
     if (timer != NULL)
+    {
         timer->is_running = ev.tp.is_running;
+        if (ev.tp.is_running)
+        {
+            timer->start_time = timer->input->clock.elapsed;
+            timer->start_tick = timer->tick;
+        }
+    }
+}
+
+
+
+static void _timer_update(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    ASSERT(input != NULL);
+
+    // Look for the timer with the passed timer idx, and mark it as destroyed.
+    DvzTimer* timer = _timer_get(input, ev.tr.timer_id);
+    if (timer != NULL)
+    {
+        // Reset the timer when it is updated.
+        timer->start_tick = timer->tick;
+        timer->start_time = timer->input->clock.elapsed;
+        timer->max_count = ev.ta.max_count;
+        timer->after = ev.ta.after;
+        timer->period = ev.ta.period;
+    }
 }
 
 
@@ -625,10 +653,30 @@ static bool _timer_should_tick(DvzTimer* timer)
     ASSERT(timer != NULL);
     ASSERT(timer->input != NULL);
 
+    // Dead or paused timers should not tick.
+    if (!dvz_obj_is_created(&timer->obj) || !timer->is_running)
+        return false;
+
+    // If the numbers of ticks was exceeded, stop the timer.
+    if (timer->max_count > 0 && timer->tick >= timer->max_count)
+    {
+        timer->is_running = false;
+        return false;
+    }
+
     // Go through all TIMER callbacks
-    double cur_time = timer->input->clock.elapsed;
+    double cur_time = timer->input->clock.elapsed - timer->start_time;
+
+    // Wait until "after" ms to start the timer.
+    if (timer->after > 0 && cur_time < timer->after / 1000.0)
+    {
+        return false;
+    }
+
     // When is the next expected time?
-    double expected_time = ((timer->tick + 1) * timer->period) / 1000.0;
+    ASSERT(timer->start_tick <= timer->tick + 1);
+    double expected_time =
+        ((timer->tick - timer->start_tick + 1) * timer->period - timer->after) / 1000.0;
 
     // If we reached the expected time, we raise the TIMER event immediately.
     if (cur_time >= expected_time)
@@ -650,9 +698,9 @@ static void _timer_tick(DvzTimer* timer)
     ev.t.after = timer->after;
     ev.t.max_count = timer->max_count;
 
-    double cur_time = timer->input->clock.elapsed;
+    double cur_time = timer->input->clock.elapsed - timer->start_time;
     // At what time was the last TIMER event for this callback?
-    double last_time = (timer->tick * timer->period) / 1000.0;
+    double last_time = ((timer->tick - timer->start_tick) * timer->period - timer->after) / 1000.0;
 
     ev.t.time = cur_time;
     ev.t.tick = timer->tick;
@@ -687,13 +735,8 @@ static void _timer_ticks(DvzDeq* deq, void* user_data)
     {
         timer = (DvzTimer*)iter.item;
         ASSERT(timer != NULL);
-        if (dvz_obj_is_created(&timer->obj) && timer->is_running)
-        {
-            if (_timer_should_tick(timer))
-            {
-                _timer_tick(timer);
-            }
-        }
+        if (_timer_should_tick(timer))
+            _timer_tick(timer);
         dvz_container_iter(&iter);
     }
 }
@@ -781,6 +824,7 @@ void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window)
         // Timer callbacks.
         dvz_input_callback(input, DVZ_INPUT_TIMER_ADD, _timer_add, NULL);
         dvz_input_callback(input, DVZ_INPUT_TIMER_RUNNING, _timer_running, NULL);
+        dvz_input_callback(input, DVZ_INPUT_TIMER_UPDATE, _timer_update, NULL);
         dvz_input_callback(input, DVZ_INPUT_TIMER_REMOVE, _timer_remove, NULL);
 
         // In the input thread, while waiting for input events, every millisecond, check if there
