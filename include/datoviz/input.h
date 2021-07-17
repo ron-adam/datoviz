@@ -328,10 +328,12 @@ struct DvzTimer
     DvzInput* input;
     bool is_running;
 
-    uint32_t timer_id;
-    uint64_t max_count;
-    double after;
-    double period;
+    uint32_t timer_id;  // unique ID of this timer among all timers registered in a given input
+    uint64_t tick;      // current tick number
+    uint64_t max_count; // specified maximum number of ticks for this timer
+    double after;       // number of seconds before the first tick
+    double period;      // expected number of seconds between ticks
+    double interval;    // number of seconds since last tick
     DvzInputCallback callback;
 };
 

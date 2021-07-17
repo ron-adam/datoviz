@@ -503,7 +503,7 @@ static void _deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item, bo
 
     // We signal that proc that an item has been enqueued to one of its queues.
     log_trace("enqueue to queue #%d item type %d", deq_idx, type);
-    pthread_mutex_lock(&proc->lock);
+    pthread_mutex_trylock(&proc->lock);
     if (!enqueue_first)
         dvz_fifo_enqueue(fifo, deq_item);
     else
@@ -625,8 +625,8 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
         }
         log_trace("queue #%d was empty", deq_idx);
     }
-    // NOTE: we must unlock BEFORE calling the callbacks if we want to permit callbacks to enqueue
-    // new tasks.
+    // IMPORTANT: we must unlock BEFORE calling the callbacks if we want to permit callbacks to
+    // enqueue new tasks.
     pthread_mutex_unlock(&proc->lock);
 
     // First, call the generic Proc pre callbacks.

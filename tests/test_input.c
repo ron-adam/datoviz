@@ -331,7 +331,7 @@ static void _on_timer_tick(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
     ASSERT(input != NULL);
     log_debug("timer tick #%d", ev.t.tick);
-    ASSERT(user_data != NULL);
+    // ASSERT(user_data != NULL);
     // *((int*)user_data) = DVZ_KEY_NONE;
 }
 
@@ -339,8 +339,8 @@ int test_input_timer(TestContext* tc)
 {
     // Create an input and window.
     DvzInput input = dvz_input();
-    GLFWwindow* w = _glfw_window();
-    dvz_input_backend(&input, DVZ_BACKEND_GLFW, w);
+    // GLFWwindow* w = _glfw_window();
+    dvz_input_backend(&input, DVZ_BACKEND_GLFW, NULL);
 
     // Timer callback.
     dvz_input_callback(&input, DVZ_INPUT_TIMER_TICK, _on_timer_tick, NULL);
@@ -353,6 +353,6 @@ int test_input_timer(TestContext* tc)
 
     // Destroy the resources.
     dvz_input_destroy(&input);
-    _glfw_destroy(w);
+    // _glfw_destroy(w);
     return 0;
 }

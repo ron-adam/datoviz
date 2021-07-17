@@ -179,9 +179,6 @@ _input_proc_pre_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, vo
     DvzInput* input = (DvzInput*)user_data;
     ASSERT(input != NULL);
 
-    // Update the clock struct at every dequeue.
-    _clock_set(&input->clock);
-
     // Update the mouse state after every mouse event.
     if (deq_idx == DVZ_INPUT_DEQ_MOUSE)
     {
@@ -582,10 +579,12 @@ static void _timer_add(DvzInput* input, DvzInputEvent ev, void* user_data)
     DvzTimer* timer = (DvzTimer*)dvz_container_alloc(&input->timers);
     ASSERT(timer != NULL);
 
+    timer->input = input;
     timer->after = ev.ta.after;
     timer->max_count = ev.ta.max_count;
     timer->period = ev.ta.period;
     timer->timer_id = ev.ta.timer_id;
+    timer->is_running = true;
 
     dvz_obj_created(&timer->obj);
     log_debug("add timer #%d", timer->timer_id);
@@ -615,6 +614,83 @@ static void _timer_remove(DvzInput* input, DvzInputEvent ev, void* user_data)
     {
         dvz_obj_destroyed(&timer->obj);
         log_debug("remove timer #%d", timer->timer_id);
+    }
+}
+
+
+
+static bool _timer_should_tick(DvzTimer* timer)
+{
+    ASSERT(timer != NULL);
+    ASSERT(timer->input != NULL);
+
+    // Go through all TIMER callbacks
+    double cur_time = timer->input->clock.elapsed;
+    double interval = timer->interval;
+    // When is the next expected time?
+    double expected_time = (timer->tick + 1) * interval;
+
+    // If we reached the expected time, we raise the TIMER event immediately.
+    if (cur_time >= expected_time)
+        return true;
+    else
+        return false;
+}
+
+
+
+static void _timer_tick(DvzTimer* timer)
+{
+    ASSERT(timer != NULL);
+    ASSERT(timer->input != NULL);
+
+    DvzInputEvent ev = {0};
+    ev.t.timer_id = timer->timer_id;
+    ev.t.period = timer->period;
+    ev.t.after = timer->after;
+    ev.t.max_count = timer->max_count;
+
+    double cur_time = timer->input->clock.elapsed;
+    double interval = timer->interval;
+    // At what time was the last TIMER event for this callback?
+    double last_time = timer->tick * interval;
+
+    ev.t.time = cur_time;
+    ev.t.tick = timer->tick;
+    // NOTE: this is the time since the last *expected* time of the previous TIMER
+    // event, not the actual time.
+    ev.t.interval = cur_time - last_time;
+
+    dvz_input_event(timer->input, DVZ_INPUT_TIMER_TICK, ev);
+
+    timer->tick++;
+}
+
+
+
+static void _timer_ticks(DvzDeq* deq, void* user_data)
+{
+    ASSERT(deq != NULL);
+    DvzInput* input = (DvzInput*)user_data;
+    ASSERT(input != NULL);
+
+    // Update the clock struct every 1 ms (proc wait callback).
+    _clock_set(&input->clock);
+
+    DvzContainerIterator iter = dvz_container_iterator(&input->timers);
+    DvzTimer* timer = NULL;
+    while (iter.item != NULL)
+    {
+        timer = (DvzTimer*)iter.item;
+        ASSERT(timer != NULL);
+        if (dvz_obj_is_created(&timer->obj) && timer->is_running)
+        {
+            if (_timer_should_tick(timer))
+            {
+                _timer_tick(timer);
+            }
+        }
+        dvz_container_iter(&iter);
     }
 }
 
@@ -653,9 +729,9 @@ void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window)
     ASSERT(input != NULL);
     input->backend = backend;
     input->window = window;
-    if (window == NULL)
-        return;
-    ASSERT(window != NULL);
+    // if (window == NULL)
+    //     return;
+    // ASSERT(window != NULL);
 
     input->thread = dvz_thread(_input_thread, input);
 
@@ -673,33 +749,41 @@ void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window)
             &input->deq, 0, DVZ_DEQ_PROC_CALLBACK_POST, _input_proc_post_callback, input);
 
         // The canvas pointer will be available to callback functions.
-        glfwSetWindowUserPointer(w, input);
+        if (w)
+        {
+            glfwSetWindowUserPointer(w, input);
 
 
-        // Mouse callbacks.
+            // Mouse callbacks.
 
-        // Register the mouse move callback.
-        // TODO: comment?? if commented, see _glfw_frame_callback
-        glfwSetCursorPosCallback(w, _glfw_move_callback);
+            // Register the mouse move callback.
+            // TODO: comment?? if commented, see _glfw_frame_callback
+            glfwSetCursorPosCallback(w, _glfw_move_callback);
 
-        // Register the mouse button callback.
-        glfwSetMouseButtonCallback(w, _glfw_button_callback);
+            // Register the mouse button callback.
+            glfwSetMouseButtonCallback(w, _glfw_button_callback);
 
-        // Register the mouse wheel callback.
-        glfwSetScrollCallback(w, _glfw_wheel_callback);
+            // Register the mouse wheel callback.
+            glfwSetScrollCallback(w, _glfw_wheel_callback);
 
 
-        // Keyboard callbacks.
+            // Keyboard callbacks.
 
-        // Register the key callback.
-        glfwSetKeyCallback(w, _glfw_key_callback);
-
+            // Register the key callback.
+            glfwSetKeyCallback(w, _glfw_key_callback);
+        }
 
 
         // Timer callbacks.
         dvz_input_callback(input, DVZ_INPUT_TIMER_ADD, _timer_add, NULL);
         dvz_input_callback(input, DVZ_INPUT_TIMER_RUNNING, _timer_running, NULL);
         dvz_input_callback(input, DVZ_INPUT_TIMER_REMOVE, _timer_remove, NULL);
+
+        // In the input thread, while waiting for input events, every millisecond, check if there
+        // are active timers, and fire TIMER_TICK events if needed.
+        dvz_deq_proc_wait_delay(&input->deq, 0, 1);
+        dvz_deq_proc_wait_callback(&input->deq, 0, _timer_ticks, input);
+
 
 
         break;
