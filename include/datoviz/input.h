@@ -309,13 +309,22 @@ DVZ_EXPORT void
 dvz_input_callback(DvzInput* input, DvzInputType type, DvzInputCallback callback, void* user_data);
 
 /**
- * Raise an input event, which will call all associated callbacks.
+ * Enqueue an input event.
  *
  * @param input the input
  * @param type the input type
  * @param ev the event union
  */
 DVZ_EXPORT void dvz_input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev);
+
+/**
+ * Enqueue an input event at the first end of the queue.
+ *
+ * @param input the input
+ * @param type the input type
+ * @param ev the event union
+ */
+DVZ_EXPORT void dvz_input_event_first(DvzInput* input, DvzInputType type, DvzInputEvent ev);
 
 /**
  * Destroy an input struct.
@@ -354,7 +363,7 @@ DVZ_EXPORT void dvz_input_mouse_reset(DvzInputMouse* mouse);
  * @param type the event type
  * @param ev the mouse event
  */
-DVZ_EXPORT void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent ev);
+DVZ_EXPORT void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* ev);
 
 
 

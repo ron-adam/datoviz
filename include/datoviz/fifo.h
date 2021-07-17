@@ -26,6 +26,18 @@ extern "C" {
 
 
 /*************************************************************************************************/
+/*  Enums                                                                                        */
+/*************************************************************************************************/
+
+typedef enum
+{
+    DVZ_DEQ_PROC_CALLBACK_PRE,
+    DVZ_DEQ_PROC_CALLBACK_POST
+} DvzDeqProcCallbackPosition;
+
+
+
+/*************************************************************************************************/
 /*  Type definitions                                                                             */
 /*************************************************************************************************/
 
@@ -84,6 +96,7 @@ struct DvzDeqItem
 struct DvzDeqProcCallbackRegister
 {
     DvzDeqProcCallback callback;
+    DvzDeqProcCallbackPosition pos;
     void* user_data;
 };
 
@@ -263,7 +276,8 @@ dvz_deq_proc(DvzDeq* deq, uint32_t proc_idx, uint32_t queue_count, uint32_t* que
  * @param user_data pointer to arbitrary data
  */
 DVZ_EXPORT void dvz_deq_proc_callback(
-    DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallback callback, void* user_data);
+    DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallbackPosition pos, DvzDeqProcCallback callback,
+    void* user_data);
 
 /**
  * Enqueue an item.

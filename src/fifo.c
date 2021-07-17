@@ -253,18 +253,18 @@ static DvzFifo* _deq_fifo(DvzDeq* deq, uint32_t deq_idx)
 
 
 // Call all callback functions registered with a deq_idx and type on a deq item.
-static void _deq_callbacks(DvzDeq* deq, DvzDeqItem item_s)
+static void _deq_callbacks(DvzDeq* deq, DvzDeqItem* item)
 {
     ASSERT(deq != NULL);
-    ASSERT(item_s.item != NULL);
+    ASSERT(item->item != NULL);
     DvzDeqCallbackRegister* reg = NULL;
     for (uint32_t i = 0; i < deq->callback_count; i++)
     {
         reg = &deq->callbacks[i];
         ASSERT(reg != NULL);
-        if (reg->deq_idx == item_s.deq_idx && reg->type == item_s.type)
+        if (reg->deq_idx == item->deq_idx && reg->type == item->type)
         {
-            reg->callback(deq, item_s.item, reg->user_data);
+            reg->callback(deq, item->item, reg->user_data);
         }
     }
 }
@@ -336,7 +336,8 @@ void dvz_deq_proc(DvzDeq* deq, uint32_t proc_idx, uint32_t queue_count, uint32_t
 
 
 void dvz_deq_proc_callback(
-    DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallback callback, void* user_data)
+    DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallbackPosition pos, DvzDeqProcCallback callback,
+    void* user_data)
 {
     ASSERT(deq != NULL);
 
@@ -350,6 +351,7 @@ void dvz_deq_proc_callback(
     ASSERT(reg != NULL);
 
     reg->callback = callback;
+    reg->pos = pos;
     reg->user_data = user_data;
 }
 
@@ -452,6 +454,24 @@ static int _deq_size(DvzDeq* deq, uint32_t queue_count, uint32_t* queue_ids)
     return size;
 }
 
+static void
+_proc_callbacks(DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallbackPosition pos, DvzDeqItem* item)
+{
+    ASSERT(deq != NULL);
+    ASSERT(proc_idx < deq->proc_count);
+    DvzDeqProc* proc = &deq->procs[proc_idx];
+
+    for (uint32_t i = 0; i < proc->callback_count; i++)
+    {
+        if (proc->callbacks[i].pos == pos)
+        {
+            ASSERT(proc->callbacks[i].callback != NULL);
+            proc->callbacks[i].callback(
+                deq, item->deq_idx, item->type, item->item, proc->callbacks[i].user_data);
+        }
+    }
+}
+
 DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
 {
     ASSERT(deq != NULL);
@@ -511,20 +531,18 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
     // new tasks.
     pthread_mutex_unlock(&proc->lock);
 
-    // First, call the generic Proc callbacks.
-    for (uint32_t i = 0; i < proc->callback_count; i++)
-    {
-        ASSERT(proc->callbacks[i].callback != NULL);
-        proc->callbacks[i].callback(
-            deq, item_s.deq_idx, item_s.type, item_s.item, proc->callbacks[i].user_data);
-    }
+    // First, call the generic Proc pre callbacks.
+    _proc_callbacks(deq, proc_idx, DVZ_DEQ_PROC_CALLBACK_PRE, &item_s);
 
     // Then, call the typed callbacks.
     if (item_s.item != NULL)
     {
         atomic_store(&proc->is_processing, true);
-        _deq_callbacks(deq, item_s);
+        _deq_callbacks(deq, &item_s);
     }
+
+    // Finally, call the generic Proc post callbacks.
+    _proc_callbacks(deq, proc_idx, DVZ_DEQ_PROC_CALLBACK_POST, &item_s);
 
     atomic_store(&proc->is_processing, false);
     proc->queue_offset = (proc->queue_offset + 1) % proc->queue_count;

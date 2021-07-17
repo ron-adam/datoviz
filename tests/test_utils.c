@@ -458,7 +458,7 @@ int test_utils_deq_proc(TestContext* tc)
     dvz_deq_proc(&deq, 1, 1, (uint32_t[]){2});
 
     uvec3 v = {0};
-    dvz_deq_proc_callback(&deq, 0, _proc_callback, &v);
+    dvz_deq_proc_callback(&deq, 0, DVZ_DEQ_PROC_CALLBACK_PRE, _proc_callback, &v);
 
     DvzDeqItem item = {0};
 
