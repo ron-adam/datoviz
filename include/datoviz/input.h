@@ -53,7 +53,12 @@ typedef enum
 
     DVZ_INPUT_KEYBOARD_PRESS,
     DVZ_INPUT_KEYBOARD_RELEASE,
-    DVZ_INPUT_KEYBOARD_STROKE,
+    DVZ_INPUT_KEYBOARD_STROKE, // unused for now
+
+    DVZ_INPUT_TIMER_ADD,
+    DVZ_INPUT_TIMER_RUNNING,
+    DVZ_INPUT_TIMER_TICK,
+    DVZ_INPUT_TIMER_REMOVE,
 
 } DvzInputType;
 
@@ -118,8 +123,7 @@ typedef struct DvzMouseMoveEvent DvzMouseMoveEvent;
 typedef struct DvzMouseWheelEvent DvzMouseWheelEvent;
 
 typedef struct DvzTimerAddEvent DvzTimerAddEvent;
-typedef struct DvzTimerPauseEvent DvzTimerPauseEvent;
-typedef struct DvzTimerContinueEvent DvzTimerContinueEvent;
+typedef struct DvzTimerRunningEvent DvzTimerRunningEvent;
 typedef struct DvzTimerRemoveEvent DvzTimerRemoveEvent;
 typedef struct DvzTimerTickEvent DvzTimerTickEvent;
 
@@ -202,7 +206,7 @@ struct DvzKeyEvent
 
 struct DvzTimerAddEvent
 {
-    uint32_t timer_idx; // which timer
+    uint32_t timer_id;  // which timer
     uint64_t max_count; // maximum number of iterations
     double after;       // after how many seconds the first event should be raised
     double period;      // period of the associated timer
@@ -210,30 +214,24 @@ struct DvzTimerAddEvent
 
 
 
-struct DvzTimerPauseEvent
+struct DvzTimerRunningEvent
 {
-    uint32_t timer_idx; // which timer
-};
-
-
-
-struct DvzTimerContinueEvent
-{
-    uint32_t timer_idx; // which timer
+    uint32_t timer_id; // which timer
+    bool is_running;   // false=pause, true=continue
 };
 
 
 
 struct DvzTimerRemoveEvent
 {
-    uint32_t timer_idx; // which timer
+    uint32_t timer_id; // which timer
 };
 
 
 
 struct DvzTimerTickEvent
 {
-    uint32_t timer_idx; // which timer
+    uint32_t timer_id;  // which timer
     uint64_t tick;      // increasing at every event emission
     uint64_t max_count; // maximum number of iterations
     double after;       // after how many seconds the first event should be raised
@@ -256,7 +254,11 @@ union DvzInputEvent
     DvzMouseDragEvent d;   // for DRAG events
     DvzMouseMoveEvent m;   // for MOVE events
     DvzMouseWheelEvent w;  // for WHEEL events
-    DvzTimerTickEvent t;   // for TIMER events
+
+    DvzTimerTickEvent t;     // for TIMER events
+    DvzTimerAddEvent ta;     // for TIMER_ADD events
+    DvzTimerRunningEvent tp; // for TIMER_RUNNING events (pause/continue)
+    DvzTimerRemoveEvent tr;  // for TIMER_REMOVE events
 };
 
 
@@ -326,7 +328,7 @@ struct DvzTimer
     DvzInput* input;
     bool is_running;
 
-    int32_t timer_idx;
+    uint32_t timer_id;
     uint64_t max_count;
     double after;
     double period;

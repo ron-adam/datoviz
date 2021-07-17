@@ -553,14 +553,85 @@ void dvz_input_keyboard_update(DvzInput* input, DvzInputType type, DvzInputEvent
 
 
 /*************************************************************************************************/
+/*  Timer                                                                                        */
+/*************************************************************************************************/
+
+static DvzTimer* _timer_get(DvzInput* input, uint32_t timer_id)
+{
+    ASSERT(input != NULL);
+
+    // Look for the timer with the passed timer idx, and mark it as destroyed.
+    DvzContainerIterator iter = dvz_container_iterator(&input->timers);
+    DvzTimer* timer = NULL;
+    while (iter.item != NULL)
+    {
+        timer = (DvzTimer*)iter.item;
+        ASSERT(timer != NULL);
+        if (timer->timer_id == timer_id)
+            return timer;
+        dvz_container_iter(&iter);
+    }
+    return NULL;
+}
+
+
+
+static void _timer_add(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    ASSERT(input != NULL);
+    DvzTimer* timer = (DvzTimer*)dvz_container_alloc(&input->timers);
+    ASSERT(timer != NULL);
+
+    timer->after = ev.ta.after;
+    timer->max_count = ev.ta.max_count;
+    timer->period = ev.ta.period;
+    timer->timer_id = ev.ta.timer_id;
+
+    dvz_obj_created(&timer->obj);
+    log_debug("add timer #%d", timer->timer_id);
+}
+
+
+
+static void _timer_running(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    ASSERT(input != NULL);
+
+    // Look for the timer with the passed timer idx, and mark it as destroyed.
+    DvzTimer* timer = _timer_get(input, ev.tr.timer_id);
+    if (timer != NULL)
+        timer->is_running = ev.tp.is_running;
+}
+
+
+
+static void _timer_remove(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    ASSERT(input != NULL);
+
+    // Look for the timer with the passed timer idx, and mark it as destroyed.
+    DvzTimer* timer = _timer_get(input, ev.tr.timer_id);
+    if (timer != NULL)
+    {
+        dvz_obj_destroyed(&timer->obj);
+        log_debug("remove timer #%d", timer->timer_id);
+    }
+}
+
+
+
+/*************************************************************************************************/
 /*  Input                                                                                        */
 /*************************************************************************************************/
 
 DvzInput dvz_input()
 {
     DvzInput input = {0};
+
     input.mouse = dvz_input_mouse();
     input.keyboard = dvz_input_keyboard();
+    input.timers =
+        dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzTimer), DVZ_OBJECT_TYPE_TIMER);
 
     _clock_init(&input.clock);
 
@@ -623,9 +694,13 @@ void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window)
         // Register the key callback.
         glfwSetKeyCallback(w, _glfw_key_callback);
 
-        // // Register a function called at every frame, after event polling and state update
-        // dvz_event_callback(
-        //     canvas, DVZ_EVENT_INTERACT, 0, DVZ_EVENT_MODE_SYNC, _glfw_frame_callback, NULL);
+
+
+        // Timer callbacks.
+        dvz_input_callback(input, DVZ_INPUT_TIMER_ADD, _timer_add, NULL);
+        dvz_input_callback(input, DVZ_INPUT_TIMER_RUNNING, _timer_running, NULL);
+        dvz_input_callback(input, DVZ_INPUT_TIMER_REMOVE, _timer_remove, NULL);
+
 
         break;
     default:
@@ -706,6 +781,18 @@ void dvz_input_destroy(DvzInput* input)
 
     // Join the thread.
     dvz_thread_join(&input->thread);
+
+    // Destroy the timers.
+    DvzContainerIterator iter = dvz_container_iterator(&input->timers);
+    DvzTimer* timer = NULL;
+    while (iter.item != NULL)
+    {
+        timer = (DvzTimer*)iter.item;
+        ASSERT(timer != NULL);
+        dvz_obj_destroyed(&timer->obj);
+        dvz_container_iter(&iter);
+    }
+    dvz_container_destroy(&input->timers);
 
     // Destroy the Deq.
     dvz_deq_destroy(&input->deq);
