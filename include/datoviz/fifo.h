@@ -117,6 +117,8 @@ struct DvzDeqProc
     // underlying FIFO queues.
     pthread_mutex_t lock;
     pthread_cond_t cond;
+    uint32_t max_wait; // maximum number of milliseconds to wait between each queue size probing
+    struct timespec wait;
     atomic(bool, is_processing);
 };
 

@@ -472,6 +472,38 @@ _proc_callbacks(DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallbackPosition pos, 
     }
 }
 
+static void _proc_wait(DvzDeqProc* proc)
+{
+    ASSERT(proc != NULL);
+
+    if (proc->max_wait == 0)
+    {
+        // NOTE: this call automatically releases the mutex while waiting, and reacquires it
+        // afterwards
+        pthread_cond_wait(&proc->cond, &proc->lock);
+    }
+    else
+    {
+        struct timeval now;
+        uint32_t wait_s = proc->max_wait / 1000; // in seconds
+        //                  ^^ in ms  ^^   ^^^^ convert to s
+        uint32_t wait_us = (proc->max_wait - 1000 * wait_s) * 1000; // in us
+        //                  ^^ in ms  ^^^    ^^^ in ms ^^^    ^^^ to us
+        // Determine until when to wait for the cond.
+
+        gettimeofday(&now, NULL);
+
+        // How many seconds after now?
+        proc->wait.tv_sec = now.tv_sec + wait_s;
+        // How many nanoseconds after the X seconds?
+        proc->wait.tv_nsec = (now.tv_usec + wait_us) * 1000; // from us to ns
+
+        // NOTE: this call automatically releases the mutex while waiting, and reacquires it
+        // afterwards
+        pthread_cond_timedwait(&proc->cond, &proc->lock, &proc->wait);
+    }
+}
+
 DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
 {
     ASSERT(deq != NULL);
@@ -492,13 +524,13 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
         while (_deq_size(deq, proc->queue_count, proc->queue_indices) == 0)
         {
             log_trace("waiting for proc #%d cond", proc_idx);
-            // NOTE: this call automatically releases the mutex while waiting, and reacquires it
-            // afterwards
-            pthread_cond_wait(&proc->cond, &proc->lock);
+            _proc_wait(proc);
             log_trace("proc #%d cond signaled!", proc_idx);
         }
         log_trace("proc #%d has an item", proc_idx);
     }
+
+    // Here, we dequeued something!
 
     // Go through the passed queue indices.
     uint32_t deq_idx = 0;
