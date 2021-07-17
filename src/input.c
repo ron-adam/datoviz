@@ -55,6 +55,22 @@ static bool _is_key_modifier(DvzKeyCode key)
 
 
 
+static int _key_modifiers(int key_code)
+{
+    int mods = 0;
+    if (key_code == DVZ_KEY_LEFT_CONTROL || key_code == DVZ_KEY_RIGHT_CONTROL)
+        mods |= DVZ_KEY_MODIFIER_CONTROL;
+    if (key_code == DVZ_KEY_LEFT_SHIFT || key_code == DVZ_KEY_RIGHT_SHIFT)
+        mods |= DVZ_KEY_MODIFIER_SHIFT;
+    if (key_code == DVZ_KEY_LEFT_ALT || key_code == DVZ_KEY_RIGHT_ALT)
+        mods |= DVZ_KEY_MODIFIER_ALT;
+    if (key_code == DVZ_KEY_LEFT_SUPER || key_code == DVZ_KEY_RIGHT_SUPER)
+        mods |= DVZ_KEY_MODIFIER_SUPER;
+    return mods;
+}
+
+
+
 // Find the Deq queue index by inspecting the input type used for registering the callback.
 static uint32_t _deq_from_input_type(DvzInputType type)
 {
@@ -139,7 +155,7 @@ _input_proc_pre_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, vo
 
     else if (deq_idx == DVZ_INPUT_DEQ_KEYBOARD)
     {
-        // TODO
+        dvz_input_keyboard_update(input, type, (DvzInputEvent*)item);
     }
 }
 
@@ -161,6 +177,25 @@ _input_proc_post_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, v
         // log_debug("reset wheel state %d", canvas->frame_idx);
         input->mouse.cur_state = DVZ_MOUSE_STATE_INACTIVE;
     }
+}
+
+
+
+static void _glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    ASSERT(window != NULL);
+    DvzInput* input = (DvzInput*)glfwGetWindowUserPointer(window);
+    DvzInputEvent ev = {0};
+
+    DvzInputType type =
+        action == GLFW_PRESS ? DVZ_INPUT_KEYBOARD_PRESS : DVZ_INPUT_KEYBOARD_RELEASE;
+
+    // NOTE: we use the GLFW key codes here, should actually do a proper mapping between GLFW
+    // key codes and Datoviz key codes.
+    ev.k.key_code = key;
+    ev.k.modifiers = mods;
+
+    dvz_input_event(input, type, ev);
 }
 
 
@@ -379,6 +414,75 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
 
 
 /*************************************************************************************************/
+/*  Keyboard                                                                                     */
+/*************************************************************************************************/
+
+DvzInputKeyboard dvz_input_keyboard()
+{
+    DvzInputKeyboard keyboard = {0};
+    dvz_input_keyboard_reset(&keyboard);
+    return keyboard;
+}
+
+
+
+void dvz_input_keyboard_toggle(DvzInputKeyboard* keyboard, bool enable)
+{
+    ASSERT(keyboard != NULL);
+    keyboard->is_active = enable;
+}
+
+
+
+void dvz_input_keyboard_reset(DvzInputKeyboard* keyboard)
+{
+    ASSERT(keyboard != NULL);
+    memset(keyboard, 0, sizeof(DvzInputKeyboard));
+    // keyboard->key_code = DVZ_KEY_NONE;
+    // keyboard->modifiers = 0;
+    keyboard->press_time = DVZ_NEVER;
+    keyboard->is_active = true;
+}
+
+
+
+void dvz_input_keyboard_update(DvzInput* input, DvzInputType type, DvzInputEvent* pev)
+{
+    ASSERT(input != NULL);
+
+    DvzInputKeyboard* keyboard = &input->keyboard;
+    ASSERT(keyboard != NULL);
+
+    // TODO?: if input capture, do nothing
+
+    DvzInputEvent ev = {0};
+    ev = *pev;
+
+    keyboard->prev_state = keyboard->cur_state;
+
+    double time = input->clock.elapsed;
+    DvzKeyCode key = ev.k.key_code;
+
+    if (type == DVZ_INPUT_KEYBOARD_PRESS && time - keyboard->press_time > .025)
+    {
+        log_trace("key pressed %d mods %d", key, ev.k.modifiers);
+        keyboard->key_code = key;
+        keyboard->modifiers = ev.k.modifiers;
+        keyboard->press_time = time;
+        if (keyboard->cur_state == DVZ_KEYBOARD_STATE_INACTIVE)
+            keyboard->cur_state = DVZ_KEYBOARD_STATE_ACTIVE;
+    }
+    else
+    {
+        keyboard->key_code = DVZ_KEY_NONE;
+        if (keyboard->cur_state == DVZ_KEYBOARD_STATE_ACTIVE)
+            keyboard->cur_state = DVZ_KEYBOARD_STATE_INACTIVE;
+    }
+}
+
+
+
+/*************************************************************************************************/
 /*  Input                                                                                        */
 /*************************************************************************************************/
 
@@ -386,7 +490,7 @@ DvzInput dvz_input()
 {
     DvzInput input = {0};
     input.mouse = dvz_input_mouse();
-    // input.keyboard = dvz_input_keyboard();
+    input.keyboard = dvz_input_keyboard();
 
     _clock_init(&input.clock);
 
@@ -428,6 +532,9 @@ void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window)
         // The canvas pointer will be available to callback functions.
         glfwSetWindowUserPointer(w, input);
 
+
+        // Mouse callbacks.
+
         // Register the mouse move callback.
         // TODO: comment?? if commented, see _glfw_frame_callback
         glfwSetCursorPosCallback(w, _glfw_move_callback);
@@ -439,9 +546,10 @@ void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window)
         glfwSetScrollCallback(w, _glfw_wheel_callback);
 
 
+        // Keyboard callbacks.
 
-        // // Register the key callback.
-        // glfwSetKeyCallback(w, _glfw_key_callback);
+        // Register the key callback.
+        glfwSetKeyCallback(w, _glfw_key_callback);
 
         // // Register a function called at every frame, after event polling and state update
         // dvz_event_callback(

@@ -270,7 +270,7 @@ struct DvzInput
 
 
 /*************************************************************************************************/
-/*  Functions                                                                                    */
+/*  Input                                                                                        */
 /*************************************************************************************************/
 
 /**
@@ -334,6 +334,10 @@ DVZ_EXPORT void dvz_input_destroy(DvzInput* input);
 
 
 
+/*************************************************************************************************/
+/*  Mouse                                                                                        */
+/*************************************************************************************************/
+
 /**
  * Create the mouse object holding the current mouse state.
  *
@@ -357,13 +361,50 @@ DVZ_EXPORT void dvz_input_mouse_toggle(DvzInputMouse* mouse, bool enable);
 DVZ_EXPORT void dvz_input_mouse_reset(DvzInputMouse* mouse);
 
 /**
- * Emit a mouse event.
+ * Update the mouse state after every mouse event.
  *
  * @param mouse the input
  * @param type the event type
  * @param ev the mouse event
  */
 DVZ_EXPORT void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* ev);
+
+
+
+/*************************************************************************************************/
+/*  Keyboard                                                                                     */
+/*************************************************************************************************/
+
+/**
+ * Create the keyboard object holding the current keyboard state.
+ *
+ * @returns keyboard object
+ */
+DVZ_EXPORT DvzInputKeyboard dvz_input_keyboard(void);
+
+/**
+ * Active or deactivate interactive keyboard events.
+ *
+ * @param keyboard the keyboard object
+ * @param enable whether to activate or deactivate keyboard events
+ */
+DVZ_EXPORT void dvz_input_keyboard_toggle(DvzInputKeyboard* keyboard, bool enable);
+
+/**
+ * Reset the keyboard state
+ *
+ * @returns keyboard object
+ */
+DVZ_EXPORT void dvz_input_keyboard_reset(DvzInputKeyboard* keyboard);
+
+/**
+ * Update the keyboard state after every mouse event.
+ *
+ * @param keyboard the input
+ * @param type the event type
+ * @param ev the keyboard event
+ */
+DVZ_EXPORT void dvz_input_keyboard_update(DvzInput* input, DvzInputType type, DvzInputEvent* ev);
 
 
 

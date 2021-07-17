@@ -92,6 +92,7 @@ int test_context_transfers_texture(TestContext*);
 int test_input_mouse_raw(TestContext*);
 int test_input_mouse_drag(TestContext*);
 int test_input_mouse_click(TestContext*);
+int test_input_keyboard(TestContext*);
 
 // Test canvas.
 int test_canvas_blank(TestContext*);
@@ -258,6 +259,7 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(APP, test_input_mouse_raw),   //
     CASE_FIXTURE(APP, test_input_mouse_drag),  //
     CASE_FIXTURE(APP, test_input_mouse_click), //
+    CASE_FIXTURE(APP, test_input_keyboard),    //
 
     // Canvas.
     CASE_FIXTURE(APP, test_canvas_blank),              //
