@@ -5,6 +5,33 @@
 
 
 /*************************************************************************************************/
+/*  Utils                                                                                        */
+/*************************************************************************************************/
+
+// Process the async events in a background thread.
+static void* _input_thread(void* user_data)
+{
+    DvzInput* input = (DvzInput*)user_data;
+    ASSERT(input != NULL);
+    // Process both mouse and keyboard events in that thread.
+    return _deq_loop(&input->deq, DVZ_INPUT_DEQ_MOUSE);
+}
+
+static DvzMouseButton _from_glfw_button(int button)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
+        return DVZ_MOUSE_BUTTON_LEFT;
+    else if (button == GLFW_MOUSE_BUTTON_RIGHT)
+        return DVZ_MOUSE_BUTTON_RIGHT;
+    else if (button == GLFW_MOUSE_BUTTON_MIDDLE)
+        return DVZ_MOUSE_BUTTON_MIDDLE;
+    else
+        return DVZ_MOUSE_BUTTON_NONE;
+}
+
+
+
+/*************************************************************************************************/
 /*  Backend-specific code                                                                        */
 /*  NOTE: backend_glfw.h is deprecated, should be replaced by the code below                     */
 /*************************************************************************************************/
@@ -20,19 +47,15 @@ static void _glfw_move_callback(GLFWwindow* window, double xpos, double ypos)
     dvz_input_event(input, DVZ_INPUT_MOUSE_MOVE, ev);
 }
 
-
-
-/*************************************************************************************************/
-/*  Utils                                                                                        */
-/*************************************************************************************************/
-
-// Process the async events in a background thread.
-static void* _input_thread(void* user_data)
+static void _glfw_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-    DvzInput* input = (DvzInput*)user_data;
-    ASSERT(input != NULL);
-    // Process both mouse and keyboard events in that thread.
-    return _deq_loop(&input->deq, DVZ_INPUT_DEQ_MOUSE);
+    ASSERT(window != NULL);
+    DvzInput* input = (DvzInput*)glfwGetWindowUserPointer(window);
+    DvzInputEvent ev = {0};
+    ev.b.button = _from_glfw_button(button);
+    ev.b.modifiers = 0; // TODO
+    DvzInputType evtype = action == GLFW_PRESS ? DVZ_INPUT_MOUSE_PRESS : DVZ_INPUT_MOUSE_RELEASE;
+    dvz_input_event(input, evtype, ev);
 }
 
 
@@ -75,18 +98,20 @@ void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window)
         // The canvas pointer will be available to callback functions.
         glfwSetWindowUserPointer(w, input);
 
+        // Register the mouse move callback.
+        // TODO: comment?? if commented, see _glfw_frame_callback
+        glfwSetCursorPosCallback(w, _glfw_move_callback);
+
+        // Register the mouse button callback.
+        glfwSetMouseButtonCallback(w, _glfw_button_callback);
+
+
+
         // // Register the key callback.
         // glfwSetKeyCallback(w, _glfw_key_callback);
 
         // // Register the mouse wheel callback.
         // glfwSetScrollCallback(w, _glfw_wheel_callback);
-
-        // // Register the mouse button callback.
-        // glfwSetMouseButtonCallback(w, _glfw_button_callback);
-
-        // Register the mouse move callback.
-        // TODO: comment?? if commented, see _glfw_frame_callback
-        glfwSetCursorPosCallback(w, _glfw_move_callback);
 
         // // Register a function called at every frame, after event polling and state update
         // dvz_event_callback(
