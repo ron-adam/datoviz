@@ -236,7 +236,7 @@ void dvz_fifo_destroy(DvzFifo* fifo)
 
 
 /*************************************************************************************************/
-/*  Dequeues                                                                                     */
+/*  Dequeue utils                                                                                */
 /*************************************************************************************************/
 
 static DvzFifo* _deq_fifo(DvzDeq* deq, uint32_t deq_idx)
@@ -270,6 +270,100 @@ static void _deq_callbacks(DvzDeq* deq, DvzDeqItem* item)
 }
 
 
+
+// Return the total size of the Deq.
+static int _deq_size(DvzDeq* deq, uint32_t queue_count, uint32_t* queue_ids)
+{
+    ASSERT(deq != NULL);
+    ASSERT(queue_count > 0);
+    ASSERT(queue_ids != NULL);
+    int size = 0;
+    uint32_t deq_idx = 0;
+    for (uint32_t i = 0; i < queue_count; i++)
+    {
+        deq_idx = queue_ids[i];
+        ASSERT(deq_idx < deq->queue_count);
+        size += dvz_fifo_size(&deq->queues[deq_idx]);
+    }
+    return size;
+}
+
+
+
+static void
+_proc_callbacks(DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallbackPosition pos, DvzDeqItem* item)
+{
+    ASSERT(deq != NULL);
+    ASSERT(proc_idx < deq->proc_count);
+    DvzDeqProc* proc = &deq->procs[proc_idx];
+
+    for (uint32_t i = 0; i < proc->callback_count; i++)
+    {
+        if (proc->callbacks[i].pos == pos)
+        {
+            ASSERT(proc->callbacks[i].callback != NULL);
+            proc->callbacks[i].callback(
+                deq, item->deq_idx, item->type, item->item, proc->callbacks[i].user_data);
+        }
+    }
+}
+
+
+
+static void _proc_wait_callbacks(DvzDeq* deq, uint32_t proc_idx)
+{
+    ASSERT(deq != NULL);
+    ASSERT(proc_idx < deq->proc_count);
+    DvzDeqProc* proc = &deq->procs[proc_idx];
+
+    for (uint32_t i = 0; i < proc->wait_callback_count; i++)
+    {
+        ASSERT(proc->wait_callbacks[i].callback != NULL);
+        proc->wait_callbacks[i].callback(deq, proc->callbacks[i].user_data);
+    }
+}
+
+
+
+// Return 0 if an item was dequeued, or a non-zero integer if the timeout-ed wait was unsuccessful
+// (in which case we need to continue waiting).
+static int _proc_wait(DvzDeqProc* proc)
+{
+    ASSERT(proc != NULL);
+
+    if (proc->max_wait == 0)
+    {
+        // NOTE: this call automatically releases the mutex while waiting, and reacquires it
+        // afterwards
+        return pthread_cond_wait(&proc->cond, &proc->lock);
+    }
+    else
+    {
+        struct timeval now;
+        uint32_t wait_s = proc->max_wait / 1000; // in seconds
+        //                  ^^ in ms  ^^   ^^^^ convert to s
+        uint32_t wait_us = (proc->max_wait - 1000 * wait_s) * 1000; // in us
+        //                  ^^ in ms  ^^^    ^^^ in ms ^^^    ^^^ to us
+        // Determine until when to wait for the cond.
+
+        gettimeofday(&now, NULL);
+
+        // How many seconds after now?
+        proc->wait.tv_sec = now.tv_sec + wait_s;
+        // How many nanoseconds after the X seconds?
+        proc->wait.tv_nsec = (now.tv_usec + wait_us) * 1000; // from us to ns
+
+        // NOTE: this call automatically releases the mutex while waiting, and reacquires it
+        // afterwards
+        return pthread_cond_timedwait(&proc->cond, &proc->lock, &proc->wait);
+    }
+}
+
+
+
+/*************************************************************************************************/
+/*  Dequeues                                                                                     */
+/*************************************************************************************************/
 
 DvzDeq dvz_deq(uint32_t nq)
 {
@@ -357,6 +451,38 @@ void dvz_deq_proc_callback(
 
 
 
+void dvz_deq_proc_wait_delay(DvzDeq* deq, uint32_t proc_idx, uint32_t delay_ms)
+{
+    ASSERT(deq != NULL);
+    ASSERT(proc_idx < deq->proc_count);
+    DvzDeqProc* proc = &deq->procs[proc_idx];
+    ASSERT(proc != NULL);
+
+    proc->max_wait = delay_ms;
+}
+
+
+
+void dvz_deq_proc_wait_callback(
+    DvzDeq* deq, uint32_t proc_idx, DvzDeqProcWaitCallback callback, void* user_data)
+{
+    ASSERT(deq != NULL);
+
+    ASSERT(proc_idx < deq->proc_count);
+    DvzDeqProc* proc = &deq->procs[proc_idx];
+    ASSERT(proc != NULL);
+
+    ASSERT(callback != NULL);
+
+    DvzDeqProcWaitCallbackRegister* reg = &proc->wait_callbacks[proc->wait_callback_count++];
+    ASSERT(reg != NULL);
+
+    reg->callback = callback;
+    reg->user_data = user_data;
+}
+
+
+
 static void _deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item, bool enqueue_first)
 {
     ASSERT(deq != NULL);
@@ -387,14 +513,10 @@ static void _deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item, bo
     pthread_mutex_unlock(&proc->lock);
 }
 
-
-
 void dvz_deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item)
 {
     _deq_enqueue(deq, deq_idx, type, item, false);
 }
-
-
 
 void dvz_deq_enqueue_first(DvzDeq* deq, uint32_t deq_idx, int type, void* item)
 {
@@ -437,73 +559,6 @@ DvzDeqItem dvz_deq_peek_last(DvzDeq* deq, uint32_t deq_idx)
 
 
 
-// Return the total size of the Deq.
-static int _deq_size(DvzDeq* deq, uint32_t queue_count, uint32_t* queue_ids)
-{
-    ASSERT(deq != NULL);
-    ASSERT(queue_count > 0);
-    ASSERT(queue_ids != NULL);
-    int size = 0;
-    uint32_t deq_idx = 0;
-    for (uint32_t i = 0; i < queue_count; i++)
-    {
-        deq_idx = queue_ids[i];
-        ASSERT(deq_idx < deq->queue_count);
-        size += dvz_fifo_size(&deq->queues[deq_idx]);
-    }
-    return size;
-}
-
-static void
-_proc_callbacks(DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallbackPosition pos, DvzDeqItem* item)
-{
-    ASSERT(deq != NULL);
-    ASSERT(proc_idx < deq->proc_count);
-    DvzDeqProc* proc = &deq->procs[proc_idx];
-
-    for (uint32_t i = 0; i < proc->callback_count; i++)
-    {
-        if (proc->callbacks[i].pos == pos)
-        {
-            ASSERT(proc->callbacks[i].callback != NULL);
-            proc->callbacks[i].callback(
-                deq, item->deq_idx, item->type, item->item, proc->callbacks[i].user_data);
-        }
-    }
-}
-
-static void _proc_wait(DvzDeqProc* proc)
-{
-    ASSERT(proc != NULL);
-
-    if (proc->max_wait == 0)
-    {
-        // NOTE: this call automatically releases the mutex while waiting, and reacquires it
-        // afterwards
-        pthread_cond_wait(&proc->cond, &proc->lock);
-    }
-    else
-    {
-        struct timeval now;
-        uint32_t wait_s = proc->max_wait / 1000; // in seconds
-        //                  ^^ in ms  ^^   ^^^^ convert to s
-        uint32_t wait_us = (proc->max_wait - 1000 * wait_s) * 1000; // in us
-        //                  ^^ in ms  ^^^    ^^^ in ms ^^^    ^^^ to us
-        // Determine until when to wait for the cond.
-
-        gettimeofday(&now, NULL);
-
-        // How many seconds after now?
-        proc->wait.tv_sec = now.tv_sec + wait_s;
-        // How many nanoseconds after the X seconds?
-        proc->wait.tv_nsec = (now.tv_usec + wait_us) * 1000; // from us to ns
-
-        // NOTE: this call automatically releases the mutex while waiting, and reacquires it
-        // afterwards
-        pthread_cond_timedwait(&proc->cond, &proc->lock, &proc->wait);
-    }
-}
-
 DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
 {
     ASSERT(deq != NULL);
@@ -524,8 +579,19 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
         while (_deq_size(deq, proc->queue_count, proc->queue_indices) == 0)
         {
             log_trace("waiting for proc #%d cond", proc_idx);
-            _proc_wait(proc);
-            log_trace("proc #%d cond signaled!", proc_idx);
+            if (_proc_wait(proc) != 0)
+            {
+                // If the timeout-ed wait was unsuccessful, we will continue waiting at the next
+                // iteration. But before that, we call the proc wait callbacks.
+                _proc_wait_callbacks(deq, proc_idx);
+            }
+            else
+            {
+                log_trace("proc #%d cond signaled!", proc_idx);
+                break; // NOTE: this is not necessary, because if the cond is signaled, it means
+                       // the queue is non empty, and the while() condition at the very next
+                       // iteration will fail, thereby ending the while loop.
+            }
         }
         log_trace("proc #%d has an item", proc_idx);
     }

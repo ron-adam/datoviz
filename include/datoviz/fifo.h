@@ -47,10 +47,12 @@ typedef struct DvzDeqItem DvzDeqItem;
 typedef struct DvzDeqProc DvzDeqProc;
 typedef struct DvzDeqCallbackRegister DvzDeqCallbackRegister;
 typedef struct DvzDeqProcCallbackRegister DvzDeqProcCallbackRegister;
+typedef struct DvzDeqProcWaitCallbackRegister DvzDeqProcWaitCallbackRegister;
 
 typedef void (*DvzDeqCallback)(DvzDeq* deq, void* item, void* user_data);
 typedef void (*DvzDeqProcCallback)(
     DvzDeq* deq, uint32_t deq_idx, int type, void* item, void* user_data);
+typedef void (*DvzDeqProcWaitCallback)(DvzDeq* deq, void* user_data);
 
 
 
@@ -93,6 +95,12 @@ struct DvzDeqItem
     void* item;
 };
 
+struct DvzDeqProcWaitCallbackRegister
+{
+    DvzDeqProcWaitCallback callback;
+    void* user_data;
+};
+
 struct DvzDeqProcCallbackRegister
 {
     DvzDeqProcCallback callback;
@@ -109,9 +117,14 @@ struct DvzDeqProc
     uint32_t queue_indices[DVZ_DEQ_MAX_PROC_SIZE];
     uint32_t queue_offset; // offset that regularly increases at every call of dequeue()
 
-    // callbacks called after every dequeue, independently of the deq idx and type.
+    // Callbacks called after every dequeue, independently of the deq idx and type, either before
+    // or after the item callbacks.
     uint32_t callback_count;
     DvzDeqProcCallbackRegister callbacks[DVZ_DEQ_MAX_CALLBACKS];
+
+    // Callbacks called while waiting with a max_wait delay.
+    uint32_t wait_callback_count;
+    DvzDeqProcWaitCallbackRegister wait_callbacks[DVZ_DEQ_MAX_CALLBACKS];
 
     // Mutex and cond to signal when the deq is non-empty, and when to dequeue the first non-empty
     // underlying FIFO queues.
@@ -268,18 +281,42 @@ DVZ_EXPORT void
 dvz_deq_proc(DvzDeq* deq, uint32_t proc_idx, uint32_t queue_count, uint32_t* queue_ids);
 
 /**
+ * Set a maximum time delay for dequeue waiting, in milliseconds.
+ *
+ * @param deq the Deq
+ * @param proc_idx the Proc index
+ * @param delay_ms how many milliseconds to wait before probing for deq size while dequeueing
+ */
+DVZ_EXPORT void dvz_deq_proc_wait_delay(DvzDeq* deq, uint32_t proc_idx, uint32_t delay_ms);
+
+/**
  * Register a Proc callback.
  *
  * A Proc callback is called in the Deq loop for the associated proc, after every item dequeue.
  *
  * @param deq the Deq
  * @param proc_idx the Proc index (should be regularly increasing: 0, 1, 2, ...)
+ * @param pos this callback should be called either before or after the item callbacks
  * @param callback the callback
  * @param user_data pointer to arbitrary data
  */
 DVZ_EXPORT void dvz_deq_proc_callback(
     DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallbackPosition pos, DvzDeqProcCallback callback,
     void* user_data);
+
+/**
+ * Register a Proc wait callback.
+ *
+ * A Proc callback is called in the Deq loop for the associated proc, while waiting for a dequeue.
+ * It may be used to raise Timer events.
+ *
+ * @param deq the Deq
+ * @param proc_idx the Proc index (should be regularly increasing: 0, 1, 2, ...)
+ * @param callback the callback
+ * @param user_data pointer to arbitrary data
+ */
+DVZ_EXPORT void dvz_deq_proc_wait_callback(
+    DvzDeq* deq, uint32_t proc_idx, DvzDeqProcWaitCallback callback, void* user_data);
 
 /**
  * Enqueue an item.
