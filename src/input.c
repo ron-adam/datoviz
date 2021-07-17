@@ -71,6 +71,47 @@ static int _key_modifiers(int key_code)
 
 
 
+// Return the position of the key pressed if it is pressed, otherwise return -1.
+static int _is_key_pressed(DvzInputKeyboard* keyboard, DvzKeyCode key_code)
+{
+    ASSERT(keyboard != NULL);
+    for (uint32_t i = 0; i < keyboard->key_count; i++)
+    {
+        if (keyboard->keys[i] == key_code)
+            return (int)i;
+    }
+    return -1;
+}
+
+
+
+static void _remove_key(DvzInputKeyboard* keyboard, DvzKeyCode key_code, uint32_t pos)
+{
+    ASSERT(keyboard != NULL);
+    // ASSERT(pos >= 0);
+    ASSERT(pos < DVZ_INPUT_MAX_KEYS);
+    ASSERT(keyboard->key_count > 0);
+    ASSERT(pos < keyboard->key_count);
+    ASSERT(keyboard->keys[pos] == key_code);
+
+    // When an element is removed, need to shift all keys after one position to the left.
+    for (uint32_t i = pos; i < (uint32_t)MIN((int)key_code, DVZ_INPUT_MAX_KEYS - 1); i++)
+    {
+        keyboard->keys[i] = keyboard->keys[i + 1];
+    }
+    keyboard->key_count--;
+
+    // Reset the unset positions in the array.
+    log_debug(
+        "reset %d keys after pos %d", DVZ_INPUT_MAX_KEYS - keyboard->key_count,
+        keyboard->key_count);
+    memset(
+        &keyboard->keys[keyboard->key_count], 0,
+        (DVZ_INPUT_MAX_KEYS - keyboard->key_count) * sizeof(DvzKeyCode));
+}
+
+
+
 // Find the Deq queue index by inspecting the input type used for registering the callback.
 static uint32_t _deq_from_input_type(DvzInputType type)
 {
@@ -188,7 +229,7 @@ static void _glfw_key_callback(GLFWwindow* window, int key, int scancode, int ac
     DvzInputEvent ev = {0};
 
     DvzInputType type =
-        action == GLFW_PRESS ? DVZ_INPUT_KEYBOARD_PRESS : DVZ_INPUT_KEYBOARD_RELEASE;
+        action == GLFW_RELEASE ? DVZ_INPUT_KEYBOARD_RELEASE : DVZ_INPUT_KEYBOARD_PRESS;
 
     // NOTE: we use the GLFW key codes here, should actually do a proper mapping between GLFW
     // key codes and Datoviz key codes.
@@ -462,19 +503,42 @@ void dvz_input_keyboard_update(DvzInput* input, DvzInputType type, DvzInputEvent
 
     double time = input->clock.elapsed;
     DvzKeyCode key = ev.k.key_code;
+    int is_pressed = 0;
 
     if (type == DVZ_INPUT_KEYBOARD_PRESS && time - keyboard->press_time > .025)
     {
+        // Find out if the key is already pressed.
+        is_pressed = _is_key_pressed(keyboard, key);
+        // Make sure we don't reach the max number of keys pressed simultaneously.
+        // Also, do not add mod keys in the list of keys pressed.
+        if (is_pressed < 0 && keyboard->key_count < DVZ_INPUT_MAX_KEYS && !_is_key_modifier(key))
+        {
+            // Need to register the key in the keyboard state.
+            keyboard->keys[keyboard->key_count++] = key;
+        }
+
+        // Here, we've ensured that the keyboard state has been updated to register the key
+        // pressed, except if the maximum number of keys pressed simultaneously has been reached.
         log_trace("key pressed %d mods %d", key, ev.k.modifiers);
-        keyboard->key_code = key;
         keyboard->modifiers = ev.k.modifiers;
         keyboard->press_time = time;
         if (keyboard->cur_state == DVZ_KEYBOARD_STATE_INACTIVE)
             keyboard->cur_state = DVZ_KEYBOARD_STATE_ACTIVE;
     }
-    else
+    else if (type == DVZ_INPUT_KEYBOARD_RELEASE)
     {
-        keyboard->key_code = DVZ_KEY_NONE;
+        // HACK
+        // keyboard->key_count = 0;
+
+        is_pressed = _is_key_pressed(keyboard, key);
+        // If the key released was pressed, remove it from the keyboard state.
+        // log_debug("is pressed %d", is_pressed);
+        if (is_pressed >= 0)
+        {
+            ASSERT(is_pressed < DVZ_INPUT_MAX_KEYS);
+            _remove_key(keyboard, key, (uint32_t)is_pressed);
+        }
+
         if (keyboard->cur_state == DVZ_KEYBOARD_STATE_ACTIVE)
             keyboard->cur_state = DVZ_KEYBOARD_STATE_INACTIVE;
     }

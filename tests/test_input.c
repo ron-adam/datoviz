@@ -270,7 +270,9 @@ int test_input_mouse_click(TestContext* tc)
 static void _on_key_press(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
     ASSERT(input != NULL);
-    log_debug("key press");
+    log_debug("key press %d, modifiers %d", ev.k.key_code, ev.k.modifiers);
+    DvzKeyCode* k = input->keyboard.keys;
+    log_debug("%d key(s) pressed: %d %d %d %d", input->keyboard.key_count, k[0], k[1], k[2], k[3]);
     ASSERT(user_data != NULL);
     *((int*)user_data) = ev.k.key_code;
 }
@@ -278,7 +280,7 @@ static void _on_key_press(DvzInput* input, DvzInputEvent ev, void* user_data)
 static void _on_key_release(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
     ASSERT(input != NULL);
-    log_debug("key release");
+    log_debug("key release %d", ev.k.key_code);
     ASSERT(user_data != NULL);
     *((int*)user_data) = DVZ_KEY_NONE;
 }
@@ -299,12 +301,17 @@ int test_input_keyboard(TestContext* tc)
     dvz_input_event(
         &input, DVZ_INPUT_KEYBOARD_PRESS, (DvzInputEvent){.k = {.key_code = DVZ_KEY_A}});
     dvz_deq_wait(&input.deq, 0);
+    dvz_sleep(10);
     AT(key == DVZ_KEY_A);
 
     dvz_input_event(
         &input, DVZ_INPUT_KEYBOARD_RELEASE, (DvzInputEvent){.k = {.key_code = DVZ_KEY_A}});
     dvz_deq_wait(&input.deq, 0);
+    dvz_sleep(10);
     AT(key == DVZ_KEY_NONE);
+
+    // DEBUG
+    // _glfw_event_loop(w);
 
     // Destroy the resources.
     dvz_input_destroy(&input);

@@ -26,6 +26,7 @@ extern "C" {
 #define DVZ_INPUT_DEQ_KEYBOARD 1
 
 #define DVZ_INPUT_MAX_CALLBACKS 64
+#define DVZ_INPUT_MAX_KEYS      8
 
 
 
@@ -181,8 +182,20 @@ struct DvzKeyEvent
 
 
 
+union DvzInputEvent
+{
+    DvzKeyEvent k;         // for KEY events
+    DvzMouseButtonEvent b; // for BUTTON events
+    DvzMouseClickEvent c;  // for CLICK events
+    DvzMouseDragEvent d;   // for DRAG events
+    DvzMouseMoveEvent m;   // for MOVE events
+    DvzMouseWheelEvent w;  // for WHEEL events
+};
+
+
+
 /*************************************************************************************************/
-/*  Structs                                                                                      */
+/*  Mouse structs                                                                                */
 /*************************************************************************************************/
 
 struct DvzInputMouse
@@ -205,18 +218,6 @@ struct DvzInputMouse
 
 
 
-union DvzInputEvent
-{
-    DvzKeyEvent k;         // for KEY events
-    DvzMouseButtonEvent b; // for BUTTON events
-    DvzMouseClickEvent c;  // for CLICK events
-    DvzMouseDragEvent d;   // for DRAG events
-    DvzMouseMoveEvent m;   // for MOVE events
-    DvzMouseWheelEvent w;  // for WHEEL events
-};
-
-
-
 // In normalize coordinates [-1, +1]
 struct DvzInputMouseLocal
 {
@@ -229,9 +230,14 @@ struct DvzInputMouseLocal
 
 
 
+/*************************************************************************************************/
+/*  Keyboard structs                                                                             */
+/*************************************************************************************************/
+
 struct DvzInputKeyboard
 {
-    DvzKeyCode key_code;
+    uint32_t key_count;                  // number of keys currently pressed
+    DvzKeyCode keys[DVZ_INPUT_MAX_KEYS]; // which keys are currently pressed
     int modifiers;
 
     DvzKeyboardStateType prev_state;
@@ -242,6 +248,10 @@ struct DvzInputKeyboard
 };
 
 
+
+/*************************************************************************************************/
+/*  Input structs                                                                                */
+/*************************************************************************************************/
 
 struct DvzInputCallbackPayload
 {
@@ -270,7 +280,7 @@ struct DvzInput
 
 
 /*************************************************************************************************/
-/*  Input                                                                                        */
+/*  Input functions                                                                              */
 /*************************************************************************************************/
 
 /**
