@@ -5,12 +5,6 @@
 
 
 /*************************************************************************************************/
-/*  Constants                                                                                    */
-/*************************************************************************************************/
-
-
-
-/*************************************************************************************************/
 /*  Utils                                                                                        */
 /*************************************************************************************************/
 
@@ -152,13 +146,17 @@ int test_input_mouse_raw(TestContext* tc)
 static void _on_mouse_drag_begin(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
     ASSERT(input != NULL);
-    log_debug("BEGIN mouse drag button %d", ev.d.button);
+    log_debug("BEGIN mouse drag button %d, mods %d", ev.d.button, ev.d.modifiers);
 }
+
 static void _on_mouse_drag(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
     ASSERT(input != NULL);
-    log_debug("mouse drag button %d %.0fx%.0f", ev.d.button, ev.d.pos[0], ev.d.pos[1]);
+    log_debug(
+        "mouse drag button %d %.0fx%.0f, mods %d", ev.d.button, ev.d.pos[0], ev.d.pos[1],
+        ev.d.modifiers);
 }
+
 static void _on_mouse_drag_end(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
     ASSERT(input != NULL);
@@ -180,9 +178,13 @@ int test_input_mouse_drag(TestContext* tc)
     dvz_input_callback(&input, DVZ_INPUT_MOUSE_DRAG_END, _on_mouse_drag_end, &dragged);
     // _glfw_event_loop(w);
 
+    dvz_input_event(
+        &input, DVZ_INPUT_KEYBOARD_PRESS,
+        (DvzInputEvent){.k = {.key_code = DVZ_KEY_LEFT_CONTROL}});
     dvz_input_event(&input, DVZ_INPUT_MOUSE_MOVE, (DvzInputEvent){.m = {.pos = {10, 10}}});
     dvz_input_event(
         &input, DVZ_INPUT_MOUSE_PRESS, (DvzInputEvent){.b = {.button = DVZ_MOUSE_BUTTON_LEFT}});
+    dvz_input_event(&input, DVZ_INPUT_MOUSE_MOVE, (DvzInputEvent){.m = {.pos = {50, 50}}});
     dvz_input_event(&input, DVZ_INPUT_MOUSE_MOVE, (DvzInputEvent){.m = {.pos = {100, 100}}});
     dvz_input_event(
         &input, DVZ_INPUT_MOUSE_RELEASE, (DvzInputEvent){.b = {.button = DVZ_MOUSE_BUTTON_LEFT}});

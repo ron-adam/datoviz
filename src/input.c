@@ -136,7 +136,7 @@ static void _glfw_move_callback(GLFWwindow* window, double xpos, double ypos)
     DvzInputEvent ev = {0};
     ev.m.pos[0] = xpos;
     ev.m.pos[1] = ypos;
-    ev.m.modifiers = 0; // TODO
+    ev.m.modifiers = input->mouse.modifiers;
     dvz_input_event(input, DVZ_INPUT_MOUSE_MOVE, ev);
 }
 
@@ -148,7 +148,7 @@ static void _glfw_button_callback(GLFWwindow* window, int button, int action, in
     DvzInput* input = (DvzInput*)glfwGetWindowUserPointer(window);
     DvzInputEvent ev = {0};
     ev.b.button = _from_glfw_button(button);
-    ev.b.modifiers = 0; // TODO
+    ev.b.modifiers = mods;
     DvzInputType evtype = action == GLFW_PRESS ? DVZ_INPUT_MOUSE_PRESS : DVZ_INPUT_MOUSE_RELEASE;
     dvz_input_event(input, evtype, ev);
 }
@@ -161,15 +161,9 @@ static void _glfw_wheel_callback(GLFWwindow* window, double dx, double dy)
     DvzInput* input = (DvzInput*)glfwGetWindowUserPointer(window);
     DvzInputEvent ev = {0};
 
-    // HACK: glfw doesn't seem to give a way to probe the keyboard modifiers while using the mouse
-    // wheel, so we have to determine the modifiers manually.
-    // Limitation: a single modifier is allowed here.
-    // TODO: allow for multiple simultlaneous modifiers, will require updating the keyboard struct
-    // so that it supports multiple simultaneous keys
-
     ev.w.dir[0] = dx;
     ev.w.dir[1] = dy;
-    // ev.w.modifiers // TODO
+    ev.w.modifiers = input->mouse.modifiers;
     dvz_input_event(input, DVZ_INPUT_MOUSE_WHEEL, ev);
 }
 
@@ -288,6 +282,10 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
 
     // TODO?: if input capture, do nothing
 
+    // Manually-set keyboard modifiers, if bypassing glfw.
+    int mods = input->keyboard.modifiers;
+    mouse->modifiers |= mods;
+
     DvzInputEvent ev = {0};
     ev = *pev;
 
@@ -322,7 +320,7 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
             mouse->press_time = time;
             mouse->button = ev.b.button;
             // Keep track of the modifiers used for the press event.
-            mouse->modifiers = ev.b.modifiers;
+            mouse->modifiers = mods | ev.b.modifiers;
         }
         mouse->shift_length = 0;
         break;
@@ -355,8 +353,6 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
             // button in mouse->button.
             log_trace("double click event on button %d", mouse->button);
             mouse->click_time = time;
-            // dvz_event_mouse_double_click(canvas, mouse->cur_pos, mouse->button,
-            // mouse->modifiers);
             dvz_input_event_first(
                 input, DVZ_INPUT_MOUSE_DOUBLE_CLICK,
                 (DvzInputEvent){
@@ -374,7 +370,6 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
             log_trace("click event on button %d", mouse->button);
             mouse->cur_state = DVZ_MOUSE_STATE_CLICK;
             mouse->click_time = time;
-            // dvz_event_mouse_click(canvas, mouse->cur_pos, mouse->button, mouse->modifiers);
             dvz_input_event_first(
                 input, DVZ_INPUT_MOUSE_CLICK,
                 (DvzInputEvent){
@@ -412,7 +407,6 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
             !(time - mouse->press_time < DVZ_MOUSE_CLICK_MAX_DELAY &&
               mouse->shift_length < DVZ_MOUSE_CLICK_MAX_SHIFT))
         {
-            // dvz_event_mouse_drag(canvas, mouse->cur_pos, mouse->button, mouse->modifiers);
             dvz_input_event_first(
                 input, DVZ_INPUT_MOUSE_DRAG_BEGIN,
                 (DvzInputEvent){
@@ -479,8 +473,8 @@ void dvz_input_keyboard_reset(DvzInputKeyboard* keyboard)
 {
     ASSERT(keyboard != NULL);
     memset(keyboard, 0, sizeof(DvzInputKeyboard));
-    // keyboard->key_code = DVZ_KEY_NONE;
-    // keyboard->modifiers = 0;
+    keyboard->key_count = 0;
+    keyboard->modifiers = 0;
     keyboard->press_time = DVZ_NEVER;
     keyboard->is_active = true;
 }
@@ -517,10 +511,16 @@ void dvz_input_keyboard_update(DvzInput* input, DvzInputType type, DvzInputEvent
             keyboard->keys[keyboard->key_count++] = key;
         }
 
+        // Register the key modifier in the keyboard state.
+        if (_is_key_modifier(key))
+        {
+            keyboard->modifiers |= _key_modifiers(key);
+        }
+
         // Here, we've ensured that the keyboard state has been updated to register the key
         // pressed, except if the maximum number of keys pressed simultaneously has been reached.
         log_trace("key pressed %d mods %d", key, ev.k.modifiers);
-        keyboard->modifiers = ev.k.modifiers;
+        keyboard->modifiers |= ev.k.modifiers;
         keyboard->press_time = time;
         if (keyboard->cur_state == DVZ_KEYBOARD_STATE_INACTIVE)
             keyboard->cur_state = DVZ_KEYBOARD_STATE_ACTIVE;
@@ -537,6 +537,12 @@ void dvz_input_keyboard_update(DvzInput* input, DvzInputType type, DvzInputEvent
         {
             ASSERT(is_pressed < DVZ_INPUT_MAX_KEYS);
             _remove_key(keyboard, key, (uint32_t)is_pressed);
+        }
+
+        // Remove the key modifier in the keyboard state.
+        if (_is_key_modifier(key))
+        {
+            keyboard->modifiers &= ~_key_modifiers(key);
         }
 
         if (keyboard->cur_state == DVZ_KEYBOARD_STATE_ACTIVE)
