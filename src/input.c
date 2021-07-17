@@ -580,11 +580,12 @@ static void _timer_add(DvzInput* input, DvzInputEvent ev, void* user_data)
     ASSERT(timer != NULL);
 
     timer->input = input;
-    timer->after = ev.ta.after;
-    timer->max_count = ev.ta.max_count;
-    timer->period = ev.ta.period;
     timer->timer_id = ev.ta.timer_id;
+    timer->max_count = ev.ta.max_count;
     timer->is_running = true;
+
+    timer->after = ev.ta.after;
+    timer->period = ev.ta.period;
 
     dvz_obj_created(&timer->obj);
     log_debug("add timer #%d", timer->timer_id);
@@ -626,9 +627,8 @@ static bool _timer_should_tick(DvzTimer* timer)
 
     // Go through all TIMER callbacks
     double cur_time = timer->input->clock.elapsed;
-    double interval = timer->interval;
     // When is the next expected time?
-    double expected_time = (timer->tick + 1) * interval;
+    double expected_time = ((timer->tick + 1) * timer->period) / 1000.0;
 
     // If we reached the expected time, we raise the TIMER event immediately.
     if (cur_time >= expected_time)
@@ -651,9 +651,8 @@ static void _timer_tick(DvzTimer* timer)
     ev.t.max_count = timer->max_count;
 
     double cur_time = timer->input->clock.elapsed;
-    double interval = timer->interval;
     // At what time was the last TIMER event for this callback?
-    double last_time = timer->tick * interval;
+    double last_time = (timer->tick * timer->period) / 1000.0;
 
     ev.t.time = cur_time;
     ev.t.tick = timer->tick;
@@ -661,7 +660,12 @@ static void _timer_tick(DvzTimer* timer)
     // event, not the actual time.
     ev.t.interval = cur_time - last_time;
 
+    // HACK: release the lock before enqueuing a TIMER event, because the lock is currently
+    // acquired. Here, we are in a proc wait callback, called while waiting for the queue to be
+    // non-empty. The waiting acquires the lock.
+    pthread_mutex_unlock(&timer->input->deq.procs[0].lock);
     dvz_input_event(timer->input, DVZ_INPUT_TIMER_TICK, ev);
+    pthread_mutex_lock(&timer->input->deq.procs[0].lock);
 
     timer->tick++;
 }

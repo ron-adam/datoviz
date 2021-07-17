@@ -208,8 +208,8 @@ struct DvzTimerAddEvent
 {
     uint32_t timer_id;  // which timer
     uint64_t max_count; // maximum number of iterations
-    double after;       // after how many seconds the first event should be raised
-    double period;      // period of the associated timer
+    uint32_t after;     // after how many seconds the first event should be raised
+    uint32_t period;    // period of the associated timer
 };
 
 
@@ -234,10 +234,12 @@ struct DvzTimerTickEvent
     uint32_t timer_id;  // which timer
     uint64_t tick;      // increasing at every event emission
     uint64_t max_count; // maximum number of iterations
-    double after;       // after how many seconds the first event should be raised
-    double period;      // period of the associated timer
-    double time;        // current time
-    double interval;    // interval since last event emission
+
+    uint32_t after;  // after how many milliseconds the first event should be raised
+    uint32_t period; // period of the associated timer
+
+    double time;     // current time
+    double interval; // interval since last event emission
 };
 
 
@@ -331,9 +333,8 @@ struct DvzTimer
     uint32_t timer_id;  // unique ID of this timer among all timers registered in a given input
     uint64_t tick;      // current tick number
     uint64_t max_count; // specified maximum number of ticks for this timer
-    double after;       // number of seconds before the first tick
-    double period;      // expected number of seconds between ticks
-    double interval;    // number of seconds since last tick
+    uint32_t after;     // number of milliseconds before the first tick
+    uint32_t period;    // expected number of milliseconds between ticks
     DvzInputCallback callback;
 };
 
@@ -453,30 +454,6 @@ DVZ_EXPORT void dvz_input_keyboard_reset(DvzInputKeyboard* keyboard);
  * @param ev the keyboard event
  */
 DVZ_EXPORT void dvz_input_keyboard_update(DvzInput* input, DvzInputType type, DvzInputEvent* ev);
-
-
-
-/*************************************************************************************************/
-/*  Timer                                                                                        */
-/*************************************************************************************************/
-
-// /**
-//  * Create a timer.
-//  *
-//  * @returns the timer
-//  */
-// DVZ_EXPORT DvzTimer*
-// dvz_input_timer(DvzInput* input, double after, double period, uint64_t max_count);
-
-// /**
-//  * Pause or resume the timer.
-//  */
-// DVZ_EXPORT void dvz_input_timer_running(DvzTimer* timer, bool is_running);
-
-// /**
-//  * Remove a timer.
-//  */
-// DVZ_EXPORT void dvz_input_timer_remove(DvzTimer* timer);
 
 
 

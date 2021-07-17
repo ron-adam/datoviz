@@ -331,8 +331,8 @@ static void _on_timer_tick(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
     ASSERT(input != NULL);
     log_debug("timer tick #%d", ev.t.tick);
-    // ASSERT(user_data != NULL);
-    // *((int*)user_data) = DVZ_KEY_NONE;
+    ASSERT(user_data != NULL);
+    *((uint64_t*)user_data) = ev.t.tick;
 }
 
 int test_input_timer(TestContext* tc)
@@ -342,14 +342,15 @@ int test_input_timer(TestContext* tc)
     // GLFWwindow* w = _glfw_window();
     dvz_input_backend(&input, DVZ_BACKEND_GLFW, NULL);
 
-    // Timer callback.
-    dvz_input_callback(&input, DVZ_INPUT_TIMER_TICK, _on_timer_tick, NULL);
+    // Timer tick callback.
+    uint64_t tick = 0;
+    dvz_input_callback(&input, DVZ_INPUT_TIMER_TICK, _on_timer_tick, &tick);
 
-    // Simulate a key stroke.
+    // Add a timer.
     dvz_input_event(&input, DVZ_INPUT_TIMER_ADD, (DvzInputEvent){.ta = {.period = 10}});
-    // dvz_deq_wait(&input.deq, 0);
-    dvz_sleep(100);
+    dvz_sleep(105);
 
+    AT(tick >= 8);
 
     // Destroy the resources.
     dvz_input_destroy(&input);

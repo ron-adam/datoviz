@@ -503,7 +503,7 @@ static void _deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item, bo
 
     // We signal that proc that an item has been enqueued to one of its queues.
     log_trace("enqueue to queue #%d item type %d", deq_idx, type);
-    pthread_mutex_trylock(&proc->lock);
+    pthread_mutex_lock(&proc->lock);
     if (!enqueue_first)
         dvz_fifo_enqueue(fifo, deq_item);
     else
