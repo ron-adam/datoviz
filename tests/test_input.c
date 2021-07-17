@@ -163,19 +163,32 @@ static void _on_mouse_drag_end(DvzInput* input, DvzInputEvent ev, void* user_dat
 {
     ASSERT(input != NULL);
     log_debug("END mouse drag");
+    ASSERT(user_data != NULL);
+    *((bool*)user_data) = true;
 }
 
-int test_input_mouse_complete(TestContext* tc)
+int test_input_mouse_drag(TestContext* tc)
 {
     // Create an input and window.
     DvzInput input = dvz_input();
     GLFWwindow* w = _glfw_window();
     dvz_input_backend(&input, DVZ_BACKEND_GLFW, w);
 
+    bool dragged = false;
     dvz_input_callback(&input, DVZ_INPUT_MOUSE_DRAG_BEGIN, _on_mouse_drag_begin, NULL);
     dvz_input_callback(&input, DVZ_INPUT_MOUSE_DRAG, _on_mouse_drag, NULL);
-    dvz_input_callback(&input, DVZ_INPUT_MOUSE_DRAG_END, _on_mouse_drag_end, NULL);
-    _glfw_event_loop(w);
+    dvz_input_callback(&input, DVZ_INPUT_MOUSE_DRAG_END, _on_mouse_drag_end, &dragged);
+    // _glfw_event_loop(w);
+
+    dvz_input_event(&input, DVZ_INPUT_MOUSE_MOVE, (DvzInputEvent){.m = {.pos = {10, 10}}});
+    dvz_input_event(
+        &input, DVZ_INPUT_MOUSE_PRESS, (DvzInputEvent){.b = {.button = DVZ_MOUSE_BUTTON_LEFT}});
+    dvz_input_event(&input, DVZ_INPUT_MOUSE_MOVE, (DvzInputEvent){.m = {.pos = {100, 100}}});
+    dvz_input_event(
+        &input, DVZ_INPUT_MOUSE_RELEASE, (DvzInputEvent){.b = {.button = DVZ_MOUSE_BUTTON_LEFT}});
+    // NOTE: wait for the background thread to process
+    dvz_deq_wait(&input.deq, 0);
+    AT(dragged);
 
     // Destroy the resources.
     dvz_input_destroy(&input);
