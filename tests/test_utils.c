@@ -488,6 +488,51 @@ int test_utils_deq_proc(TestContext* tc)
 
 
 
+static void* _proc_thread(void* user_data)
+{
+    DvzDeq* deq = (DvzDeq*)user_data;
+    ASSERT(deq != NULL);
+    _deq_loop(deq, 0);
+    return NULL;
+}
+
+static void _proc_wait(DvzDeq* deq, void* user_data)
+{
+    ASSERT(deq != NULL);
+    int* count = (int*)user_data;
+    ASSERT(count != NULL);
+    (*count)++;
+    log_debug("wait iter %d", *count);
+}
+
+int test_utils_deq_wait(TestContext* tc)
+{
+    DvzDeq deq = dvz_deq(1);
+    dvz_deq_proc(&deq, 0, 1, (uint32_t[]){0});
+    dvz_deq_proc_wait_delay(&deq, 0, 10);
+    int count = 0;
+    dvz_deq_proc_wait_callback(&deq, 0, _proc_wait, &count);
+
+    DvzThread thread = dvz_thread(_proc_thread, &deq);
+
+    dvz_sleep(50);
+    AT(count >= 3);
+
+    int* item = calloc(1, sizeof(int));
+    *item = 1;
+    dvz_deq_enqueue(&deq, 0, 0, item);
+
+    dvz_sleep(20);
+    AT(count >= 4);
+
+    dvz_deq_enqueue(&deq, 0, 0, NULL);
+    dvz_thread_join(&thread);
+    dvz_deq_destroy(&deq);
+    return 0;
+}
+
+
+
 int test_utils_deq_circular(TestContext* tc)
 {
     DvzDeq deq = dvz_deq(2);

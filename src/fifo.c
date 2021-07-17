@@ -319,7 +319,7 @@ static void _proc_wait_callbacks(DvzDeq* deq, uint32_t proc_idx)
     for (uint32_t i = 0; i < proc->wait_callback_count; i++)
     {
         ASSERT(proc->wait_callbacks[i].callback != NULL);
-        proc->wait_callbacks[i].callback(deq, proc->callbacks[i].user_data);
+        proc->wait_callbacks[i].callback(deq, proc->wait_callbacks[i].user_data);
     }
 }
 

@@ -321,6 +321,10 @@ DVZ_EXPORT void dvz_deq_proc_wait_callback(
 /**
  * Enqueue an item.
  *
+ * !!! warning
+ *     When using the built-in Deq loop, the passed pointer `item` MUST be allocated with malloc()
+ *     or equivalent as it will be automatically freed by the Deq loop.
+ *
  * @param deq the Deq
  * @param deq_idx the queue index
  * @param type the item type

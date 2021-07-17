@@ -23,6 +23,7 @@ int test_utils_deq_1(TestContext*);
 int test_utils_deq_2(TestContext*);
 int test_utils_deq_circular(TestContext*);
 int test_utils_deq_proc(TestContext*);
+int test_utils_deq_wait(TestContext*);
 
 int test_utils_array_1(TestContext*);
 int test_utils_array_2(TestContext*);
@@ -184,27 +185,30 @@ int test_scene_dynamic_axes(TestContext*);
 
 static TestCase TEST_CASES[] = {
     // Utils.
-    CASE_FIXTURE(NONE, test_utils_container),        //
-    CASE_FIXTURE(NONE, test_utils_thread),           //
-    CASE_FIXTURE(NONE, test_utils_fifo_1),           //
-    CASE_FIXTURE(NONE, test_utils_fifo_2),           //
-    CASE_FIXTURE(NONE, test_utils_fifo_resize),      //
-    CASE_FIXTURE(NONE, test_utils_fifo_discard),     //
-    CASE_FIXTURE(NONE, test_utils_fifo_first),       //
-    CASE_FIXTURE(NONE, test_utils_deq_1),            //
-    CASE_FIXTURE(NONE, test_utils_deq_2),            //
-    CASE_FIXTURE(NONE, test_utils_deq_circular),     //
-    CASE_FIXTURE(NONE, test_utils_deq_proc),         //
-    CASE_FIXTURE(NONE, test_utils_array_1),          //
-    CASE_FIXTURE(NONE, test_utils_array_2),          //
-    CASE_FIXTURE(NONE, test_utils_array_3),          //
-    CASE_FIXTURE(NONE, test_utils_array_4),          //
-    CASE_FIXTURE(NONE, test_utils_array_5),          //
-    CASE_FIXTURE(NONE, test_utils_array_6),          //
-    CASE_FIXTURE(NONE, test_utils_array_7),          //
-    CASE_FIXTURE(NONE, test_utils_array_cast),       //
-    CASE_FIXTURE(NONE, test_utils_array_mvp),        //
-    CASE_FIXTURE(NONE, test_utils_array_3D),         //
+    CASE_FIXTURE(NONE, test_utils_container),    //
+    CASE_FIXTURE(NONE, test_utils_thread),       //
+    CASE_FIXTURE(NONE, test_utils_fifo_1),       //
+    CASE_FIXTURE(NONE, test_utils_fifo_2),       //
+    CASE_FIXTURE(NONE, test_utils_fifo_resize),  //
+    CASE_FIXTURE(NONE, test_utils_fifo_discard), //
+    CASE_FIXTURE(NONE, test_utils_fifo_first),   //
+    CASE_FIXTURE(NONE, test_utils_deq_1),        //
+    CASE_FIXTURE(NONE, test_utils_deq_2),        //
+    CASE_FIXTURE(NONE, test_utils_deq_circular), //
+    CASE_FIXTURE(NONE, test_utils_deq_proc),     //
+    CASE_FIXTURE(NONE, test_utils_deq_wait),     //
+
+    CASE_FIXTURE(NONE, test_utils_array_1),    //
+    CASE_FIXTURE(NONE, test_utils_array_2),    //
+    CASE_FIXTURE(NONE, test_utils_array_3),    //
+    CASE_FIXTURE(NONE, test_utils_array_4),    //
+    CASE_FIXTURE(NONE, test_utils_array_5),    //
+    CASE_FIXTURE(NONE, test_utils_array_6),    //
+    CASE_FIXTURE(NONE, test_utils_array_7),    //
+    CASE_FIXTURE(NONE, test_utils_array_cast), //
+    CASE_FIXTURE(NONE, test_utils_array_mvp),  //
+    CASE_FIXTURE(NONE, test_utils_array_3D),   //
+
     CASE_FIXTURE(NONE, test_utils_transforms_1),     //
     CASE_FIXTURE(NONE, test_utils_transforms_2),     //
     CASE_FIXTURE(NONE, test_utils_transforms_3),     //
