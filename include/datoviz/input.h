@@ -146,7 +146,7 @@ struct DvzMouseMoveEvent
 
 struct DvzMouseWheelEvent
 {
-    vec2 pos;
+    vec2 pos; // TODO: remove
     vec2 dir;
     int modifiers;
 };

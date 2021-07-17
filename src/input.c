@@ -58,6 +58,24 @@ static void _glfw_button_callback(GLFWwindow* window, int button, int action, in
     dvz_input_event(input, evtype, ev);
 }
 
+static void _glfw_wheel_callback(GLFWwindow* window, double dx, double dy)
+{
+    ASSERT(window != NULL);
+    DvzInput* input = (DvzInput*)glfwGetWindowUserPointer(window);
+    DvzInputEvent ev = {0};
+
+    // HACK: glfw doesn't seem to give a way to probe the keyboard modifiers while using the mouse
+    // wheel, so we have to determine the modifiers manually.
+    // Limitation: a single modifier is allowed here.
+    // TODO: allow for multiple simultlaneous modifiers, will require updating the keyboard struct
+    // so that it supports multiple simultaneous keys
+
+    ev.w.dir[0] = dx;
+    ev.w.dir[1] = dy;
+    // ev.w.modifiers // TODO
+    dvz_input_event(input, DVZ_INPUT_MOUSE_WHEEL, ev);
+}
+
 
 
 /*************************************************************************************************/
@@ -105,13 +123,13 @@ void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window)
         // Register the mouse button callback.
         glfwSetMouseButtonCallback(w, _glfw_button_callback);
 
+        // Register the mouse wheel callback.
+        glfwSetScrollCallback(w, _glfw_wheel_callback);
+
 
 
         // // Register the key callback.
         // glfwSetKeyCallback(w, _glfw_key_callback);
-
-        // // Register the mouse wheel callback.
-        // glfwSetScrollCallback(w, _glfw_wheel_callback);
 
         // // Register a function called at every frame, after event polling and state update
         // dvz_event_callback(

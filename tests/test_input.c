@@ -76,6 +76,17 @@ static void _on_mouse_button(DvzInput* input, DvzInputEvent ev, void* user_data)
     *button = ev.b.button;
 }
 
+static void _on_mouse_wheel(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    ASSERT(input != NULL);
+    log_debug("mouse wheel: %.1fx%.1f", ev.w.dir[0], ev.w.dir[1]);
+
+    ASSERT(user_data != NULL);
+    vec2* dir = (vec2*)user_data;
+    dir[0][0] = ev.w.dir[0];
+    dir[0][1] = ev.w.dir[1];
+}
+
 int test_input_mouse(TestContext* tc)
 {
     // Create an input and window.
@@ -118,6 +129,17 @@ int test_input_mouse(TestContext* tc)
     dvz_sleep(10);
     // _glfw_event_loop(w);
     AT(button == (int)DVZ_MOUSE_BUTTON_RIGHT);
+
+
+    // Mouse wheel.
+    vec2 dir = {0};
+    dvz_input_callback(&input, DVZ_INPUT_MOUSE_WHEEL, _on_mouse_wheel, dir);
+    dvz_input_event(&input, DVZ_INPUT_MOUSE_WHEEL, (DvzInputEvent){.w.dir = {0, 1}});
+    // HACK: wait for the background thread to process the mouse press callback and modify the
+    // button variable.
+    dvz_sleep(10);
+    // _glfw_event_loop(w);
+    AT(dir[1] == 1);
 
 
     // Destroy the resources.
