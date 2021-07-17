@@ -24,9 +24,11 @@ extern "C" {
 
 #define DVZ_INPUT_DEQ_MOUSE    0
 #define DVZ_INPUT_DEQ_KEYBOARD 1
+#define DVZ_INPUT_DEQ_TIMER    2
 
 #define DVZ_INPUT_MAX_CALLBACKS 64
 #define DVZ_INPUT_MAX_KEYS      8
+#define DVZ_INPUT_MAX_TIMERS    16
 
 
 
@@ -115,11 +117,19 @@ typedef struct DvzMouseDragEvent DvzMouseDragEvent;
 typedef struct DvzMouseMoveEvent DvzMouseMoveEvent;
 typedef struct DvzMouseWheelEvent DvzMouseWheelEvent;
 
+typedef struct DvzTimerAddEvent DvzTimerAddEvent;
+typedef struct DvzTimerPauseEvent DvzTimerPauseEvent;
+typedef struct DvzTimerContinueEvent DvzTimerContinueEvent;
+typedef struct DvzTimerRemoveEvent DvzTimerRemoveEvent;
+typedef struct DvzTimerTickEvent DvzTimerTickEvent;
+
 typedef struct DvzInputMouse DvzInputMouse;
 typedef struct DvzInputKeyboard DvzInputKeyboard;
 typedef struct DvzInputMouseLocal DvzInputMouseLocal;
 typedef union DvzInputEvent DvzInputEvent;
 typedef struct DvzInput DvzInput;
+
+typedef struct DvzTimer DvzTimer;
 
 typedef struct DvzInputCallbackPayload DvzInputCallbackPayload;
 typedef void (*DvzInputCallback)(DvzInput*, DvzInputEvent, void*);
@@ -127,7 +137,7 @@ typedef void (*DvzInputCallback)(DvzInput*, DvzInputEvent, void*);
 
 
 /*************************************************************************************************/
-/*  Event structs                                                                                */
+/*  Mouse event structs                                                                          */
 /*************************************************************************************************/
 
 struct DvzMouseButtonEvent
@@ -174,6 +184,10 @@ struct DvzMouseClickEvent
 
 
 
+/*************************************************************************************************/
+/*  Keyboard event structs                                                                       */
+/*************************************************************************************************/
+
 struct DvzKeyEvent
 {
     DvzKeyCode key_code;
@@ -181,6 +195,58 @@ struct DvzKeyEvent
 };
 
 
+
+/*************************************************************************************************/
+/*  Timer event structs                                                                          */
+/*************************************************************************************************/
+
+struct DvzTimerAddEvent
+{
+    uint32_t timer_idx; // which timer
+    uint64_t max_count; // maximum number of iterations
+    double after;       // after how many seconds the first event should be raised
+    double period;      // period of the associated timer
+};
+
+
+
+struct DvzTimerPauseEvent
+{
+    uint32_t timer_idx; // which timer
+};
+
+
+
+struct DvzTimerContinueEvent
+{
+    uint32_t timer_idx; // which timer
+};
+
+
+
+struct DvzTimerRemoveEvent
+{
+    uint32_t timer_idx; // which timer
+};
+
+
+
+struct DvzTimerTickEvent
+{
+    uint32_t timer_idx; // which timer
+    uint64_t tick;      // increasing at every event emission
+    uint64_t max_count; // maximum number of iterations
+    double after;       // after how many seconds the first event should be raised
+    double period;      // period of the associated timer
+    double time;        // current time
+    double interval;    // interval since last event emission
+};
+
+
+
+/*************************************************************************************************/
+/*  Input event union                                                                            */
+/*************************************************************************************************/
 
 union DvzInputEvent
 {
@@ -190,6 +256,7 @@ union DvzInputEvent
     DvzMouseDragEvent d;   // for DRAG events
     DvzMouseMoveEvent m;   // for MOVE events
     DvzMouseWheelEvent w;  // for WHEEL events
+    DvzTimerTickEvent t;   // for TIMER events
 };
 
 
@@ -250,6 +317,25 @@ struct DvzInputKeyboard
 
 
 /*************************************************************************************************/
+/*  Timer structs                                                                                */
+/*************************************************************************************************/
+
+struct DvzTimer
+{
+    DvzObject obj;
+    DvzInput* input;
+    bool is_running;
+
+    int32_t timer_idx;
+    uint64_t max_count;
+    double after;
+    double period;
+    DvzInputCallback callback;
+};
+
+
+
+/*************************************************************************************************/
 /*  Input structs                                                                                */
 /*************************************************************************************************/
 
@@ -265,82 +351,30 @@ struct DvzInputCallbackPayload
 struct DvzInput
 {
     DvzBackend backend;
+
+    // Event queues for mouse, keyboard, and timer.
     DvzDeq deq;
+
+    // Mouse and keyboard.
     DvzInputMouse mouse;
     DvzInputKeyboard keyboard;
 
+    // Timers.
+    // uint32_t timer_count;
+    // DvzTimer timers[DVZ_INPUT_MAX_TIMERS];
+    DvzContainer timers;
+
+    // Callbacks.
     uint32_t callback_count;
     DvzInputCallbackPayload callbacks[DVZ_INPUT_MAX_CALLBACKS];
+
+    // Thread and clock.
     DvzThread thread; // background thread processing the input events
     DvzClock clock;
 
+    // Pointer to a native backend window object.
     void* window;
 };
-
-
-
-/*************************************************************************************************/
-/*  Input functions                                                                              */
-/*************************************************************************************************/
-
-/**
- * Create an input struct.
- *
- * An Input provides an event queue for mouse and keyboard events. It also attaches a backend
- * window and fills the event queue as a response to user input events.
- *
- * The Input also allows the user to attach a callback function to react to these events.
- *
- * Finally, the Input provides a way to enqueue input events directly in it, thereby simulating
- * mock mouse and keyboard events.
- *
- * @returns the input struct
- */
-DVZ_EXPORT DvzInput dvz_input(void);
-
-/**
- * Setup an input for a given backend and window object.
- *
- * @param input the input
- * @param backend the backend
- * @param window the backend-specific window object
- */
-DVZ_EXPORT void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window);
-
-/**
- * Register an input callback.
- *
- * @param input the input
- * @param type the input type
- * @param callback the callback function
- * @param user_data pointer to arbitrary data
- */
-DVZ_EXPORT void
-dvz_input_callback(DvzInput* input, DvzInputType type, DvzInputCallback callback, void* user_data);
-
-/**
- * Enqueue an input event.
- *
- * @param input the input
- * @param type the input type
- * @param ev the event union
- */
-DVZ_EXPORT void dvz_input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev);
-
-/**
- * Enqueue an input event at the first end of the queue.
- *
- * @param input the input
- * @param type the input type
- * @param ev the event union
- */
-DVZ_EXPORT void dvz_input_event_first(DvzInput* input, DvzInputType type, DvzInputEvent ev);
-
-/**
- * Destroy an input struct.
- * @param input the input struct
- */
-DVZ_EXPORT void dvz_input_destroy(DvzInput* input);
 
 
 
@@ -415,6 +449,95 @@ DVZ_EXPORT void dvz_input_keyboard_reset(DvzInputKeyboard* keyboard);
  * @param ev the keyboard event
  */
 DVZ_EXPORT void dvz_input_keyboard_update(DvzInput* input, DvzInputType type, DvzInputEvent* ev);
+
+
+
+/*************************************************************************************************/
+/*  Timer                                                                                        */
+/*************************************************************************************************/
+
+// /**
+//  * Create a timer.
+//  *
+//  * @returns the timer
+//  */
+// DVZ_EXPORT DvzTimer*
+// dvz_input_timer(DvzInput* input, double after, double period, uint64_t max_count);
+
+// /**
+//  * Pause or resume the timer.
+//  */
+// DVZ_EXPORT void dvz_input_timer_running(DvzTimer* timer, bool is_running);
+
+// /**
+//  * Remove a timer.
+//  */
+// DVZ_EXPORT void dvz_input_timer_remove(DvzTimer* timer);
+
+
+
+/*************************************************************************************************/
+/*  Input functions                                                                              */
+/*************************************************************************************************/
+
+/**
+ * Create an input struct.
+ *
+ * An Input provides an event queue for mouse and keyboard events. It also attaches a backend
+ * window and fills the event queue as a response to user input events.
+ *
+ * The Input also allows the user to attach a callback function to react to these events.
+ *
+ * Finally, the Input provides a way to enqueue input events directly in it, thereby simulating
+ * mock mouse and keyboard events.
+ *
+ * @returns the input struct
+ */
+DVZ_EXPORT DvzInput dvz_input(void);
+
+/**
+ * Setup an input for a given backend and window object.
+ *
+ * @param input the input
+ * @param backend the backend
+ * @param window the backend-specific window object
+ */
+DVZ_EXPORT void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window);
+
+/**
+ * Register an input callback.
+ *
+ * @param input the input
+ * @param type the input type
+ * @param callback the callback function
+ * @param user_data pointer to arbitrary data
+ */
+DVZ_EXPORT void
+dvz_input_callback(DvzInput* input, DvzInputType type, DvzInputCallback callback, void* user_data);
+
+/**
+ * Enqueue an input event.
+ *
+ * @param input the input
+ * @param type the input type
+ * @param ev the event union
+ */
+DVZ_EXPORT void dvz_input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev);
+
+/**
+ * Enqueue an input event at the first end of the queue.
+ *
+ * @param input the input
+ * @param type the input type
+ * @param ev the event union
+ */
+DVZ_EXPORT void dvz_input_event_first(DvzInput* input, DvzInputType type, DvzInputEvent ev);
+
+/**
+ * Destroy an input struct.
+ * @param input the input struct
+ */
+DVZ_EXPORT void dvz_input_destroy(DvzInput* input);
 
 
 

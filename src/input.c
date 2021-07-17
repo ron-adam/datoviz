@@ -564,11 +564,13 @@ DvzInput dvz_input()
 
     _clock_init(&input.clock);
 
-    // Two queues: mouse and keyboard.
-    input.deq = dvz_deq(2);
+    // Queues: mouse, keyboard, timer.
+    input.deq = dvz_deq(3);
 
     // A single proc handling both mouse and keyboard events.
-    dvz_deq_proc(&input.deq, 0, 2, (uint32_t[]){DVZ_INPUT_DEQ_MOUSE, DVZ_INPUT_DEQ_KEYBOARD});
+    dvz_deq_proc(
+        &input.deq, 0, 3,
+        (uint32_t[]){DVZ_INPUT_DEQ_MOUSE, DVZ_INPUT_DEQ_KEYBOARD, DVZ_INPUT_DEQ_TIMER});
 
     return input;
 }
