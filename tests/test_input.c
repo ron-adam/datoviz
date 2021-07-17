@@ -195,3 +195,68 @@ int test_input_mouse_drag(TestContext* tc)
     _glfw_destroy(w);
     return 0;
 }
+
+
+
+static void _on_mouse_click(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    ASSERT(input != NULL);
+    log_debug("click");
+    ASSERT(user_data != NULL);
+    *((bool*)user_data) = true;
+}
+
+static void _on_mouse_double_click(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    ASSERT(input != NULL);
+    log_debug("double click");
+    ASSERT(user_data != NULL);
+    *((bool*)user_data) = true;
+}
+
+int test_input_mouse_click(TestContext* tc)
+{
+    // Create an input and window.
+    DvzInput input = dvz_input();
+    GLFWwindow* w = _glfw_window();
+    dvz_input_backend(&input, DVZ_BACKEND_GLFW, w);
+
+    bool click = false, dbl_click = false;
+
+    dvz_input_callback(&input, DVZ_INPUT_MOUSE_CLICK, _on_mouse_click, &click);
+    dvz_input_callback(&input, DVZ_INPUT_MOUSE_DOUBLE_CLICK, _on_mouse_double_click, &dbl_click);
+
+    dvz_input_event(&input, DVZ_INPUT_MOUSE_MOVE, (DvzInputEvent){.m = {.pos = {10, 10}}});
+
+    // Simulate a click.
+    dvz_input_event(
+        &input, DVZ_INPUT_MOUSE_PRESS, (DvzInputEvent){.b = {.button = DVZ_MOUSE_BUTTON_LEFT}});
+    dvz_sleep(5);
+    dvz_input_event(
+        &input, DVZ_INPUT_MOUSE_RELEASE, (DvzInputEvent){.b = {.button = DVZ_MOUSE_BUTTON_LEFT}});
+
+    dvz_deq_wait(&input.deq, 0);
+    AT(click);
+    AT(!dbl_click);
+
+    // Simulate a double click.
+    for (uint32_t i = 0; i < 2; i++)
+    {
+        dvz_input_event(
+            &input, DVZ_INPUT_MOUSE_PRESS,
+            (DvzInputEvent){.b = {.button = DVZ_MOUSE_BUTTON_LEFT}});
+        dvz_sleep(5);
+        dvz_input_event(
+            &input, DVZ_INPUT_MOUSE_RELEASE,
+            (DvzInputEvent){.b = {.button = DVZ_MOUSE_BUTTON_LEFT}});
+        dvz_sleep(5);
+    }
+
+    dvz_deq_wait(&input.deq, 0);
+    AT(dbl_click);
+
+    // Destroy the resources.
+    dvz_input_destroy(&input);
+    _glfw_destroy(w);
+    return 0;
+}
