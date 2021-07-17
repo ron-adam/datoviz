@@ -88,6 +88,9 @@ int test_context_transfers_buffer_large(TestContext*);
 int test_context_transfers_buffer_copy(TestContext*);
 int test_context_transfers_texture(TestContext*);
 
+// Test input.
+int test_input_1(TestContext*);
+
 // Test canvas.
 int test_canvas_blank(TestContext*);
 int test_canvas_multiple(TestContext*);
@@ -248,6 +251,9 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(CONTEXT, test_context_transfers_buffer_large),    //
     CASE_FIXTURE(CONTEXT, test_context_transfers_buffer_copy),     //
     CASE_FIXTURE(CONTEXT, test_context_transfers_texture),         //
+
+    // Input.
+    CASE_FIXTURE(APP, test_input_1), //
 
     // Canvas.
     CASE_FIXTURE(APP, test_canvas_blank),              //

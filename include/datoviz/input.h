@@ -246,6 +246,7 @@ struct DvzInputCallbackPayload
 {
     DvzInput* input;
     DvzInputCallback callback;
+    void* user_data;
 };
 
 
@@ -259,6 +260,7 @@ struct DvzInput
 
     uint32_t callback_count;
     DvzInputCallbackPayload callbacks[DVZ_INPUT_MAX_CALLBACKS];
+    DvzThread thread; // background thread processing the input events
 
     void* window;
 };
@@ -303,6 +305,12 @@ dvz_input_callback(DvzInput* input, DvzInputType type, DvzInputCallback callback
  * @param ev the event union
  */
 DVZ_EXPORT void dvz_input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev);
+
+/**
+ * Destroy an input struct.
+ * @param input the input struct
+ */
+DVZ_EXPORT void dvz_input_destroy(DvzInput* input);
 
 
 
