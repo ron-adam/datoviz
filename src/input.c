@@ -5,6 +5,18 @@
 
 
 /*************************************************************************************************/
+/*  Constants                                                                                    */
+/*************************************************************************************************/
+
+#define DVZ_NEVER                        -1000000
+#define DVZ_MOUSE_CLICK_MAX_DELAY        .25
+#define DVZ_MOUSE_CLICK_MAX_SHIFT        5
+#define DVZ_MOUSE_DOUBLE_CLICK_MAX_DELAY .2
+#define DVZ_KEY_PRESS_DELAY              .05
+
+
+
+/*************************************************************************************************/
 /*  Utils                                                                                        */
 /*************************************************************************************************/
 
@@ -17,6 +29,8 @@ static void* _input_thread(void* user_data)
     return _deq_loop(&input->deq, DVZ_INPUT_DEQ_MOUSE);
 }
 
+
+
 static DvzMouseButton _from_glfw_button(int button)
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT)
@@ -27,6 +41,16 @@ static DvzMouseButton _from_glfw_button(int button)
         return DVZ_MOUSE_BUTTON_MIDDLE;
     else
         return DVZ_MOUSE_BUTTON_NONE;
+}
+
+
+
+static bool _is_key_modifier(DvzKeyCode key)
+{
+    return (
+        key == DVZ_KEY_LEFT_SHIFT || key == DVZ_KEY_RIGHT_SHIFT || key == DVZ_KEY_LEFT_CONTROL ||
+        key == DVZ_KEY_RIGHT_CONTROL || key == DVZ_KEY_LEFT_ALT || key == DVZ_KEY_RIGHT_ALT ||
+        key == DVZ_KEY_LEFT_SUPER || key == DVZ_KEY_RIGHT_SUPER);
 }
 
 
@@ -79,12 +103,208 @@ static void _glfw_wheel_callback(GLFWwindow* window, double dx, double dy)
 
 
 /*************************************************************************************************/
+/*  Mouse                                                                                        */
+/*************************************************************************************************/
+
+DvzInputMouse dvz_input_mouse()
+{
+    DvzInputMouse mouse = {0};
+    dvz_input_mouse_reset(&mouse);
+    return mouse;
+}
+
+
+
+void dvz_input_mouse_toggle(DvzInputMouse* mouse, bool enable)
+{
+    ASSERT(mouse != NULL);
+    mouse->is_active = enable;
+}
+
+
+
+void dvz_input_mouse_reset(DvzInputMouse* mouse)
+{
+    ASSERT(mouse != NULL);
+    memset(mouse, 0, sizeof(DvzInputMouse));
+    mouse->button = DVZ_MOUSE_BUTTON_NONE;
+    glm_vec2_zero(mouse->cur_pos);
+    glm_vec2_zero(mouse->press_pos);
+    glm_vec2_zero(mouse->last_pos);
+    mouse->cur_state = DVZ_MOUSE_STATE_INACTIVE;
+    mouse->press_time = DVZ_NEVER;
+    mouse->click_time = DVZ_NEVER;
+    mouse->is_active = true;
+}
+
+
+
+// Called after every mouse callback.
+void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent ev)
+{
+    ASSERT(input != NULL);
+
+    DvzInputMouse* mouse = &input->mouse;
+    ASSERT(mouse != NULL);
+    // TODO?: if input capture, do nothing
+
+    // log_debug("mouse event %d", canvas->frame_idx);
+    mouse->prev_state = mouse->cur_state;
+
+    double time = input->clock.elapsed;
+
+    // Update the last pos.
+    glm_vec2_copy(mouse->cur_pos, mouse->last_pos);
+
+    // Reset click events as soon as the next loop iteration after they were raised.
+    if (mouse->cur_state == DVZ_MOUSE_STATE_CLICK ||
+        mouse->cur_state == DVZ_MOUSE_STATE_DOUBLE_CLICK)
+    {
+        mouse->cur_state = DVZ_MOUSE_STATE_INACTIVE;
+        mouse->button = DVZ_MOUSE_BUTTON_NONE;
+    }
+
+    // Net distance in pixels since the last press event.
+    vec2 shift = {0};
+
+    switch (type)
+    {
+
+    case DVZ_INPUT_MOUSE_PRESS:
+
+        // Press event.
+        if (mouse->press_time == DVZ_NEVER)
+        {
+            glm_vec2_copy(mouse->cur_pos, mouse->press_pos);
+            mouse->press_time = time;
+            mouse->button = ev.b.button;
+            // Keep track of the modifiers used for the press event.
+            mouse->modifiers = ev.b.modifiers;
+        }
+        mouse->shift_length = 0;
+        break;
+
+    case DVZ_INPUT_MOUSE_RELEASE:
+        // Release event.
+
+        // End drag.
+        if (mouse->cur_state == DVZ_MOUSE_STATE_DRAG)
+        {
+            log_trace("end drag event");
+            mouse->button = DVZ_MOUSE_BUTTON_NONE;
+            mouse->modifiers = 0; // Reset the mouse key modifiers
+
+            // dvz_event_mouse_drag_end(canvas, mouse->cur_pos, mouse->button, mouse->modifiers);
+            dvz_input_event(
+                input, DVZ_INPUT_MOUSE_DRAG_END,
+                (DvzInputEvent){
+                    .d = {
+                        .pos = {mouse->cur_pos[0], mouse->cur_pos[1]},
+                        .button = mouse->button,
+                        .modifiers = mouse->modifiers}});
+        }
+
+        // Double click event.
+        else if (time - mouse->click_time < DVZ_MOUSE_DOUBLE_CLICK_MAX_DELAY)
+        {
+            // NOTE: when releasing, current button is NONE so we must use the previously set
+            // button in mouse->button.
+            log_trace("double click event on button %d", mouse->button);
+            mouse->click_time = time;
+            // dvz_event_mouse_double_click(canvas, mouse->cur_pos, mouse->button,
+            // mouse->modifiers);
+            dvz_input_event(
+                input, DVZ_INPUT_MOUSE_DOUBLE_CLICK,
+                (DvzInputEvent){
+                    .c = {
+                        .pos = {mouse->cur_pos[0], mouse->cur_pos[1]},
+                        .button = mouse->button,
+                        .modifiers = mouse->modifiers}});
+        }
+
+        // Click event.
+        else if (
+            time - mouse->press_time < DVZ_MOUSE_CLICK_MAX_DELAY &&
+            mouse->shift_length < DVZ_MOUSE_CLICK_MAX_SHIFT)
+        {
+            log_trace("click event on button %d", mouse->button);
+            mouse->cur_state = DVZ_MOUSE_STATE_CLICK;
+            mouse->click_time = time;
+            // dvz_event_mouse_click(canvas, mouse->cur_pos, mouse->button, mouse->modifiers);
+            dvz_input_event(
+                input, DVZ_INPUT_MOUSE_CLICK,
+                (DvzInputEvent){
+                    .c = {
+                        .pos = {mouse->cur_pos[0], mouse->cur_pos[1]},
+                        .button = mouse->button,
+                        .modifiers = mouse->modifiers}});
+        }
+
+        else
+        {
+            // Reset the mouse button state.
+            mouse->button = DVZ_MOUSE_BUTTON_NONE;
+        }
+
+        mouse->press_time = DVZ_NEVER;
+        mouse->shift_length = 0;
+        break;
+
+
+    case DVZ_INPUT_MOUSE_MOVE:
+        glm_vec2_copy(ev.m.pos, mouse->cur_pos);
+
+        // Update the distance since the last press position.
+        if (mouse->button != DVZ_MOUSE_BUTTON_NONE)
+        {
+            glm_vec2_sub(mouse->cur_pos, mouse->press_pos, shift);
+            mouse->shift_length = glm_vec2_norm(shift);
+        }
+
+        // Mouse move.
+        // NOTE: do not DRAG if we are clicking, with short press time and shift length
+        if (mouse->cur_state == DVZ_MOUSE_STATE_INACTIVE &&
+            mouse->button != DVZ_MOUSE_BUTTON_NONE &&
+            !(time - mouse->press_time < DVZ_MOUSE_CLICK_MAX_DELAY &&
+              mouse->shift_length < DVZ_MOUSE_CLICK_MAX_SHIFT))
+        {
+            log_trace("drag event on button %d", mouse->button);
+            // dvz_event_mouse_drag(canvas, mouse->cur_pos, mouse->button, mouse->modifiers);
+            dvz_input_event(
+                input, DVZ_INPUT_MOUSE_DRAG_BEGIN,
+                (DvzInputEvent){
+                    .d = {
+                        .pos = {mouse->cur_pos[0], mouse->cur_pos[1]},
+                        .button = mouse->button,
+                        .modifiers = mouse->modifiers}});
+        }
+        // log_trace("mouse mouse %.1fx%.1f", mouse->cur_pos[0], mouse->cur_pos[1]);
+        break;
+
+
+    case DVZ_INPUT_MOUSE_WHEEL:
+        glm_vec2_copy(ev.w.pos, mouse->cur_pos);
+        glm_vec2_copy(ev.w.dir, mouse->wheel_delta);
+        mouse->cur_state = DVZ_MOUSE_STATE_WHEEL;
+        mouse->modifiers = ev.w.modifiers;
+        break;
+
+    default:
+        break;
+    }
+}
+
+
+
+/*************************************************************************************************/
 /*  Input                                                                                        */
 /*************************************************************************************************/
 
 DvzInput dvz_input()
 {
     DvzInput input = {0};
+    input.mouse = dvz_input_mouse();
+    // input.keyboard = dvz_input_keyboard();
 
     // Two queues: mouse and keyboard.
     input.deq = dvz_deq(2);
@@ -188,6 +408,12 @@ void dvz_input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev)
 {
     ASSERT(input != NULL);
     uint32_t deq_idx = _deq_from_input_type(type);
+
+    // NOTE: prevent input enqueueing for mouse and keyboard if this input is inactive.
+    if (deq_idx == DVZ_INPUT_DEQ_MOUSE && !input->mouse.is_active)
+        return;
+    if (deq_idx == DVZ_INPUT_DEQ_KEYBOARD && !input->keyboard.is_active)
+        return;
 
     DvzInputEvent* pev = calloc(1, sizeof(DvzInputEvent));
     *pev = ev;

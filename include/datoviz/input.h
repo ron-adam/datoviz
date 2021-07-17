@@ -33,6 +33,7 @@ extern "C" {
 /*  Enums                                                                                        */
 /*************************************************************************************************/
 
+// Input type.
 typedef enum
 {
     DVZ_INPUT_NONE,
@@ -261,6 +262,7 @@ struct DvzInput
     uint32_t callback_count;
     DvzInputCallbackPayload callbacks[DVZ_INPUT_MAX_CALLBACKS];
     DvzThread thread; // background thread processing the input events
+    DvzClock clock;
 
     void* window;
 };
@@ -273,6 +275,15 @@ struct DvzInput
 
 /**
  * Create an input struct.
+ *
+ * An Input provides an event queue for mouse and keyboard events. It also attaches a backend
+ * window and fills the event queue as a response to user input events.
+ *
+ * The Input also allows the user to attach a callback function to react to these events.
+ *
+ * Finally, the Input provides a way to enqueue input events directly in it, thereby simulating
+ * mock mouse and keyboard events.
+ *
  * @returns the input struct
  */
 DVZ_EXPORT DvzInput dvz_input(void);
@@ -311,6 +322,39 @@ DVZ_EXPORT void dvz_input_event(DvzInput* input, DvzInputType type, DvzInputEven
  * @param input the input struct
  */
 DVZ_EXPORT void dvz_input_destroy(DvzInput* input);
+
+
+
+/**
+ * Create the mouse object holding the current mouse state.
+ *
+ * @returns mouse object
+ */
+DVZ_EXPORT DvzInputMouse dvz_input_mouse(void);
+
+/**
+ * Active or deactivate interactive mouse events.
+ *
+ * @param mouse the mouse object
+ * @param enable whether to activate or deactivate mouse events
+ */
+DVZ_EXPORT void dvz_input_mouse_toggle(DvzInputMouse* mouse, bool enable);
+
+/**
+ * Reset the mouse state.
+ *
+ * @param mouse the mouse object
+ */
+DVZ_EXPORT void dvz_input_mouse_reset(DvzInputMouse* mouse);
+
+/**
+ * Emit a mouse event.
+ *
+ * @param mouse the input
+ * @param type the event type
+ * @param ev the mouse event
+ */
+DVZ_EXPORT void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent ev);
 
 
 

@@ -142,6 +142,9 @@ int test_input_mouse(TestContext* tc)
     AT(dir[1] == 1);
 
 
+    // _glfw_event_loop(w);
+
+
     // Destroy the resources.
     dvz_input_destroy(&input);
     _glfw_destroy(w);

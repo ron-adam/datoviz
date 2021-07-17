@@ -331,6 +331,8 @@ static void* _deq_loop(DvzDeq* deq, uint32_t proc_idx)
         }
         else
         {
+            // TODO: special callbacks
+
             // WARNING: the pointer MUST be alloc-ed on the heap, because it is always
             // freed here after dequeue and callbacks.
             log_trace("free item");
