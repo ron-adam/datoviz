@@ -34,8 +34,11 @@ typedef struct DvzDeq DvzDeq;
 typedef struct DvzDeqItem DvzDeqItem;
 typedef struct DvzDeqProc DvzDeqProc;
 typedef struct DvzDeqCallbackRegister DvzDeqCallbackRegister;
+typedef struct DvzDeqProcCallbackRegister DvzDeqProcCallbackRegister;
 
 typedef void (*DvzDeqCallback)(DvzDeq* deq, void* item, void* user_data);
+typedef void (*DvzDeqProcCallback)(
+    DvzDeq* deq, uint32_t deq_idx, int type, void* item, void* user_data);
 
 
 
@@ -78,6 +81,12 @@ struct DvzDeqItem
     void* item;
 };
 
+struct DvzDeqProcCallbackRegister
+{
+    DvzDeqProcCallback callback;
+    void* user_data;
+};
+
 // A Proc represents a pair consumer/producer, where typically one thread enqueues items in a
 // subset of the queues, and another thread dequeues items from that subset.
 struct DvzDeqProc
@@ -86,6 +95,10 @@ struct DvzDeqProc
     uint32_t queue_count;
     uint32_t queue_indices[DVZ_DEQ_MAX_PROC_SIZE];
     uint32_t queue_offset; // offset that regularly increases at every call of dequeue()
+
+    // callbacks called after every dequeue, independently of the deq idx and type.
+    uint32_t callback_count;
+    DvzDeqProcCallbackRegister callbacks[DVZ_DEQ_MAX_CALLBACKS];
 
     // Mutex and cond to signal when the deq is non-empty, and when to dequeue the first non-empty
     // underlying FIFO queues.
@@ -240,6 +253,19 @@ DVZ_EXPORT void
 dvz_deq_proc(DvzDeq* deq, uint32_t proc_idx, uint32_t queue_count, uint32_t* queue_ids);
 
 /**
+ * Register a Proc callback.
+ *
+ * A Proc callback is called in the Deq loop for the associated proc, after every item dequeue.
+ *
+ * @param deq the Deq
+ * @param proc_idx the Proc index (should be regularly increasing: 0, 1, 2, ...)
+ * @param callback the callback
+ * @param user_data pointer to arbitrary data
+ */
+DVZ_EXPORT void dvz_deq_proc_callback(
+    DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallback callback, void* user_data);
+
+/**
  * Enqueue an item.
  *
  * @param deq the Deq
@@ -331,8 +357,6 @@ static void* _deq_loop(DvzDeq* deq, uint32_t proc_idx)
         }
         else
         {
-            // TODO: special callbacks
-
             // WARNING: the pointer MUST be alloc-ed on the heap, because it is always
             // freed here after dequeue and callbacks.
             log_trace("free item");

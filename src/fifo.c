@@ -335,6 +335,26 @@ void dvz_deq_proc(DvzDeq* deq, uint32_t proc_idx, uint32_t queue_count, uint32_t
 
 
 
+void dvz_deq_proc_callback(
+    DvzDeq* deq, uint32_t proc_idx, DvzDeqProcCallback callback, void* user_data)
+{
+    ASSERT(deq != NULL);
+
+    ASSERT(proc_idx < deq->proc_count);
+    DvzDeqProc* proc = &deq->procs[proc_idx];
+    ASSERT(proc != NULL);
+
+    ASSERT(callback != NULL);
+
+    DvzDeqProcCallbackRegister* reg = &proc->callbacks[proc->callback_count++];
+    ASSERT(reg != NULL);
+
+    reg->callback = callback;
+    reg->user_data = user_data;
+}
+
+
+
 static void _deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item, bool enqueue_first)
 {
     ASSERT(deq != NULL);
@@ -491,7 +511,15 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
     // new tasks.
     pthread_mutex_unlock(&proc->lock);
 
-    // Call the associated callbacks automatically.
+    // First, call the generic Proc callbacks.
+    for (uint32_t i = 0; i < proc->callback_count; i++)
+    {
+        ASSERT(proc->callbacks[i].callback != NULL);
+        proc->callbacks[i].callback(
+            deq, item_s.deq_idx, item_s.type, item_s.item, proc->callbacks[i].user_data);
+    }
+
+    // Then, call the typed callbacks.
     if (item_s.item != NULL)
     {
         atomic_store(&proc->is_processing, true);

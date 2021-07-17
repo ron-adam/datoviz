@@ -439,11 +439,27 @@ int test_utils_deq_2(TestContext* tc)
 
 
 
+static void _proc_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    ASSERT(item != NULL);
+    ASSERT(user_data != NULL);
+
+    uvec3* v = (uvec3*)user_data;
+    v[0][0] = deq_idx;
+    v[0][1] = (uint32_t)type;
+    v[0][2] = *((uint32_t*)item);
+}
+
 int test_utils_deq_proc(TestContext* tc)
 {
     DvzDeq deq = dvz_deq(3);
     dvz_deq_proc(&deq, 0, 2, (uint32_t[]){0, 1});
     dvz_deq_proc(&deq, 1, 1, (uint32_t[]){2});
+
+    uvec3 v = {0};
+    dvz_deq_proc_callback(&deq, 0, _proc_callback, &v);
+
     DvzDeqItem item = {0};
 
     // Enqueue in the queue with a callback.
@@ -453,6 +469,9 @@ int test_utils_deq_proc(TestContext* tc)
     // Dequeue the first proc.
     item = dvz_deq_dequeue(&deq, 0, true);
     AT(*((uint8_t*)item.item) == 1);
+    AT(v[0] == 1);
+    AT(v[1] == 0);
+    AT(v[2] == 1);
 
     // Here the queue #2 is non-empty, but the wait still returns because only for proc 0 that does
     // not contain queue #2.
