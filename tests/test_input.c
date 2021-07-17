@@ -14,14 +14,39 @@
 /*  Utils                                                                                        */
 /*************************************************************************************************/
 
+static GLFWwindow* _glfw_window()
+{
+    if (!glfwInit())
+        exit(1);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    GLFWwindow* w = glfwCreateWindow(WIDTH, HEIGHT, "Input test window", NULL, NULL);
+    ASSERT(w != NULL);
+    return w;
+}
+
+static void _glfw_set_mouse_pos(GLFWwindow* w, vec2 pos)
+{
+    for (uint32_t i = 0; i < 10; i++)
+    {
+        glfwSetCursorPos(w, (double)pos[0], (double)pos[1]);
+        glfwPollEvents();
+    }
+}
+
 static void _glfw_event_loop(GLFWwindow* w)
 {
     ASSERT(w != NULL);
-    // Event loop.
     while (!glfwWindowShouldClose(w))
     {
         glfwPollEvents();
     }
+}
+
+static void _glfw_destroy(GLFWwindow* w)
+{
+    ASSERT(w != NULL);
+    glfwDestroyWindow(w);
+    glfwTerminate();
 }
 
 
@@ -44,14 +69,7 @@ static void _on_mouse_move(DvzInput* input, DvzInputEvent ev, void* user_data)
 int test_input_1(TestContext* tc)
 {
     DvzInput input = dvz_input();
-
-    // Create a GLFW window.
-    if (!glfwInit())
-        exit(1);
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow* w = glfwCreateWindow(WIDTH, HEIGHT, "Input test window", NULL, NULL);
-    ASSERT(w != NULL);
-
+    GLFWwindow* w = _glfw_window();
     dvz_input_backend(&input, DVZ_BACKEND_GLFW, w);
 
     vec2 pos = {0};
@@ -59,11 +77,7 @@ int test_input_1(TestContext* tc)
 
     // Force the mouse position at the center of the window, poll the events, and ensure the mouse
     // move callback has been properly called in the background thread.
-    glfwSetCursorPos(w, WIDTH / 2, HEIGHT / 2);
-    glfwPollEvents();
-    glfwSetCursorPos(w, WIDTH / 2, HEIGHT / 2);
-    for (uint32_t i = 0; i < 10; i++)
-        glfwPollEvents();
+    _glfw_set_mouse_pos(w, (vec2){WIDTH / 2, HEIGHT / 2});
 
     // Check that the on_mouse_move callback modified the pos vec2.
     AT(pos[0] == WIDTH / 2);
@@ -73,8 +87,6 @@ int test_input_1(TestContext* tc)
     dvz_input_destroy(&input);
 
     // Destroy the window.
-    glfwDestroyWindow(w);
-    glfwTerminate();
-
+    _glfw_destroy(w);
     return 0;
 }
