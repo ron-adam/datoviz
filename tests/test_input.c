@@ -66,7 +66,7 @@ static void _on_mouse_move(DvzInput* input, DvzInputEvent ev, void* user_data)
     pos[0][1] = ev.m.pos[1];
 }
 
-static void _on_mouse_press(DvzInput* input, DvzInputEvent ev, void* user_data)
+static void _on_mouse_button(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
     ASSERT(input != NULL);
     log_debug("mouse button: %d", ev.b.button);
@@ -97,16 +97,27 @@ int test_input_mouse(TestContext* tc)
     AT(pos[1] != 0);
 
 
-    // Mouse button.
+    // Mouse button press.
     int button = 0;
-    dvz_input_callback(&input, DVZ_INPUT_MOUSE_PRESS, _on_mouse_press, &button);
+    dvz_input_callback(&input, DVZ_INPUT_MOUSE_PRESS, _on_mouse_button, &button);
     dvz_input_event(
         &input, DVZ_INPUT_MOUSE_PRESS, (DvzInputEvent){.b.button = DVZ_MOUSE_BUTTON_LEFT});
     // HACK: wait for the background thread to process the mouse press callback and modify the
     // button variable.
     dvz_sleep(10);
     // _glfw_event_loop(w);
-    AT(button == 1);
+    AT(button == (int)DVZ_MOUSE_BUTTON_LEFT);
+
+
+    // Mouse button release.
+    dvz_input_callback(&input, DVZ_INPUT_MOUSE_RELEASE, _on_mouse_button, &button);
+    dvz_input_event(
+        &input, DVZ_INPUT_MOUSE_RELEASE, (DvzInputEvent){.b.button = DVZ_MOUSE_BUTTON_RIGHT});
+    // HACK: wait for the background thread to process the mouse press callback and modify the
+    // button variable.
+    dvz_sleep(10);
+    // _glfw_event_loop(w);
+    AT(button == (int)DVZ_MOUSE_BUTTON_RIGHT);
 
 
     // Destroy the resources.
