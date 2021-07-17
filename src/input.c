@@ -55,6 +55,18 @@ static bool _is_key_modifier(DvzKeyCode key)
 
 
 
+// Find the Deq queue index by inspecting the input type used for registering the callback.
+static uint32_t _deq_from_input_type(DvzInputType type)
+{
+    uint32_t idx = DVZ_INPUT_DEQ_MOUSE;
+    if (type == DVZ_INPUT_KEYBOARD_PRESS || type == DVZ_INPUT_KEYBOARD_RELEASE ||
+        type == DVZ_INPUT_KEYBOARD_STROKE)
+        idx = DVZ_INPUT_DEQ_KEYBOARD;
+    return idx;
+}
+
+
+
 /*************************************************************************************************/
 /*  Backend-specific code                                                                        */
 /*  NOTE: backend_glfw.h is deprecated, should be replaced by the code below                     */
@@ -106,6 +118,53 @@ static void _glfw_wheel_callback(GLFWwindow* window, double dx, double dy)
 
 
 
+static void
+_input_proc_pre_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    if (item == NULL)
+        return;
+
+    DvzInput* input = (DvzInput*)user_data;
+    ASSERT(input != NULL);
+
+    // Update the clock struct at every dequeue.
+    _clock_set(&input->clock);
+
+    // Update the mouse state after every mouse event.
+    if (deq_idx == DVZ_INPUT_DEQ_MOUSE)
+    {
+        dvz_input_mouse_update(input, type, (DvzInputEvent*)item);
+    }
+
+    else if (deq_idx == DVZ_INPUT_DEQ_KEYBOARD)
+    {
+        // TODO
+    }
+}
+
+
+
+static void
+_input_proc_post_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    if (item == NULL)
+        return;
+
+    DvzInput* input = (DvzInput*)user_data;
+    ASSERT(input != NULL);
+
+    // Reset wheel event.
+    if (input->mouse.cur_state == DVZ_MOUSE_STATE_WHEEL)
+    {
+        // log_debug("reset wheel state %d", canvas->frame_idx);
+        input->mouse.cur_state = DVZ_MOUSE_STATE_INACTIVE;
+    }
+}
+
+
+
 /*************************************************************************************************/
 /*  Mouse                                                                                        */
 /*************************************************************************************************/
@@ -150,9 +209,8 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
 
     DvzInputMouse* mouse = &input->mouse;
     ASSERT(mouse != NULL);
+
     // TODO?: if input capture, do nothing
-
-
 
     DvzInputEvent ev = {0};
     ev = *pev;
@@ -211,6 +269,7 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
                         .pos = {mouse->cur_pos[0], mouse->cur_pos[1]},
                         .button = mouse->button,
                         .modifiers = mouse->modifiers}});
+            mouse->cur_state = DVZ_MOUSE_STATE_INACTIVE;
         }
 
         // Double click event.
@@ -270,15 +329,28 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
             mouse->shift_length = glm_vec2_norm(shift);
         }
 
-        // Mouse move.
+        // Mouse move: start drag.
         // NOTE: do not DRAG if we are clicking, with short press time and shift length
         if (mouse->cur_state == DVZ_MOUSE_STATE_INACTIVE &&
             mouse->button != DVZ_MOUSE_BUTTON_NONE &&
             !(time - mouse->press_time < DVZ_MOUSE_CLICK_MAX_DELAY &&
               mouse->shift_length < DVZ_MOUSE_CLICK_MAX_SHIFT))
         {
-            log_trace("drag event on button %d", mouse->button);
             // dvz_event_mouse_drag(canvas, mouse->cur_pos, mouse->button, mouse->modifiers);
+            dvz_input_event_first(
+                input, DVZ_INPUT_MOUSE_DRAG_BEGIN,
+                (DvzInputEvent){
+                    .d = {
+                        .pos = {mouse->cur_pos[0], mouse->cur_pos[1]},
+                        .button = mouse->button,
+                        .modifiers = mouse->modifiers}});
+            mouse->cur_state = DVZ_MOUSE_STATE_DRAG;
+            break; // HACK: avoid enqueueing a DRAG event *after* the DRAG_BEGIN event.
+        }
+
+        // Mouse move: is dragging.
+        if (mouse->cur_state == DVZ_MOUSE_STATE_DRAG)
+        {
             dvz_input_event_first(
                 input, DVZ_INPUT_MOUSE_DRAG,
                 (DvzInputEvent){
@@ -287,6 +359,7 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
                         .button = mouse->button,
                         .modifiers = mouse->modifiers}});
         }
+
         // log_trace("mouse mouse %.1fx%.1f", mouse->cur_pos[0], mouse->cur_pos[1]);
         break;
 
@@ -301,11 +374,6 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
     default:
         break;
     }
-
-
-
-    glm_vec2_copy(mouse->cur_pos, mouse->last_pos);
-    mouse->prev_state = mouse->cur_state;
 }
 
 
@@ -313,51 +381,6 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
 /*************************************************************************************************/
 /*  Input                                                                                        */
 /*************************************************************************************************/
-
-static void
-_input_proc_pre_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, void* user_data)
-{
-    ASSERT(deq != NULL);
-    if (item == NULL)
-        return;
-
-    DvzInput* input = (DvzInput*)user_data;
-    ASSERT(input != NULL);
-
-    // Update the clock struct at every dequeue.
-    _clock_set(&input->clock);
-
-    // Update the mouse state after every mouse event.
-    if (deq_idx == DVZ_INPUT_DEQ_MOUSE)
-    {
-        dvz_input_mouse_update(input, type, (DvzInputEvent*)item);
-    }
-
-    else if (deq_idx == DVZ_INPUT_DEQ_KEYBOARD)
-    {
-        // TODO
-    }
-}
-
-static void
-_input_proc_post_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, void* user_data)
-{
-    ASSERT(deq != NULL);
-    if (item == NULL)
-        return;
-
-    DvzInput* input = (DvzInput*)user_data;
-    ASSERT(input != NULL);
-
-    // Reset wheel event.
-    if (input->mouse.cur_state == DVZ_MOUSE_STATE_WHEEL)
-    {
-        // log_debug("reset wheel state %d", canvas->frame_idx);
-        input->mouse.cur_state = DVZ_MOUSE_STATE_INACTIVE;
-    }
-}
-
-
 
 DvzInput dvz_input()
 {
@@ -446,16 +469,6 @@ static void _deq_callback(DvzDeq* deq, void* item, void* user_data)
     payload->callback(input, *ev, payload->user_data);
 
     return;
-}
-
-// Find the Deq queue index by inspecting the input type used for registering the callback.
-static uint32_t _deq_from_input_type(DvzInputType type)
-{
-    uint32_t idx = DVZ_INPUT_DEQ_MOUSE;
-    if (type == DVZ_INPUT_KEYBOARD_PRESS || type == DVZ_INPUT_KEYBOARD_RELEASE ||
-        type == DVZ_INPUT_KEYBOARD_STROKE)
-        idx = DVZ_INPUT_DEQ_KEYBOARD;
-    return idx;
 }
 
 void dvz_input_callback(

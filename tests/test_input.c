@@ -87,12 +87,6 @@ static void _on_mouse_wheel(DvzInput* input, DvzInputEvent ev, void* user_data)
     dir[0][1] = ev.w.dir[1];
 }
 
-static void _on_mouse_drag(DvzInput* input, DvzInputEvent ev, void* user_data)
-{
-    ASSERT(input != NULL);
-    log_debug("mouse drag button %d", ev.d.button);
-}
-
 int test_input_mouse_raw(TestContext* tc)
 {
     // Create an input and window.
@@ -155,6 +149,22 @@ int test_input_mouse_raw(TestContext* tc)
 
 
 
+static void _on_mouse_drag_begin(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    ASSERT(input != NULL);
+    log_debug("BEGIN mouse drag button %d", ev.d.button);
+}
+static void _on_mouse_drag(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    ASSERT(input != NULL);
+    log_debug("mouse drag button %d %.0fx%.0f", ev.d.button, ev.d.pos[0], ev.d.pos[1]);
+}
+static void _on_mouse_drag_end(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    ASSERT(input != NULL);
+    log_debug("END mouse drag");
+}
+
 int test_input_mouse_complete(TestContext* tc)
 {
     // Create an input and window.
@@ -162,7 +172,9 @@ int test_input_mouse_complete(TestContext* tc)
     GLFWwindow* w = _glfw_window();
     dvz_input_backend(&input, DVZ_BACKEND_GLFW, w);
 
+    dvz_input_callback(&input, DVZ_INPUT_MOUSE_DRAG_BEGIN, _on_mouse_drag_begin, NULL);
     dvz_input_callback(&input, DVZ_INPUT_MOUSE_DRAG, _on_mouse_drag, NULL);
+    dvz_input_callback(&input, DVZ_INPUT_MOUSE_DRAG_END, _on_mouse_drag_end, NULL);
     _glfw_event_loop(w);
 
     // Destroy the resources.
