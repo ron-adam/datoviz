@@ -30,6 +30,7 @@ extern "C" {
 #include <unistd.h>
 
 
+
 /*************************************************************************************************/
 /*  Export macros                                                                                */
 /*************************************************************************************************/
@@ -240,6 +241,7 @@ typedef enum
 
 typedef struct DvzMVP DvzMVP;
 typedef struct DvzObject DvzObject;
+typedef struct DvzClock DvzClock;
 typedef struct DvzContainer DvzContainer;
 typedef struct DvzContainerIterator DvzContainerIterator;
 typedef struct DvzThread DvzThread;
@@ -604,6 +606,57 @@ static void dvz_container_destroy(DvzContainer* container)
             dvz_container_iter(&_iter);                                                           \
         }                                                                                         \
     }
+
+
+
+/*************************************************************************************************/
+/*  Clock                                                                                        */
+/*************************************************************************************************/
+
+struct DvzClock
+{
+    struct timeval start, current;
+    double tick;
+    // double elapsed;  // time in seconds elapsed since calling _start_time(clock)
+    // double interval; // interval since the last clock update
+    // double checkpoint_time;
+    // uint64_t checkpoint_value;
+};
+
+
+
+static inline void _clock_init(DvzClock* clock)
+{
+    ASSERT(clock != NULL);
+    gettimeofday(&clock->start, NULL);
+}
+
+
+
+static inline double _clock_get(DvzClock* clock)
+{
+    ASSERT(clock != NULL);
+    gettimeofday(&clock->current, NULL);
+    double elapsed = (clock->current.tv_sec - clock->start.tv_sec) +
+                     (clock->current.tv_usec - clock->start.tv_usec) / 1000000.0;
+    return elapsed;
+}
+
+
+
+static inline void _clock_tick(DvzClock* clock)
+{
+    ASSERT(clock != NULL);
+    clock->tick = _clock_get(clock);
+}
+
+
+
+static inline double _clock_interval(DvzClock* clock)
+{
+    ASSERT(clock != NULL);
+    return _clock_get(clock) - clock->tick;
+}
 
 
 

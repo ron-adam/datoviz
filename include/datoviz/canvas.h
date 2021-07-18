@@ -235,6 +235,8 @@ typedef struct DvzScene DvzScene;
 typedef struct DvzMouseLocal DvzMouseLocal;
 
 typedef struct DvzViewport DvzViewport;
+typedef struct DvzAutorun DvzAutorun;
+
 
 // Events structures.
 // typedef struct DvzEvent DvzEvent;
@@ -347,6 +349,23 @@ struct DvzViewport
     int32_t interact_axis;
 
     // TODO: aspect ratio
+};
+
+
+
+/*************************************************************************************************/
+/*  Autorun                                                                                      */
+/*************************************************************************************************/
+
+// Override the application running in order to automate running and generate automatic
+// screenshots or videos.
+struct DvzAutorun
+{
+    bool enable;       // whether to enable autorun or not
+    bool offscreen;    // whether the autorun is done in offscreen mode or not
+    char* screenshot;  // automatic saving of screenshot
+    char* video;       // automatic saving of screencast
+    uint64_t n_frames; // total number of frames for the autorun
 };
 
 
@@ -758,6 +777,35 @@ DVZ_EXPORT DvzViewport dvz_viewport_full(DvzCanvas* canvas);
  * @param scaling the scaling factor
  */
 DVZ_EXPORT void dvz_canvas_dpi_scaling(DvzCanvas* canvas, float scaling);
+
+
+
+/*************************************************************************************************/
+/*  Autorun                                                                                      */
+/*************************************************************************************************/
+
+// /**
+//  * Parse the DVZ_RUN_* environment variables and setup the application autorun accordingly.
+//  *
+//  * The DVZ_RUN_* variables may override the backend (offscreen or not), number of frames during
+//  the
+//  * run, and automatic saving of screenshot or video.
+//  *
+//  * !!! note
+//  *     Currently, this function is automatically called by `dvz_app()`, and there is no need to
+//  *     call it manually.
+//  *
+//  * @param app the app
+//  */
+// DVZ_EXPORT void dvz_autorun_env(DvzApp* app);
+
+// /**
+//  * Manually setup the application autorun.
+//  *
+//  * @param app the app
+//  * @param autorun a `DvzAutorun` struct
+//  */
+// DVZ_EXPORT void dvz_autorun_setup(DvzApp* app, DvzAutorun autorun);
 
 
 

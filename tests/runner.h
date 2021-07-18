@@ -1,6 +1,7 @@
 #ifndef DVZ_TEST_RUNNER_HEADER
 #define DVZ_TEST_RUNNER_HEADER
 
+#include "../include/datoviz/app.h"
 #include "../include/datoviz/common.h"
 // NOTE: do not include tests.h (circular import)
 

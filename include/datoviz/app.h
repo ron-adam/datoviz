@@ -1,5 +1,6 @@
 /*************************************************************************************************/
 /*  Singleton application, managing all GPU objects and windows                                  */
+/*  Depends on vulkan/vulkan.h because it stores the Vulkan instance.                            */
 /*************************************************************************************************/
 
 #ifndef DVZ_APP_HEADER
@@ -11,10 +12,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 
-// #define GLFW_INCLUDE_VULKAN
 #include <vulkan/vulkan.h>
 
 #include "common.h"
@@ -38,8 +37,6 @@ extern "C" {
 /*************************************************************************************************/
 
 typedef struct DvzApp DvzApp;
-typedef struct DvzAutorun DvzAutorun;
-typedef struct DvzClock DvzClock;
 
 
 
@@ -58,80 +55,8 @@ typedef enum
 
 
 /*************************************************************************************************/
-/*  Clock                                                                                        */
-/*************************************************************************************************/
-
-struct DvzClock
-{
-    struct timeval start, current;
-    double tick;
-    // double elapsed;  // time in seconds elapsed since calling _start_time(clock)
-    // double interval; // interval since the last clock update
-    // double checkpoint_time;
-    // uint64_t checkpoint_value;
-};
-
-
-
-static inline void _clock_init(DvzClock* clock)
-{
-    ASSERT(clock != NULL);
-    gettimeofday(&clock->start, NULL);
-}
-
-
-
-static inline double _clock_get(DvzClock* clock)
-{
-    ASSERT(clock != NULL);
-    gettimeofday(&clock->current, NULL);
-    double elapsed = (clock->current.tv_sec - clock->start.tv_sec) +
-                     (clock->current.tv_usec - clock->start.tv_usec) / 1000000.0;
-    return elapsed;
-}
-
-
-
-static inline void _clock_tick(DvzClock* clock)
-{
-    ASSERT(clock != NULL);
-    clock->tick = _clock_get(clock);
-}
-
-
-
-static inline double _clock_interval(DvzClock* clock)
-{
-    ASSERT(clock != NULL);
-    return _clock_get(clock) - clock->tick;
-}
-
-
-
-// static inline void _clock_set(DvzClock* clock)
-// {
-//     // Typically called at every frame.
-//     double elapsed = _clock_get(clock);
-//     clock->interval = elapsed - clock->elapsed;
-//     clock->elapsed = elapsed;
-// }
-
-
-
-/*************************************************************************************************/
 /*  Structs                                                                                      */
 /*************************************************************************************************/
-
-struct DvzAutorun
-{
-    bool enable;                       // whether to enable autorun or not
-    bool offscreen;                    // whether the autorun is done in offscreen mode or not
-    char screenshot[DVZ_PATH_MAX_LEN]; // automatic saving of screenshot
-    char video[DVZ_PATH_MAX_LEN];      // automatic saving of screencast
-    uint64_t n_frames;                 // total number of frames for the autorun
-};
-
-
 
 struct DvzApp
 {
@@ -140,10 +65,6 @@ struct DvzApp
 
     // Backend
     DvzBackend backend;
-
-    // Override the application running in order to automate running and generate automatic
-    // screenshots or videos.
-    DvzAutorun autorun;
 
     // Global clock
     DvzClock clock;
@@ -161,6 +82,37 @@ struct DvzApp
     // Threads.
     DvzThread timer_thread;
 };
+
+
+
+/*************************************************************************************************/
+/*  App                                                                                          */
+/*************************************************************************************************/
+
+/**
+ * Create an application instance.
+ *
+ * There is typically only one App object in a given application. This object holds a pointer to
+ * the Vulkan instance and is responsible for discovering the available GPUs.
+ *
+ * @param backend the backend
+ * @returns a pointer to the created app
+ */
+DVZ_EXPORT DvzApp* dvz_app(DvzBackend backend);
+
+/**
+ * Destroy the application.
+ *
+ * This function automatically destroys all objects created within the application.
+ *
+ * @param app the application to destroy
+ */
+DVZ_EXPORT int dvz_app_destroy(DvzApp* app);
+
+/**
+ * Destroy the Dear ImGui global context if it was ever initialized.
+ */
+// DVZ_EXPORT void dvz_imgui_destroy();
 
 
 

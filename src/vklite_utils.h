@@ -348,8 +348,6 @@ static const char** backend_extensions(DvzBackend backend, uint32_t* required_ex
     switch (backend)
     {
     case DVZ_BACKEND_GLFW:
-
-        glfwInit();
         ASSERT(glfwVulkanSupported() != 0);
         required_extensions = glfwGetRequiredInstanceExtensions(required_extension_count);
         log_trace("%d extension(s) required by backend GLFW", *required_extension_count);
@@ -394,9 +392,6 @@ static void* backend_window(
         GLFWwindow* bwin = glfwCreateWindow((int)width, (int)height, APPLICATION_NAME, NULL, NULL);
         ASSERT(bwin != NULL);
         VkResult res = glfwCreateWindowSurface(instance, bwin, NULL, surface);
-        // log_info(
-        //     "%d %d %d %d", GLFW_NOT_INITIALIZED, GLFW_API_UNAVAILABLE, GLFW_PLATFORM_ERROR,
-        //     GLFW_INVALID_VALUE);
         if (res != VK_SUCCESS)
             log_error("error creating the GLFW surface, result was %d", res);
 

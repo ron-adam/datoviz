@@ -356,6 +356,7 @@ file(GLOB sources
     # "include/*.h*"
     # "src/*.h*" "src/*.c*"
 
+    "src/app.c"
     "src/canvas.c"
     "src/common.c"
     "src/fifo.c"

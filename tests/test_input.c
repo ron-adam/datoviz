@@ -10,6 +10,7 @@
 
 static GLFWwindow* _glfw_window()
 {
+    log_info("input test: init glfw");
     if (!glfwInit())
         exit(1);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -39,6 +40,7 @@ static void _glfw_event_loop(GLFWwindow* w)
 static void _glfw_destroy(GLFWwindow* w)
 {
     ASSERT(w != NULL);
+    log_info("input test: destroy glfw");
     glfwDestroyWindow(w);
     glfwTerminate();
 }

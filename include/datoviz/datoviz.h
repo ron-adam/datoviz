@@ -24,6 +24,7 @@ extern "C" {
 // #include "scene.h"
 #include "transfers.h"
 // #include "visuals.h"
+#include "app.h"
 #include "vklite.h"
 
 

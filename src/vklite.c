@@ -21,174 +21,6 @@
 
 
 /*************************************************************************************************/
-/*  App                                                                                          */
-/*************************************************************************************************/
-
-void dvz_autorun_env(DvzApp* app)
-{
-    ASSERT(app != NULL);
-    char* s = NULL;
-
-    // Offscreen?
-    s = getenv("DVZ_RUN_OFFSCREEN");
-    if (s)
-        app->autorun.offscreen = true;
-
-    // Number of frames.
-    s = getenv("DVZ_RUN_NFRAMES");
-    if (s)
-        app->autorun.n_frames = strtoull(s, NULL, 10);
-
-    // Screenshot and video.
-    COPY_STR("DVZ_RUN_SCREENSHOT", app->autorun.screenshot)
-    COPY_STR("DVZ_RUN_VIDEO", app->autorun.video)
-
-    // Enable the autorun?
-    app->autorun.enable = app->autorun.offscreen || app->autorun.n_frames > 0 ||
-                          strlen(app->autorun.screenshot) > 0 || strlen(app->autorun.video) > 0;
-}
-
-
-
-void dvz_autorun_setup(DvzApp* app, DvzAutorun autorun)
-{
-    ASSERT(app != NULL);
-    log_trace("autorun setup: enable %d", autorun.enable);
-    log_trace("autorun setup: n_frames %d", autorun.n_frames);
-    log_trace("autorun setup: offscreen %d", autorun.offscreen);
-    log_trace("autorun setup: screenshot %s", autorun.screenshot);
-    log_trace("autorun setup: video %s", autorun.video);
-    app->autorun = autorun;
-}
-
-
-
-DvzApp* dvz_app(DvzBackend backend)
-{
-    log_set_level_env();
-
-    DvzApp* app = calloc(1, sizeof(DvzApp));
-    dvz_obj_init(&app->obj);
-    app->obj.type = DVZ_OBJECT_TYPE_APP;
-
-#if SWIFTSHADER
-    if (backend != DVZ_BACKEND_OFFSCREEN)
-    {
-        log_warn("when the library is compiled for switshader, offscreen rendering is mandatory");
-        backend = DVZ_BACKEND_OFFSCREEN;
-    }
-#endif
-
-    // Fill the app.autorun struct with DVZ_RUN_* environment variables.
-    dvz_autorun_env(app);
-
-    // Take env variable "DVZ_RUN_OFFSCREEN" into account, forcing offscreen backend in this case.
-    if (app->autorun.enable && app->autorun.offscreen)
-    {
-        log_info("forcing offscreen backend because DVZ_RUN_OFFSCREEN env variable is set");
-        backend = DVZ_BACKEND_OFFSCREEN;
-    }
-
-    app->backend = backend;
-
-    // Initialize the global clock.
-    _clock_init(&app->clock);
-
-    app->gpus = dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzGpu), DVZ_OBJECT_TYPE_GPU);
-    app->windows =
-        dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzWindow), DVZ_OBJECT_TYPE_WINDOW);
-
-    // Which extensions are required? Depends on the backend.
-    uint32_t required_extension_count = 0;
-    const char** required_extensions = backend_extensions(backend, &required_extension_count);
-
-    // Create the instance.
-    create_instance(
-        required_extension_count, required_extensions, &app->instance, &app->debug_messenger,
-        &app->n_errors);
-    // debug_messenger != VK_NULL_HANDLE means validation enabled
-    dvz_obj_created(&app->obj);
-
-    // Count the number of devices.
-    uint32_t gpu_count = 0;
-    VK_CHECK_RESULT(vkEnumeratePhysicalDevices(app->instance, &gpu_count, NULL));
-    log_trace("found %d GPU(s)", gpu_count);
-    if (gpu_count == 0)
-    {
-        log_error("no compatible device found! aborting");
-        exit(1);
-    }
-
-    // Discover the available GPUs.
-    // ----------------------------
-    {
-        // Initialize the GPU(s).
-        VkPhysicalDevice* physical_devices = calloc(gpu_count, sizeof(VkPhysicalDevice));
-        VK_CHECK_RESULT(vkEnumeratePhysicalDevices(app->instance, &gpu_count, physical_devices));
-        ASSERT(gpu_count <= DVZ_CONTAINER_DEFAULT_COUNT);
-        DvzGpu* gpu = NULL;
-        for (uint32_t i = 0; i < gpu_count; i++)
-        {
-            gpu = dvz_container_alloc(&app->gpus);
-            dvz_obj_init(&gpu->obj);
-            gpu->app = app;
-            gpu->idx = i;
-            discover_gpu(physical_devices[i], gpu);
-            log_debug("found device #%d: %s", gpu->idx, gpu->name);
-        }
-
-        FREE(physical_devices);
-    }
-
-    return app;
-}
-
-
-
-int dvz_app_destroy(DvzApp* app)
-{
-    ASSERT(app != NULL);
-
-    log_debug("starting destruction of app...");
-    dvz_app_wait(app);
-
-    // Destroy the canvases.
-    dvz_canvases_destroy(&app->canvases);
-
-    // Destroy the GPUs.
-    CONTAINER_DESTROY_ITEMS(DvzGpu, app->gpus, dvz_gpu_destroy)
-    dvz_container_destroy(&app->gpus);
-
-    // Destroy the windows.
-    CONTAINER_DESTROY_ITEMS(DvzWindow, app->windows, dvz_window_destroy)
-    dvz_container_destroy(&app->windows);
-
-    // Destroy the debug messenger.
-    if (app->debug_messenger)
-    {
-        destroy_debug_utils_messenger_EXT(app->instance, app->debug_messenger, NULL);
-        app->debug_messenger = NULL;
-    }
-
-    // Destroy the instance.
-    log_trace("destroy Vulkan instance");
-    if (app->instance != VK_NULL_HANDLE)
-    {
-        vkDestroyInstance(app->instance, NULL);
-        app->instance = 0;
-    }
-
-    // Free the App memory.
-    int res = (int)app->n_errors;
-    FREE(app);
-    log_trace("app destroyed");
-
-    return res;
-}
-
-
-
-/*************************************************************************************************/
 /*  GPU                                                                                          */
 /*************************************************************************************************/
 
@@ -408,6 +240,9 @@ void dvz_gpu_destroy(DvzGpu* gpu)
 
 DvzWindow* dvz_window(DvzApp* app, uint32_t width, uint32_t height)
 {
+    // NOTE: an offscreen canvas has NO DvzWindow, so this function should NEVER be called with an
+    // offscreen backend, or for an offscreen canvas.
+
     ASSERT(app != NULL);
 
     DvzWindow* window = dvz_container_alloc(&app->windows);
@@ -416,6 +251,7 @@ DvzWindow* dvz_window(DvzApp* app, uint32_t width, uint32_t height)
     ASSERT(window->obj.type == DVZ_OBJECT_TYPE_WINDOW);
     ASSERT(window->obj.status == DVZ_OBJECT_STATUS_ALLOC);
     window->app = app;
+    ASSERT(app->backend != DVZ_BACKEND_NONE && app->backend != DVZ_BACKEND_OFFSCREEN);
 
     window->width = width;
     window->height = height;

@@ -3,6 +3,7 @@
 #include "../include/datoviz/context.h"
 // #include "../include/datoviz/controls.h"
 // #include "../include/datoviz/gui.h"
+#include "../include/datoviz/app.h"
 #include "../include/datoviz/input.h"
 #include "../include/datoviz/vklite.h"
 // #include "backend_glfw.h"
@@ -2374,6 +2375,45 @@ int dvz_canvas_frame(DvzCanvas* canvas)
 
     return 0;
 }
+
+
+
+// void dvz_autorun_env(DvzApp* app)
+// {
+//     ASSERT(app != NULL);
+//     char* s = NULL;
+
+//     // Offscreen?
+//     s = getenv("DVZ_RUN_OFFSCREEN");
+//     if (s)
+//         app->autorun.offscreen = true;
+
+//     // Number of frames.
+//     s = getenv("DVZ_RUN_NFRAMES");
+//     if (s)
+//         app->autorun.n_frames = strtoull(s, NULL, 10);
+
+//     // Screenshot and video.
+//     COPY_STR("DVZ_RUN_SCREENSHOT", app->autorun.screenshot)
+//     COPY_STR("DVZ_RUN_VIDEO", app->autorun.video)
+
+//     // Enable the autorun?
+//     app->autorun.enable = app->autorun.offscreen || app->autorun.n_frames > 0 ||
+//                           strlen(app->autorun.screenshot) > 0 || strlen(app->autorun.video) > 0;
+// }
+
+
+
+// void dvz_autorun_setup(DvzApp* app, DvzAutorun autorun)
+// {
+//     ASSERT(app != NULL);
+//     log_trace("autorun setup: enable %d", autorun.enable);
+//     log_trace("autorun setup: n_frames %d", autorun.n_frames);
+//     log_trace("autorun setup: offscreen %d", autorun.offscreen);
+//     log_trace("autorun setup: screenshot %s", autorun.screenshot);
+//     log_trace("autorun setup: video %s", autorun.video);
+//     app->autorun = autorun;
+// }
 
 
 

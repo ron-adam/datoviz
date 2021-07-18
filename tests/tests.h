@@ -226,6 +226,13 @@ static TestCase TEST_CASES[] = {
     // CASE_FIXTURE(NONE, test_utils_ticks_duplicate),  //
     // CASE_FIXTURE(NONE, test_utils_ticks_extend),     //
 
+    // Input.
+    CASE_FIXTURE(NONE, test_input_mouse_raw),   //
+    CASE_FIXTURE(NONE, test_input_mouse_drag),  //
+    CASE_FIXTURE(NONE, test_input_mouse_click), //
+    CASE_FIXTURE(NONE, test_input_keyboard),    //
+    CASE_FIXTURE(NONE, test_input_timer),       //
+
     // vklite.
     CASE_FIXTURE(NONE, test_vklite_app),             //
     CASE_FIXTURE(NONE, test_vklite_commands),        //
@@ -259,13 +266,6 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(CONTEXT, test_context_transfers_buffer_large),    //
     CASE_FIXTURE(CONTEXT, test_context_transfers_buffer_copy),     //
     CASE_FIXTURE(CONTEXT, test_context_transfers_texture),         //
-
-    // Input.
-    CASE_FIXTURE(APP, test_input_mouse_raw),   //
-    CASE_FIXTURE(APP, test_input_mouse_drag),  //
-    CASE_FIXTURE(APP, test_input_mouse_click), //
-    CASE_FIXTURE(APP, test_input_keyboard),    //
-    CASE_FIXTURE(APP, test_input_timer),       //
 
     // Canvas.
     CASE_FIXTURE(APP, test_canvas_blank), //
