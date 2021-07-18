@@ -440,6 +440,7 @@ if (DATOVIZ_WITH_CLI)
         "tests/test_utils.c"
         "tests/test_fifo.c"
         "tests/test_array.c"
+        "tests/test_ticks.c"
         "tests/test_vklite.c"
         "tests/test_context.c"
         "tests/test_input.c"
