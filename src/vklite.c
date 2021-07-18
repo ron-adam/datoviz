@@ -3222,12 +3222,13 @@ void dvz_cmd_barrier(DvzCommands* cmds, uint32_t idx, DvzBarrier* barrier)
 
 
 void dvz_cmd_copy_buffer_to_image(
-    DvzCommands* cmds, uint32_t idx, DvzBuffer* buffer, DvzImages* images)
+    DvzCommands* cmds, uint32_t idx, DvzBuffer* buffer, VkDeviceSize buf_offset, DvzImages* images,
+    uvec3 tex_offset)
 {
     CMD_START_CLIP(images->count)
 
     VkBufferImageCopy region = {0};
-    region.bufferOffset = 0;
+    region.bufferOffset = buf_offset;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;
 
@@ -3236,9 +3237,9 @@ void dvz_cmd_copy_buffer_to_image(
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
 
-    region.imageOffset.x = 0;
-    region.imageOffset.y = 0;
-    region.imageOffset.z = 0;
+    region.imageOffset.x = tex_offset[0];
+    region.imageOffset.y = tex_offset[1];
+    region.imageOffset.z = tex_offset[2];
 
     region.imageExtent.width = images->width;
     region.imageExtent.height = images->height;
@@ -3254,12 +3255,13 @@ void dvz_cmd_copy_buffer_to_image(
 
 
 void dvz_cmd_copy_image_to_buffer(
-    DvzCommands* cmds, uint32_t idx, DvzImages* images, DvzBuffer* buffer)
+    DvzCommands* cmds, uint32_t idx, DvzImages* images, uvec3 tex_offset, DvzBuffer* buffer,
+    VkDeviceSize buf_offset)
 {
     CMD_START_CLIP(images->count)
 
     VkBufferImageCopy region = {0};
-    region.bufferOffset = 0;
+    region.bufferOffset = buf_offset;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;
 
@@ -3268,9 +3270,9 @@ void dvz_cmd_copy_image_to_buffer(
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
 
-    region.imageOffset.x = 0;
-    region.imageOffset.y = 0;
-    region.imageOffset.z = 0;
+    region.imageOffset.x = tex_offset[0];
+    region.imageOffset.y = tex_offset[1];
+    region.imageOffset.z = tex_offset[2];
 
     region.imageExtent.width = images->width;
     region.imageExtent.height = images->height;

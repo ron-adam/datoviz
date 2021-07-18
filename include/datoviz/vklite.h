@@ -2264,7 +2264,8 @@ DVZ_EXPORT void dvz_cmd_barrier(DvzCommands* cmds, uint32_t idx, DvzBarrier* bar
  * @param images the image
  */
 DVZ_EXPORT void dvz_cmd_copy_buffer_to_image(
-    DvzCommands* cmds, uint32_t idx, DvzBuffer* buffer, DvzImages* images);
+    DvzCommands* cmds, uint32_t idx, DvzBuffer* buffer, VkDeviceSize buf_offset, DvzImages* images,
+    uvec3 tex_offset);
 
 /**
  * Copy a GPU image to a GPU buffer.
@@ -2275,7 +2276,8 @@ DVZ_EXPORT void dvz_cmd_copy_buffer_to_image(
  * @param buffer the buffer
  */
 DVZ_EXPORT void dvz_cmd_copy_image_to_buffer(
-    DvzCommands* cmds, uint32_t idx, DvzImages* images, DvzBuffer* buffer);
+    DvzCommands* cmds, uint32_t idx, DvzImages* images, uvec3 tex_offset, DvzBuffer* buffer,
+    VkDeviceSize buf_offset);
 
 /**
  * Copy a GPU image to another.
