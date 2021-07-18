@@ -103,7 +103,7 @@ int test_canvas_blank(TestContext* tc)
     DvzApp* app = tc->app;
     DvzGpu* gpu = dvz_gpu_best(app);
 
-    DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, DVZ_CANVAS_FLAGS_FPS);
+    DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
     ASSERT(canvas->app != NULL);
 
     if (app->backend != DVZ_BACKEND_OFFSCREEN)
