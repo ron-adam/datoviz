@@ -234,12 +234,6 @@ DvzContext* dvz_context(DvzGpu* gpu)
             DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzCompute), DVZ_OBJECT_TYPE_COMPUTE);
     }
 
-    // Transfer command buffer.
-    // context->transfer_cmd = dvz_commands(gpu, DVZ_DEFAULT_QUEUE_TRANSFER, 1);
-
-    // FIFO queue with the pending transfers.
-    context->transfers = dvz_fifo(DVZ_MAX_FIFO_CAPACITY); // TO REMOVE
-
     // Transfer dequeues.
     {
         context->deq = dvz_deq(4);
@@ -261,20 +255,20 @@ DvzContext* dvz_context(DvzGpu* gpu)
             &context->deq, DVZ_TRANSFER_DEQ_UL, //
             DVZ_TRANSFER_BUFFER_UPLOAD,         //
             _transfer_buffer_upload, context);
-        dvz_deq_callback(
-            &context->deq, DVZ_TRANSFER_DEQ_UL, //
-            DVZ_TRANSFER_TEXTURE_UPLOAD,        //
-            _transfer_texture_upload, context);
+        // dvz_deq_callback(
+        //     &context->deq, DVZ_TRANSFER_DEQ_UL, //
+        //     DVZ_TRANSFER_TEXTURE_UPLOAD,        //
+        //     _transfer_texture_upload, context);
 
         // Downloads.
         dvz_deq_callback(
             &context->deq, DVZ_TRANSFER_DEQ_DL, //
             DVZ_TRANSFER_BUFFER_DOWNLOAD,       //
             _transfer_buffer_download, context);
-        dvz_deq_callback(
-            &context->deq, DVZ_TRANSFER_DEQ_DL, //
-            DVZ_TRANSFER_TEXTURE_DOWNLOAD,      //
-            _transfer_texture_download, context);
+        // dvz_deq_callback(
+        //     &context->deq, DVZ_TRANSFER_DEQ_DL, //
+        //     DVZ_TRANSFER_TEXTURE_DOWNLOAD,      //
+        //     _transfer_texture_download, context);
 
         // Copies.
         dvz_deq_callback(
@@ -285,6 +279,16 @@ DvzContext* dvz_context(DvzGpu* gpu)
             &context->deq, DVZ_TRANSFER_DEQ_COPY, //
             DVZ_TRANSFER_TEXTURE_COPY,            //
             _transfer_texture_copy, context);
+
+        // Buffer/texture copies.
+        dvz_deq_callback(
+            &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+            DVZ_TRANSFER_TEXTURE_BUFFER,          //
+            _transfer_texture_buffer, context);
+        dvz_deq_callback(
+            &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+            DVZ_TRANSFER_BUFFER_TEXTURE,          //
+            _transfer_buffer_texture, context);
 
         // Transfer thread.
         context->thread = dvz_thread(_thread_transfers, context);
@@ -312,8 +316,8 @@ void dvz_context_colormap(DvzContext* context)
     ASSERT(context->color_texture.texture != NULL);
     ASSERT(context->color_texture.arr != NULL);
 
-    dvz_texture_upload(
-        context->color_texture.texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, 256 * 256 * 4,
+    dvz_upload_texture(
+        context, context->color_texture.texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, 256 * 256 * 4,
         context->color_texture.arr);
     dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 }
@@ -349,8 +353,6 @@ void dvz_context_destroy(DvzContext* context)
 
     // Destroy the transfers queue.
     {
-        dvz_fifo_destroy(&context->transfers); // TO REMOVE
-
         // Enqueue a STOP task to stop the UL and DL threads.
         dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_UL, 0, NULL);
         dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_DL, 0, NULL);
@@ -658,59 +660,58 @@ void dvz_texture_address_mode(
 
 
 
-// TODO: this function should be discarded and integrated into upload_texture() in multiple steps
-void dvz_texture_upload(
-    DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, const void* data)
-{
-    ASSERT(texture != NULL);
-    DvzContext* context = texture->context;
-    ASSERT(context != NULL);
-    ASSERT(size > 0);
-    ASSERT(data != NULL);
+// // TODO: this function should be discarded and integrated into upload_texture() in multiple
+// steps void dvz_texture_upload(
+//     DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, const void* data)
+// {
+//     ASSERT(texture != NULL);
+//     DvzContext* context = texture->context;
+//     ASSERT(context != NULL);
+//     ASSERT(size > 0);
+//     ASSERT(data != NULL);
 
-    // Take the staging buffer.
-    DvzBuffer* staging = staging_buffer(context, size);
+//     // Take the staging buffer.
+//     DvzBuffer* staging = staging_buffer(context, size);
 
-    // Memcpy into the staging buffer.
-    dvz_buffer_upload(staging, 0, size, data);
+//     // Memcpy into the staging buffer.
+//     dvz_buffer_upload(staging, 0, size, data);
 
-    // Copy from the staging buffer to the texture.
-    _copy_texture_from_staging(context, texture, offset, shape, size);
+//     // Copy from the staging buffer to the texture.
+//     _copy_texture_from_staging(context, texture, offset, shape, size);
 
-    // IMPORTANT: need to wait for the texture to be copied to the staging buffer, *before*
-    // downloading the data from the staging buffer.
-    dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
-}
-
-
-
-// TODO: this function should be discarded and integrated into upload_texture() in multiple steps
-void dvz_texture_download(
-    DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
-{
-    ASSERT(texture != NULL);
-    DvzContext* context = texture->context;
-    ASSERT(context != NULL);
-    ASSERT(size > 0);
-    ASSERT(data != NULL);
-
-    // Take the staging buffer.
-    DvzBuffer* staging = staging_buffer(context, size);
-
-    // Copy from the staging buffer to the texture.
-    _copy_texture_to_staging(context, texture, offset, shape, size);
-
-    // IMPORTANT: need to wait for the texture to be copied to the staging buffer, *before*
-    // downloading the data from the staging buffer.
-    dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
-
-    // Memcpy into the staging buffer.
-    dvz_buffer_download(staging, 0, size, data);
-}
+//     // IMPORTANT: need to wait for the texture to be copied to the staging buffer, *before*
+//     // downloading the data from the staging buffer.
+//     dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+// }
 
 
 
-// TODO: this function should be discarded and integrated into upload_texture() in multiple steps
+// // TODO: this function should be discarded and integrated into upload_texture() in multiple
+// steps void dvz_texture_download(
+//     DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
+// {
+//     ASSERT(texture != NULL);
+//     DvzContext* context = texture->context;
+//     ASSERT(context != NULL);
+//     ASSERT(size > 0);
+//     ASSERT(data != NULL);
+
+//     // Take the staging buffer.
+//     DvzBuffer* staging = staging_buffer(context, size);
+
+//     // Copy from the staging buffer to the texture.
+//     _copy_texture_to_staging(context, texture, offset, shape, size);
+
+//     // IMPORTANT: need to wait for the texture to be copied to the staging buffer, *before*
+//     // downloading the data from the staging buffer.
+//     dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+
+//     // Memcpy into the staging buffer.
+//     dvz_buffer_download(staging, 0, size, data);
+// }
+
+
+
 void dvz_texture_copy(
     DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset, uvec3 shape)
 {
@@ -812,6 +813,140 @@ void dvz_texture_copy(
     dvz_submit_send(&submit, 0, NULL, 0);
 
     // Wait for the transfer queue to be idle.
+    // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+}
+
+
+
+void dvz_texture_copy_from_buffer(
+    DvzTexture* tex, uvec3 tex_offset, uvec3 shape, //
+    DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size)
+{
+    ASSERT(tex != NULL);
+    DvzContext* context = tex->context;
+
+    ASSERT(context != NULL);
+
+    DvzGpu* gpu = context->gpu;
+    ASSERT(gpu != NULL);
+
+    DvzBuffer* buffer = br.buffer;
+    ASSERT(buffer != NULL);
+    buf_offset = br.offsets[0] + buf_offset;
+
+    ASSERT(shape[0] > 0);
+    ASSERT(shape[1] > 0);
+    ASSERT(shape[2] > 0);
+
+    ASSERT(tex_offset[0] + shape[0] <= tex->image->width);
+    ASSERT(tex_offset[1] + shape[1] <= tex->image->height);
+    ASSERT(tex_offset[2] + shape[2] <= tex->image->depth);
+
+    // Take transfer cmd buf.
+    DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
+    DvzCommands* cmds = &cmds_;
+    dvz_cmd_reset(cmds, 0);
+    dvz_cmd_begin(cmds, 0);
+
+    // Image transition.
+    DvzBarrier barrier = dvz_barrier(gpu);
+    dvz_barrier_stages(&barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    ASSERT(tex != NULL);
+    ASSERT(tex->image != NULL);
+    dvz_barrier_images(&barrier, tex->image);
+    dvz_barrier_images_layout(
+        &barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    dvz_barrier_images_access(&barrier, 0, VK_ACCESS_TRANSFER_WRITE_BIT);
+    dvz_cmd_barrier(cmds, 0, &barrier);
+
+    // Copy to staging buffer
+    dvz_cmd_copy_buffer_to_image(cmds, 0, buffer, buf_offset, tex->image, tex_offset, shape);
+
+    // Image transition.
+    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, tex->image->layout);
+    dvz_barrier_images_access(&barrier, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT);
+    dvz_cmd_barrier(cmds, 0, &barrier);
+
+    dvz_cmd_end(cmds, 0);
+
+    // Wait for the render queue to be idle.
+    // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_RENDER);
+
+    // Submit the commands to the transfer queue.
+    DvzSubmit submit = dvz_submit(gpu);
+    dvz_submit_commands(&submit, cmds);
+    dvz_submit_send(&submit, 0, NULL, 0);
+
+    // Wait for the transfer queue to be idle.
+    // TODO: less brutal synchronization with semaphores. Here we wait for the
+    // transfer to be complete before we send new rendering commands.
+    // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+}
+
+
+
+void dvz_texture_copy_to_buffer(
+    DvzTexture* tex, uvec3 tex_offset, uvec3 shape, //
+    DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size)
+{
+    ASSERT(tex != NULL);
+    DvzContext* context = tex->context;
+
+    ASSERT(context != NULL);
+
+    DvzGpu* gpu = context->gpu;
+    ASSERT(gpu != NULL);
+
+    DvzBuffer* buffer = br.buffer;
+    ASSERT(buffer != NULL);
+    buf_offset = br.offsets[0] + buf_offset;
+
+    ASSERT(shape[0] > 0);
+    ASSERT(shape[1] > 0);
+    ASSERT(shape[2] > 0);
+
+    ASSERT(tex_offset[0] + shape[0] <= tex->image->width);
+    ASSERT(tex_offset[1] + shape[1] <= tex->image->height);
+    ASSERT(tex_offset[2] + shape[2] <= tex->image->depth);
+
+    // Take transfer cmd buf.
+    DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
+    DvzCommands* cmds = &cmds_;
+    dvz_cmd_reset(cmds, 0);
+    dvz_cmd_begin(cmds, 0);
+
+    // Image transition.
+    DvzBarrier barrier = dvz_barrier(gpu);
+    dvz_barrier_stages(&barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    ASSERT(tex != NULL);
+    ASSERT(tex->image != NULL);
+    dvz_barrier_images(&barrier, tex->image);
+    dvz_barrier_images_layout(
+        &barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    dvz_barrier_images_access(&barrier, 0, VK_ACCESS_TRANSFER_READ_BIT);
+    dvz_cmd_barrier(cmds, 0, &barrier);
+
+    // Copy to staging buffer
+    dvz_cmd_copy_image_to_buffer(cmds, 0, tex->image, tex_offset, shape, buffer, buf_offset);
+
+    // Image transition.
+    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, tex->image->layout);
+    dvz_barrier_images_access(&barrier, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_MEMORY_READ_BIT);
+    dvz_cmd_barrier(cmds, 0, &barrier);
+
+    dvz_cmd_end(cmds, 0);
+
+    // Wait for the render queue to be idle.
+    // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_RENDER);
+
+    // Submit the commands to the transfer queue.
+    DvzSubmit submit = dvz_submit(gpu);
+    dvz_submit_commands(&submit, cmds);
+    dvz_submit_send(&submit, 0, NULL, 0);
+
+    // Wait for the transfer queue to be idle.
+    // TODO: less brutal synchronization with semaphores. Here we wait for the
+    // transfer to be complete before we send new rendering commands.
     // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 }
 

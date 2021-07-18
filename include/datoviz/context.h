@@ -100,8 +100,6 @@ struct DvzContext
     DvzObject obj;
     DvzGpu* gpu;
 
-    // DvzCommands transfer_cmd;
-
     DvzContainer buffers;
     DvzContainer images;
     DvzContainer samplers;
@@ -109,11 +107,8 @@ struct DvzContext
     DvzContainer computes;
 
     // Data transfers.
-    DvzFifo transfers; // TO REMOVE
-
     DvzDeq deq;
     DvzThread thread; // transfer thread
-    // DvzThread thread_dl;
 
     // Font atlas.
     DvzFontAtlas font_atlas;
@@ -254,42 +249,42 @@ DVZ_EXPORT void dvz_texture_filter(DvzTexture* texture, DvzFilterType type, VkFi
 DVZ_EXPORT void dvz_texture_address_mode(
     DvzTexture* texture, DvzTextureAxis axis, VkSamplerAddressMode address_mode);
 
-// NOTE: the functions below assume a mappable texture, for other textures one should use the
-// functions in transfers.c
+// /**
+//  * Upload data to a GPU texture.
+//  *
+//  * !!! note
+//  *     This function should not be used to update a texture that is being used for rendering in
+//  the
+//  *     main event loop, otherwise full GPU synchronization needs to be done. Look at the
+//  Transfers
+//  *     API instead.
+//  *
+//  * @param texture the texture
+//  * @param offset offset within the texture
+//  * @param shape shape of the part of the texture to update
+//  * @param size size of the data to upload, in bytes
+//  * @param data pointer to the data to upload
+//  */
+// DVZ_EXPORT void dvz_texture_upload(
+//     DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, const void* data);
 
-/**
- * Upload data to a GPU texture.
- *
- * !!! note
- *     This function should not be used to update a texture that is being used for rendering in the
- *     main event loop, otherwise full GPU synchronization needs to be done. Look at the Transfers
- *     API instead.
- *
- * @param texture the texture
- * @param offset offset within the texture
- * @param shape shape of the part of the texture to update
- * @param size size of the data to upload, in bytes
- * @param data pointer to the data to upload
- */
-DVZ_EXPORT void dvz_texture_upload(
-    DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, const void* data);
-
-/**
- * Download a texture from the GPU to the CPU.
- *
- * !!! note
- *     This function should not be used to download from a texture that is being used for rendering
- *     in the main event loop, otherwise full GPU synchronization needs to be done. Look at the
- *     Transfers API instead.
- *
- * @param texture the texture
- * @param offset offset within the texture
- * @param shape shape of the part of the texture to download
- * @param size size of the data to download, in bytes
- * @param data pointer to the buffer to download to (should be already allocated)
- */
-DVZ_EXPORT void dvz_texture_download(
-    DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
+// /**
+//  * Download a texture from the GPU to the CPU.
+//  *
+//  * !!! note
+//  *     This function should not be used to download from a texture that is being used for
+//  rendering
+//  *     in the main event loop, otherwise full GPU synchronization needs to be done. Look at the
+//  *     Transfers API instead.
+//  *
+//  * @param texture the texture
+//  * @param offset offset within the texture
+//  * @param shape shape of the part of the texture to download
+//  * @param size size of the data to download, in bytes
+//  * @param data pointer to the buffer to download to (should be already allocated)
+//  */
+// DVZ_EXPORT void dvz_texture_download(
+//     DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
 
 /**
  * Copy part of a texture to another texture.
@@ -304,6 +299,14 @@ DVZ_EXPORT void dvz_texture_download(
  */
 DVZ_EXPORT void dvz_texture_copy(
     DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset, uvec3 shape);
+
+DVZ_EXPORT void dvz_texture_copy_from_buffer(
+    DvzTexture* tex, uvec3 tex_offset, uvec3 shape, //
+    DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size);
+
+DVZ_EXPORT void dvz_texture_copy_to_buffer(
+    DvzTexture* tex, uvec3 tex_offset, uvec3 shape, //
+    DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size);
 
 /**
  * Transition a texture to its layout.

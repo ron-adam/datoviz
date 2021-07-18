@@ -33,8 +33,15 @@ int test_transfers_buffer_mappable(TestContext* tc)
 
     // Allocate a staging buffer region.
     DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
+
     // Enqueue an upload transfer task.
-    _enqueue_buffer_upload(&ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, 128, data);
+    uvec3 ZEROS = {0};
+    _enqueue_buffer_upload(
+        &ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, NULL, ZEROS, ZEROS, 128, data);
+
+    // NOTE: need to wait for the upload to be finished before we download the data.
+    // The DL and UL are on different queues and may be processed out of order.
+    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
 
     // Enqueue a download transfer task.
     uint8_t data2[128] = {0};
@@ -45,6 +52,8 @@ int test_transfers_buffer_mappable(TestContext* tc)
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
 
     // Check that the copy worked.
+    // for (uint32_t i = 0; i < 128; i++)
+    //     DBG(data2[i]);
     AT(data2[127] == 127);
     AT(memcmp(data2, data, 128) == 0);
     AT(res == 42);
@@ -74,7 +83,9 @@ int test_transfers_buffer_large(TestContext* tc)
     DvzBufferRegions stg = dvz_buffer_regions(staging, 1, 0, size, 0);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_upload(&ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, size, data);
+    uvec3 ZEROS = {0};
+    _enqueue_buffer_upload(
+        &ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, NULL, ZEROS, ZEROS, size, data);
 
     // Wait for the transfer thread to process both transfer tasks.
     dvz_app_wait(tc->app);
@@ -121,7 +132,8 @@ int test_transfers_buffer_copy(TestContext* tc)
     DvzBufferRegions br = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_VERTEX, 1, 1024);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_upload(&ctx->deq, br, 0, stg, 0, 128, data);
+    uvec3 ZEROS = {0};
+    _enqueue_buffer_upload(&ctx->deq, br, 0, stg, 0, NULL, ZEROS, ZEROS, 128, data);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
@@ -164,6 +176,7 @@ int test_transfers_texture(TestContext* tc)
 
     // Texture.
     DvzTexture* tex = dvz_ctx_texture(ctx, 2, shape_full, format);
+    DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
     // DvzTexture* stg = dvz_ctx_texture(ctx, 2, shape, format);
 
     // Callback for when the download has finished.
@@ -172,14 +185,14 @@ int test_transfers_texture(TestContext* tc)
         &ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE, _dl_done, &res);
 
     // Enqueue an upload transfer task.
-    _enqueue_texture_upload(&ctx->deq, tex, offset, shape, size, data);
+    _enqueue_texture_upload(&ctx->deq, tex, offset, shape, stg, 0, size, data);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Enqueue a download transfer task.
     uint8_t data2[256] = {0};
-    _enqueue_texture_download(&ctx->deq, tex, offset, shape, size, data2);
+    _enqueue_texture_download(&ctx->deq, tex, offset, shape, stg, 0, size, data2);
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Wait until the download_done event has been raised, dequeue it, and finish the test.

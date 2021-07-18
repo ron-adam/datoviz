@@ -63,9 +63,9 @@ static DvzTexture* _font_texture(DvzContext* ctx, DvzFontAtlas* atlas)
     dvz_texture_filter(texture, DVZ_FILTER_MAG, VK_FILTER_LINEAR);
     dvz_texture_filter(texture, DVZ_FILTER_MIN, VK_FILTER_LINEAR);
 
-    dvz_texture_upload(
-        texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, (uint32_t)(atlas->width * atlas->height * 4),
-        atlas->font_texture);
+    dvz_upload_texture(
+        ctx, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET,
+        (uint32_t)(atlas->width * atlas->height * 4), atlas->font_texture);
     return texture;
 }
 

@@ -43,6 +43,9 @@ typedef enum
     DVZ_TRANSFER_TEXTURE_DOWNLOAD,
     DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE,
     DVZ_TRANSFER_TEXTURE_COPY,
+
+    DVZ_TRANSFER_TEXTURE_BUFFER,
+    DVZ_TRANSFER_BUFFER_TEXTURE,
 } DvzDataTransferType;
 
 
@@ -55,6 +58,8 @@ typedef struct DvzTransfer DvzTransfer;
 typedef struct DvzTransferBuffer DvzTransferBuffer;
 typedef struct DvzTransferBufferCopy DvzTransferBufferCopy;
 typedef struct DvzTransferTexture DvzTransferTexture;
+typedef struct DvzTransferBufferTexture DvzTransferBufferTexture;
+typedef struct DvzTransferTextureBuffer DvzTransferTextureBuffer;
 typedef struct DvzTransferTextureCopy DvzTransferTextureCopy;
 typedef struct DvzTransferDownload DvzTransferDownload;
 typedef union DvzTransferUnion DvzTransferUnion;
@@ -70,6 +75,10 @@ struct DvzTransferBuffer
     DvzBufferRegions stg, br; // staging (mappable) buffer, and source/destination buffer
     VkDeviceSize stg_offset, br_offset, size;
     void* data;
+
+    // If the data has to be copied to a texture after transfer to the GPU buffer.
+    DvzTexture* tex;
+    uvec3 tex_offset, shape;
 };
 
 
@@ -87,6 +96,10 @@ struct DvzTransferTexture
 {
     DvzTexture* tex;
     uvec3 offset, shape;
+
+    DvzBufferRegions stg;
+    VkDeviceSize stg_offset;
+
     VkDeviceSize size;
     void* data;
 };
@@ -99,6 +112,30 @@ struct DvzTransferTextureCopy
     uvec3 src_offset, dst_offset, shape;
     VkDeviceSize size;
     // void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
+};
+
+
+
+struct DvzTransferBufferTexture
+{
+    DvzTexture* tex;
+    uvec3 tex_offset, shape;
+    DvzBufferRegions br;
+    VkDeviceSize buf_offset;
+    VkDeviceSize size;
+    // void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
+};
+
+
+
+struct DvzTransferTextureBuffer
+{
+    DvzTexture* tex;
+    uvec3 tex_offset, shape;
+    DvzBufferRegions br;
+    VkDeviceSize buf_offset;
+    VkDeviceSize size;
+    void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
 };
 
 
@@ -117,6 +154,8 @@ union DvzTransferUnion
     DvzTransferTexture tex;
     DvzTransferBufferCopy buf_copy;
     DvzTransferTextureCopy tex_copy;
+    DvzTransferTextureBuffer tex_buf;
+    DvzTransferBufferTexture buf_tex;
     DvzTransferDownload download;
 };
 
