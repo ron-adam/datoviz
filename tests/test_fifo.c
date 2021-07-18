@@ -27,6 +27,7 @@ static void* _fifo_thread_2(void* arg)
 {
     DvzFifo* fifo = arg;
     uint8_t* numbers = calloc(5, sizeof(uint8_t));
+    // NOTE: numbers will be FREE-ed by FREE(fifo.user_data) by test_utils_fifo_1()
     fifo->user_data = numbers;
     for (uint32_t i = 0; i < 5; i++)
     {
@@ -35,7 +36,6 @@ static void* _fifo_thread_2(void* arg)
         dvz_sleep(10);
     }
     dvz_fifo_enqueue(fifo, NULL);
-    FREE(numbers);
     return NULL;
 }
 
@@ -79,7 +79,7 @@ int test_utils_fifo_1(TestContext* tc)
         i++;
     } while (dequeued != NULL);
     pthread_join(thread, NULL);
-    FREE(fifo.user_data);
+    FREE(fifo.user_data); // NOTE: this FREEs numbers allocated in fifo_thread_2
 
     dvz_fifo_destroy(&fifo);
     return 0;
@@ -438,7 +438,6 @@ int test_utils_deq_batch(TestContext* tc)
     for (uint32_t i = 0; i < 10; i++)
     {
         int* item = calloc(1, sizeof(int)); // will be FREE-ed by dequeue_batch
-        log_warn("ALLOC %d", (uint64_t)item);
         *item = (int)i;
 
         // NOTE: the type should not be taken into account by the batch callbacks.

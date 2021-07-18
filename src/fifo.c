@@ -708,6 +708,7 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
 
 
 
+// WARNING: this function FREEs every enqueue item, like _deq_loop().
 void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
 {
     ASSERT(deq != NULL);
@@ -759,7 +760,6 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
             // Consistency check.
             ASSERT(deq_idx == item_s.deq_idx);
             log_trace("dequeue item from FIFO queue #%d with type %d", deq_idx, item_s.type);
-            log_warn("FREE %d", (uint64_t)deq_item);
             FREE(deq_item);
             // Copy the item into the array allocated above.
             items[k++] = item_s;
@@ -790,6 +790,13 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
     _proc_batch_callbacks(deq, proc_idx, DVZ_DEQ_PROC_BATCH_END, item_count, items);
 
     atomic_store(&proc->is_processing, false);
+
+    // FREE all items, and the items container.
+    for (uint32_t i = 0; i < item_count; i++)
+    {
+        if (items[i].item != NULL)
+            FREE(items[i].item);
+    }
     FREE(items);
 }
 
