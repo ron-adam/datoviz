@@ -113,6 +113,42 @@ DvzViewport dvz_viewport_default(uint32_t width, uint32_t height)
 
 
 
+DvzViewport dvz_viewport_full(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    DvzViewport viewport = {0};
+
+    viewport.viewport.x = 0;
+    viewport.viewport.y = 0;
+    viewport.viewport.minDepth = +0;
+    viewport.viewport.maxDepth = +1;
+
+    ASSERT(canvas->render.swapchain.images != NULL);
+    viewport.size_framebuffer[0] = viewport.viewport.width =
+        (float)canvas->render.swapchain.images->width;
+    viewport.size_framebuffer[1] = viewport.viewport.height =
+        (float)canvas->render.swapchain.images->height;
+
+    if (canvas->window != NULL)
+    {
+        viewport.size_screen[0] = canvas->window->width;
+        viewport.size_screen[1] = canvas->window->height;
+    }
+    else
+    {
+        // If offscreen canvas, there is no window and we use the same units for screen coords
+        // and framebuffer coords.
+        viewport.size_screen[0] = viewport.size_framebuffer[0];
+        viewport.size_screen[1] = viewport.size_framebuffer[1];
+    }
+
+    viewport.clip = DVZ_VIEWPORT_FULL;
+
+    return viewport;
+}
+
+
+
 /*************************************************************************************************/
 /*  Canvas initialization                                                                        */
 /*************************************************************************************************/
@@ -241,6 +277,25 @@ void dvz_canvas_vsync(DvzCanvas* canvas, bool vsync)
 
 
 
+static void _canvas_fps(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+
+    _clock_init(&canvas->clock);
+
+    canvas->fps.fps = 100;
+    canvas->fps.efps = 100;
+
+    // TODO:
+    // Compute FPS every 100 ms, even if FPS is not shown (so that the value remains accessible
+    // in callbacks if needed).
+    // dvz_event_callback(canvas, DVZ_EVENT_TIMER, .1, DVZ_EVENT_MODE_SYNC, _fps_callback, NULL);
+
+    // if (show_fps)
+    //     dvz_event_callback(
+    //         canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback_fps, NULL);
+}
+
 static void _canvas_window(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
@@ -310,6 +365,8 @@ static void _canvas_swapchain(DvzCanvas* canvas)
             &canvas->render.swapchain,
             canvas->vsync ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR);
         dvz_swapchain_create(&canvas->render.swapchain);
+
+        ASSERT(canvas->render.swapchain.images != NULL);
     }
     else
     {
@@ -441,7 +498,7 @@ void dvz_canvas_create(DvzCanvas* canvas)
     ASSERT(canvas != NULL);
 
     // Initialize the canvas local clock.
-    _clock_init(&canvas->clock);
+    _canvas_fps(canvas);
 
     // Create the window.
     _canvas_window(canvas);
@@ -480,8 +537,16 @@ void dvz_canvas_create(DvzCanvas* canvas)
     // Create the Deq for canvas updates.
     _canvas_deq(canvas);
 
+    // Update the viewport field.
+    canvas->viewport = dvz_viewport_full(canvas);
+
     // The canvas is created!
     dvz_obj_created(&canvas->obj);
+
+    log_debug(
+        "successfully created canvas of size %dx%d", //
+        canvas->render.swapchain.images->width,      //
+        canvas->render.swapchain.images->height);
 }
 
 
@@ -652,14 +717,7 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
     ASSERT(canvas->app != NULL);
     ASSERT(canvas->gpu != NULL);
 
-    // Stop the event thread.
     dvz_gpu_wait(canvas->gpu);
-
-    // Destroy the canvas deq.
-    {
-        dvz_input_destroy(&canvas->input);
-        dvz_deq_destroy(&canvas->deq);
-    }
 
     // Destroy the graphics.
     log_trace("canvas destroy graphics pipelines");
@@ -722,6 +780,14 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
     // CONTAINER_DESTROY_ITEMS(DvzGui, canvas->guis, dvz_gui_destroy)
     // dvz_container_destroy(&canvas->guis);
 
+    // NOTE: the Input destruction must occur AFTER the window destruction, otherwise the window
+    // glfw callbacks might enqueue input events to a destroyed deq, causing a segfault.
+
+    // Destroy the canvas deq.
+    {
+        dvz_deq_destroy(&canvas->deq);
+        dvz_input_destroy(&canvas->input);
+    }
 
     dvz_obj_destroyed(&canvas->obj);
 }
