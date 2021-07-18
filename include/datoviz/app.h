@@ -37,6 +37,7 @@ extern "C" {
 /*************************************************************************************************/
 
 typedef struct DvzApp DvzApp;
+typedef struct DvzRun DvzRun; // forward declaration
 
 
 
@@ -76,11 +77,10 @@ struct DvzApp
 
     // Containers.
     DvzContainer gpus;
-    DvzContainer windows;
-    DvzContainer canvases;
+    DvzContainer windows;  // to remove
+    DvzContainer canvases; // to remove
 
-    // Threads.
-    DvzThread timer_thread;
+    DvzRun* run;
 };
 
 
