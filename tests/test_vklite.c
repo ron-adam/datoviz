@@ -890,7 +890,8 @@ int test_vklite_barrier_image(TestContext* tc)
     DvzCommands cmds = dvz_commands(gpu, 0, 1);
     dvz_cmd_begin(&cmds, 0);
     dvz_cmd_barrier(&cmds, 0, &barrier);
-    dvz_cmd_copy_buffer_to_image(&cmds, 0, &buffer, 0, &images, (uvec3){0});
+    dvz_cmd_copy_buffer_to_image(
+        &cmds, 0, &buffer, 0, &images, (uvec3){0}, (uvec3){img_size, img_size, 1});
     dvz_cmd_end(&cmds, 0);
     dvz_cmd_submit_sync(&cmds, 0);
 

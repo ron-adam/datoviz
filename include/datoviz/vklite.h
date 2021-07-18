@@ -2261,23 +2261,31 @@ DVZ_EXPORT void dvz_cmd_barrier(DvzCommands* cmds, uint32_t idx, DvzBarrier* bar
  * @param cmds the set of command buffers to record
  * @param idx the index of the command buffer to record
  * @param buffer the buffer
+ * @param buf_offset the buffer offset
  * @param images the image
+ * @param tex_offset the texture offset
+ * @param shape the texture shape
  */
 DVZ_EXPORT void dvz_cmd_copy_buffer_to_image(
-    DvzCommands* cmds, uint32_t idx, DvzBuffer* buffer, VkDeviceSize buf_offset, DvzImages* images,
-    uvec3 tex_offset);
+    DvzCommands* cmds, uint32_t idx,            //
+    DvzBuffer* buffer, VkDeviceSize buf_offset, //
+    DvzImages* images, uvec3 tex_offset, uvec3 shape);
 
 /**
  * Copy a GPU image to a GPU buffer.
  *
  * @param cmds the set of command buffers to record
  * @param idx the index of the command buffer to record
+ * @param tex_offset the texture offset
+ * @param shape the texture shape
  * @param images the image
  * @param buffer the buffer
+ * @param buf_offset the buffer offset
  */
 DVZ_EXPORT void dvz_cmd_copy_image_to_buffer(
-    DvzCommands* cmds, uint32_t idx, DvzImages* images, uvec3 tex_offset, DvzBuffer* buffer,
-    VkDeviceSize buf_offset);
+    DvzCommands* cmds, uint32_t idx,                  //
+    DvzImages* images, uvec3 tex_offset, uvec3 shape, //
+    DvzBuffer* buffer, VkDeviceSize buf_offset);
 
 /**
  * Copy a GPU image to another.

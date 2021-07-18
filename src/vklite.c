@@ -3222,8 +3222,9 @@ void dvz_cmd_barrier(DvzCommands* cmds, uint32_t idx, DvzBarrier* barrier)
 
 
 void dvz_cmd_copy_buffer_to_image(
-    DvzCommands* cmds, uint32_t idx, DvzBuffer* buffer, VkDeviceSize buf_offset, DvzImages* images,
-    uvec3 tex_offset)
+    DvzCommands* cmds, uint32_t idx,            //
+    DvzBuffer* buffer, VkDeviceSize buf_offset, //
+    DvzImages* images, uvec3 tex_offset, uvec3 shape)
 {
     CMD_START_CLIP(images->count)
 
@@ -3237,13 +3238,13 @@ void dvz_cmd_copy_buffer_to_image(
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
 
-    region.imageOffset.x = tex_offset[0];
-    region.imageOffset.y = tex_offset[1];
-    region.imageOffset.z = tex_offset[2];
+    region.imageOffset.x = (int32_t)tex_offset[0];
+    region.imageOffset.y = (int32_t)tex_offset[1];
+    region.imageOffset.z = (int32_t)tex_offset[2];
 
-    region.imageExtent.width = images->width;
-    region.imageExtent.height = images->height;
-    region.imageExtent.depth = images->depth;
+    region.imageExtent.width = shape[0];
+    region.imageExtent.height = shape[1];
+    region.imageExtent.depth = shape[2];
 
     vkCmdCopyBufferToImage(
         cb, buffer->buffer, images->images[iclip], //
@@ -3255,8 +3256,10 @@ void dvz_cmd_copy_buffer_to_image(
 
 
 void dvz_cmd_copy_image_to_buffer(
-    DvzCommands* cmds, uint32_t idx, DvzImages* images, uvec3 tex_offset, DvzBuffer* buffer,
-    VkDeviceSize buf_offset)
+    DvzCommands* cmds, uint32_t idx,                  //
+    DvzImages* images, uvec3 tex_offset, uvec3 shape, //
+    DvzBuffer* buffer, VkDeviceSize buf_offset        //
+)
 {
     CMD_START_CLIP(images->count)
 
@@ -3270,13 +3273,13 @@ void dvz_cmd_copy_image_to_buffer(
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
 
-    region.imageOffset.x = tex_offset[0];
-    region.imageOffset.y = tex_offset[1];
-    region.imageOffset.z = tex_offset[2];
+    region.imageOffset.x = (int32_t)tex_offset[0];
+    region.imageOffset.y = (int32_t)tex_offset[1];
+    region.imageOffset.z = (int32_t)tex_offset[2];
 
-    region.imageExtent.width = images->width;
-    region.imageExtent.height = images->height;
-    region.imageExtent.depth = images->depth;
+    region.imageExtent.width = shape[0];
+    region.imageExtent.height = shape[1];
+    region.imageExtent.depth = shape[2];
 
     vkCmdCopyImageToBuffer(
         cb, images->images[iclip], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, //
