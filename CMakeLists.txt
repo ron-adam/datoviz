@@ -439,6 +439,7 @@ if (DATOVIZ_WITH_CLI)
         "cli/main.c"
         "tests/test_utils.c"
         "tests/test_fifo.c"
+        "tests/test_array.c"
         "tests/test_vklite.c"
         "tests/test_context.c"
         "tests/test_input.c"
