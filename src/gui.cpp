@@ -76,8 +76,8 @@ static void _presend(DvzCanvas* canvas, DvzEvent ev)
         DvzEvent ev_imgui = {};
         ev_imgui.type = DVZ_EVENT_IMGUI;
         ev_imgui.u.f.idx = canvas->frame_idx;
-        ev_imgui.u.f.interval = canvas->clock.interval;
-        ev_imgui.u.f.time = canvas->clock.elapsed;
+        ev_imgui.u.f.interval = _clock_interval(&canvas->clock);
+        ev_imgui.u.f.time = _clock_get(&canvas->clock);
         _event_produce(canvas, ev_imgui);
     }
 

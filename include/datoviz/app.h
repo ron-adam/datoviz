@@ -63,22 +63,27 @@ typedef enum
 
 struct DvzClock
 {
-    double elapsed;  // time in seconds elapsed since calling _start_time(clock)
-    double interval; // interval since the last clock update
-
     struct timeval start, current;
+    double tick;
+    // double elapsed;  // time in seconds elapsed since calling _start_time(clock)
+    // double interval; // interval since the last clock update
     // double checkpoint_time;
     // uint64_t checkpoint_value;
 };
 
 
 
-static inline void _clock_init(DvzClock* clock) { gettimeofday(&clock->start, NULL); }
+static inline void _clock_init(DvzClock* clock)
+{
+    ASSERT(clock != NULL);
+    gettimeofday(&clock->start, NULL);
+}
 
 
 
 static inline double _clock_get(DvzClock* clock)
 {
+    ASSERT(clock != NULL);
     gettimeofday(&clock->current, NULL);
     double elapsed = (clock->current.tv_sec - clock->start.tv_sec) +
                      (clock->current.tv_usec - clock->start.tv_usec) / 1000000.0;
@@ -87,13 +92,29 @@ static inline double _clock_get(DvzClock* clock)
 
 
 
-static inline void _clock_set(DvzClock* clock)
+static inline void _clock_tick(DvzClock* clock)
 {
-    // Typically called at every frame.
-    double elapsed = _clock_get(clock);
-    clock->interval = elapsed - clock->elapsed;
-    clock->elapsed = elapsed;
+    ASSERT(clock != NULL);
+    clock->tick = _clock_get(clock);
 }
+
+
+
+static inline double _clock_interval(DvzClock* clock)
+{
+    ASSERT(clock != NULL);
+    return _clock_get(clock) - clock->tick;
+}
+
+
+
+// static inline void _clock_set(DvzClock* clock)
+// {
+//     // Typically called at every frame.
+//     double elapsed = _clock_get(clock);
+//     clock->interval = elapsed - clock->elapsed;
+//     clock->elapsed = elapsed;
+// }
 
 
 

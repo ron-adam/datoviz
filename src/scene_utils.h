@@ -1021,7 +1021,7 @@ static void _upload_mvp(DvzCanvas* canvas, DvzEvent ev)
             interact = &controller->interacts[j];
 
             // NOTE: update MVP.time here.
-            interact->mvp.time = canvas->clock.elapsed;
+            interact->mvp.time = _clock_get(&canvas->clock);
 
             // IMPORTANT: we **must** update the uniform buffer at every frame.
             dvz_canvas_buffers(canvas, panel->br_mvp, 0, panel->br_mvp.size, &interact->mvp);

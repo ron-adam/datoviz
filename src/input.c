@@ -289,7 +289,7 @@ void dvz_input_mouse_update(DvzInput* input, DvzInputType type, DvzInputEvent* p
     // log_debug("mouse event %d", canvas->frame_idx);
     mouse->prev_state = mouse->cur_state;
 
-    double time = input->clock.elapsed;
+    double time = _clock_get(&input->clock);
 
     // Update the last pos.
     glm_vec2_copy(mouse->cur_pos, mouse->last_pos);
@@ -492,7 +492,7 @@ void dvz_input_keyboard_update(DvzInput* input, DvzInputType type, DvzInputEvent
 
     keyboard->prev_state = keyboard->cur_state;
 
-    double time = input->clock.elapsed;
+    double time = _clock_get(&input->clock);
     DvzKeyCode key = ev.k.key_code;
     int is_pressed = 0;
 
@@ -587,7 +587,7 @@ static void _timer_add(DvzInput* input, DvzInputEvent ev, void* user_data)
     timer->after = ev.ta.after;
     timer->period = ev.ta.period;
 
-    timer->start_time = timer->input->clock.elapsed;
+    timer->start_time = _clock_get(&timer->input->clock);
 
     dvz_obj_created(&timer->obj);
     log_debug("add timer #%d", timer->timer_id);
@@ -606,7 +606,7 @@ static void _timer_running(DvzInput* input, DvzInputEvent ev, void* user_data)
         timer->is_running = ev.tp.is_running;
         if (ev.tp.is_running)
         {
-            timer->start_time = timer->input->clock.elapsed;
+            timer->start_time = _clock_get(&timer->input->clock);
             timer->start_tick = timer->tick;
         }
     }
@@ -624,7 +624,7 @@ static void _timer_update(DvzInput* input, DvzInputEvent ev, void* user_data)
     {
         // Reset the timer when it is updated.
         timer->start_tick = timer->tick;
-        timer->start_time = timer->input->clock.elapsed;
+        timer->start_time = _clock_get(&timer->input->clock);
         timer->max_count = ev.ta.max_count;
         timer->after = ev.ta.after;
         timer->period = ev.ta.period;
@@ -665,7 +665,7 @@ static bool _timer_should_tick(DvzTimer* timer)
     }
 
     // Go through all TIMER callbacks
-    double cur_time = timer->input->clock.elapsed - timer->start_time;
+    double cur_time = _clock_get(&timer->input->clock) - timer->start_time;
 
     // Wait until "after" ms to start the timer.
     if (timer->after > 0 && cur_time < timer->after / 1000.0)
@@ -698,7 +698,7 @@ static void _timer_tick(DvzTimer* timer)
     ev.t.after = timer->after;
     ev.t.max_count = timer->max_count;
 
-    double cur_time = timer->input->clock.elapsed - timer->start_time;
+    double cur_time = _clock_get(&timer->input->clock) - timer->start_time;
     // At what time was the last TIMER event for this callback?
     double last_time = ((timer->tick - timer->start_tick) * timer->period - timer->after) / 1000.0;
 
@@ -727,7 +727,7 @@ static void _timer_ticks(DvzDeq* deq, void* user_data)
     ASSERT(input != NULL);
 
     // Update the clock struct every 1 ms (proc wait callback).
-    _clock_set(&input->clock);
+    _clock_tick(&input->clock);
 
     DvzContainerIterator iter = dvz_container_iterator(&input->timers);
     DvzTimer* timer = NULL;

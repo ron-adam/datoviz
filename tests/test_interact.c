@@ -200,8 +200,8 @@ int test_interact_camera(TestContext* context)
 
 
     // Move camera position.
-    canvas->clock.elapsed = .1;
-    canvas->clock.interval = .01;
+    canvas->clock.tick = .1;
+    // canvas->clock.interval = .01;
     AT(interact.u.c.target[0] == 0);
     AT(interact.u.c.target[1] == 0);
     AT(interact.u.c.target[2] == 4);
@@ -212,7 +212,8 @@ int test_interact_camera(TestContext* context)
     // glm_vec3_print(interact.u.c.target, stdout);
     AT(interact.u.c.target[0] == 0);
     AT(interact.u.c.target[1] == 0);
-    AIN(interact.u.c.target[2], 3.5, 3.99);
+    DBGF(interact.u.c.target[2]);
+    AIN(interact.u.c.target[2], 4.25, 4.99999);
 
 
     dvz_interact_destroy(&interact);

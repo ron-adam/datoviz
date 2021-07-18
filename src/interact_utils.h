@@ -270,7 +270,7 @@ static void _camera_callback(
     bool is_fly = interact->type == DVZ_INTERACT_FLY;
     bool is_active = false;
 
-    const float dt = (float)interact->canvas->clock.interval;
+    const float dt = (float)_clock_interval(&interact->canvas->clock);
     const float alpha = 5;
     const float beta = 10;
     const float dl = alpha * dt;

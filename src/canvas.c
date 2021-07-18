@@ -75,8 +75,8 @@ static int _event_frame(DvzCanvas* canvas)
     DvzEvent ev = {0};
     ev.type = DVZ_EVENT_FRAME;
     ev.u.f.idx = canvas->frame_idx;
-    ev.u.f.interval = canvas->clock.interval;
-    ev.u.f.time = canvas->clock.elapsed;
+    ev.u.f.interval = _clock_interval(&canvas->clock);
+    ev.u.f.time = _clock_get(&canvas->clock);
     return _event_produce(canvas, ev);
 }
 
@@ -88,7 +88,7 @@ static void _event_timer(DvzCanvas* canvas)
     // Go through all TIMER callbacks
     double last_time = 0;
     double expected_time = 0;
-    double cur_time = canvas->clock.elapsed;
+    double cur_time = _clock_get(&canvas->clock);
     double interval = 0;
     DvzEvent ev = {0};
     DvzEventCallbackRegister* r = NULL;
@@ -270,7 +270,7 @@ static void _refill_frame(DvzCanvas* canvas)
         dvz_fences_wait(&canvas->fences_flight, img_idx);
 
         // HACK: avoid edge effects when the resize takes some time and the dt becomes too large
-        canvas->clock.interval = 0;
+        // canvas->clock.interval = 0;
 
         // Refill the command buffer for the current swapchain image.
         _refill_canvas(canvas, img_idx);
@@ -1110,7 +1110,7 @@ void dvz_mouse_event(DvzMouse* mouse, DvzCanvas* canvas, DvzEvent ev)
     // log_debug("mouse event %d", canvas->frame_idx);
     mouse->prev_state = mouse->cur_state;
 
-    double time = canvas->clock.elapsed;
+    double time = _clock_get(&canvas->clock);
 
     // Update the last pos.
     glm_vec2_copy(mouse->cur_pos, mouse->last_pos);
@@ -1278,7 +1278,7 @@ void dvz_keyboard_event(DvzKeyboard* keyboard, DvzCanvas* canvas, DvzEvent ev)
 
     keyboard->prev_state = keyboard->cur_state;
 
-    double time = canvas->clock.elapsed;
+    double time = _clock_get(&canvas->clock);
     DvzKeyCode key = ev.u.k.key_code;
 
     if (ev.type == DVZ_EVENT_KEY_PRESS && time - keyboard->press_time > .025)
@@ -1699,7 +1699,7 @@ static void _screencast_post_send(DvzCanvas* canvas, DvzEvent ev)
         DvzEvent sev = {0};
         sev.type = DVZ_EVENT_SCREENCAST;
         sev.u.sc.idx = screencast->frame_idx;
-        sev.u.sc.interval = screencast->clock.interval;
+        sev.u.sc.interval = _clock_interval(&screencast->clock);
         sev.u.sc.rgba = rgb_a;
         sev.u.sc.width = screencast->staging.width;
         sev.u.sc.height = screencast->staging.height;
@@ -1707,7 +1707,7 @@ static void _screencast_post_send(DvzCanvas* canvas, DvzEvent ev)
         _event_produce(canvas, sev);
 
         // Reset screencast status.
-        _clock_set(&screencast->clock);
+        _clock_tick(&screencast->clock);
         screencast->status = DVZ_SCREENCAST_IDLE;
         screencast->frame_idx++;
     }
@@ -2099,10 +2099,10 @@ static void _canvas_frame_logic(DvzCanvas* canvas)
     // Update the global and local clocks.
     // These calls update canvas->clock.elapsed and canvas->clock.interval, the latter is
     // the delay since the last frame.
-    _clock_set(&canvas->app->clock); // global clock
-    _clock_set(&canvas->clock);      // canvas-local clock
+    _clock_tick(&canvas->app->clock); // global clock
+    _clock_tick(&canvas->clock);      // canvas-local clock
     // Compute the maximum delay between two successive frames.
-    canvas->max_delay = fmax(canvas->max_delay, canvas->clock.interval);
+    canvas->max_delay = fmax(canvas->max_delay, _clock_interval(&canvas->clock));
 
     // Call INTERACT callbacks (for backends only), which may enqueue some events.
     _event_interact(canvas);
