@@ -320,15 +320,15 @@ static void _fps_callback(DvzCanvas* canvas, DvzEvent ev)
     ASSERT(canvas != NULL);
 
     // Immediate FPS: total number of frames per second.
-    canvas->fps = (canvas->frame_idx - canvas->last_frame_idx) / ev.u.t.interval;
-    canvas->last_frame_idx = canvas->frame_idx;
+    canvas->fps.fps = (canvas->frame_idx - canvas->fps.last_frame_idx) / ev.u.t.interval;
+    canvas->fps.last_frame_idx = canvas->frame_idx;
 
     // Effective FPS: related to the average maximum delay between successive frames.
-    canvas->max_delay_roll[ev.u.t.idx % 10] = canvas->max_delay;
+    canvas->fps.max_delay_roll[ev.u.t.idx % 10] = canvas->fps.max_delay;
     // Compute the average maximum delay over the last second.
-    double mean = _mean(10, canvas->max_delay_roll);
-    canvas->efps = 1.0 / (mean == 0 ? 1 : mean);
-    canvas->max_delay = 0;
+    double mean = _mean(10, canvas->fps.max_delay_roll);
+    canvas->fps.efps = 1.0 / (mean == 0 ? 1 : mean);
+    canvas->fps.max_delay = 0;
 }
 
 
@@ -634,8 +634,8 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     // FPS callback.
     {
         // Initial values.
-        canvas->fps = 100;
-        canvas->efps = 100;
+        canvas->fps.fps = 100;
+        canvas->fps.efps = 100;
         // Compute FPS every 100 ms, even if FPS is not shown (so that the value remains accessible
         // in callbacks if needed).
         dvz_event_callback(canvas, DVZ_EVENT_TIMER, .1, DVZ_EVENT_MODE_SYNC, _fps_callback, NULL);
@@ -775,7 +775,7 @@ void dvz_canvas_reset(DvzCanvas* canvas)
     canvas->cur_frame = 0;
     dvz_fifo_reset(&canvas->event_queue);
     canvas->frame_idx = 0;
-    canvas->last_frame_idx = 0;
+    canvas->fps.last_frame_idx = 0;
 }
 
 
@@ -2100,9 +2100,9 @@ static void _canvas_frame_logic(DvzCanvas* canvas)
     // These calls update canvas->clock.elapsed and canvas->clock.interval, the latter is
     // the delay since the last frame.
     _clock_tick(&canvas->app->clock); // global clock
-    _clock_tick(&canvas->clock);      // canvas-local clock
     // Compute the maximum delay between two successive frames.
-    canvas->max_delay = fmax(canvas->max_delay, _clock_interval(&canvas->clock));
+    canvas->fps.max_delay = fmax(canvas->fps.max_delay, _clock_interval(&canvas->clock));
+    _clock_tick(&canvas->clock); // canvas-local clock
 
     // Call INTERACT callbacks (for backends only), which may enqueue some events.
     _event_interact(canvas);
