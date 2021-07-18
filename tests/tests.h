@@ -36,11 +36,11 @@ int test_utils_array_cast(TestContext*);
 int test_utils_array_mvp(TestContext*);
 int test_utils_array_3D(TestContext*);
 
-int test_utils_transforms_1(TestContext*);
-int test_utils_transforms_2(TestContext*);
-int test_utils_transforms_3(TestContext*);
-int test_utils_transforms_4(TestContext*);
-// int test_utils_transforms_5(TestContext*);
+// int test_utils_transforms_1(TestContext*);
+// int test_utils_transforms_2(TestContext*);
+// int test_utils_transforms_3(TestContext*);
+// int test_utils_transforms_4(TestContext*);
+// // int test_utils_transforms_5(TestContext*);
 
 int test_utils_colormap_idx(TestContext*);
 int test_utils_colormap_uv(TestContext*);
@@ -50,10 +50,10 @@ int test_utils_colormap_scale(TestContext*);
 int test_utils_colormap_packuv(TestContext*);
 int test_utils_colormap_array(TestContext*);
 
-int test_utils_ticks_1(TestContext*);
-int test_utils_ticks_2(TestContext*);
-int test_utils_ticks_duplicate(TestContext*);
-int test_utils_ticks_extend(TestContext*);
+// int test_utils_ticks_1(TestContext*);
+// int test_utils_ticks_2(TestContext*);
+// int test_utils_ticks_duplicate(TestContext*);
+// int test_utils_ticks_extend(TestContext*);
 
 // Test vklite.
 int test_vklite_app(TestContext*);
@@ -98,80 +98,80 @@ int test_input_timer(TestContext*);
 
 // Test canvas.
 int test_canvas_blank(TestContext*);
-int test_canvas_multiple(TestContext*);
-int test_canvas_events(TestContext*);
-int test_canvas_gui(TestContext*);
-int test_canvas_screencast(TestContext*);
-int test_canvas_video(TestContext*);
+// int test_canvas_multiple(TestContext*);
+// int test_canvas_events(TestContext*);
+// int test_canvas_gui(TestContext*);
+// int test_canvas_screencast(TestContext*);
+// int test_canvas_video(TestContext*);
 
-int test_canvas_triangle_1(TestContext*);
-int test_canvas_triangle_resize(TestContext*);
-int test_canvas_triangle_offscreen(TestContext*);
-int test_canvas_triangle_push(TestContext*);
-int test_canvas_triangle_upload(TestContext*);
-int test_canvas_triangle_uniform(TestContext*);
-int test_canvas_triangle_compute(TestContext*);
-int test_canvas_triangle_pick(TestContext*);
-int test_canvas_triangle_append(TestContext*);
+// int test_canvas_triangle_1(TestContext*);
+// int test_canvas_triangle_resize(TestContext*);
+// int test_canvas_triangle_offscreen(TestContext*);
+// int test_canvas_triangle_push(TestContext*);
+// int test_canvas_triangle_upload(TestContext*);
+// int test_canvas_triangle_uniform(TestContext*);
+// int test_canvas_triangle_compute(TestContext*);
+// int test_canvas_triangle_pick(TestContext*);
+// int test_canvas_triangle_append(TestContext*);
 
-// Test interact.
-int test_interact_panzoom(TestContext*);
-int test_interact_arcball(TestContext*);
-int test_interact_camera(TestContext*);
+// // Test interact.
+// int test_interact_panzoom(TestContext*);
+// int test_interact_arcball(TestContext*);
+// int test_interact_camera(TestContext*);
 
-// Test graphics.
-int test_graphics_point(TestContext*);
-int test_graphics_line_list(TestContext*);
-int test_graphics_line_strip(TestContext*);
-int test_graphics_triangle_list(TestContext*);
-int test_graphics_triangle_strip(TestContext*);
-int test_graphics_triangle_fan(TestContext*);
-int test_graphics_marker(TestContext*);
-int test_graphics_segment(TestContext*);
-int test_graphics_path(TestContext*);
-int test_graphics_text(TestContext*);
-int test_graphics_image_1(TestContext*);
-int test_graphics_image_cmap(TestContext*);
-int test_graphics_volume_slice(TestContext*);
-int test_graphics_volume_1(TestContext*);
-int test_graphics_mesh(TestContext*);
+// // Test graphics.
+// int test_graphics_point(TestContext*);
+// int test_graphics_line_list(TestContext*);
+// int test_graphics_line_strip(TestContext*);
+// int test_graphics_triangle_list(TestContext*);
+// int test_graphics_triangle_strip(TestContext*);
+// int test_graphics_triangle_fan(TestContext*);
+// int test_graphics_marker(TestContext*);
+// int test_graphics_segment(TestContext*);
+// int test_graphics_path(TestContext*);
+// int test_graphics_text(TestContext*);
+// int test_graphics_image_1(TestContext*);
+// int test_graphics_image_cmap(TestContext*);
+// int test_graphics_volume_slice(TestContext*);
+// int test_graphics_volume_1(TestContext*);
+// int test_graphics_mesh(TestContext*);
 
-// Test visuals.
-int test_visuals_sources(TestContext*);
-int test_visuals_props(TestContext*);
-int test_visuals_update_color(TestContext*);
-int test_visuals_update_pos(TestContext*);
-int test_visuals_partial(TestContext*);
-int test_visuals_append(TestContext*);
-int test_visuals_shared(TestContext*);
+// // Test visuals.
+// int test_visuals_sources(TestContext*);
+// int test_visuals_props(TestContext*);
+// int test_visuals_update_color(TestContext*);
+// int test_visuals_update_pos(TestContext*);
+// int test_visuals_partial(TestContext*);
+// int test_visuals_append(TestContext*);
+// int test_visuals_shared(TestContext*);
 
-// Test builtin visuals.
-int test_vislib_point(TestContext*);
-int test_vislib_line_list(TestContext*);
-int test_vislib_line_strip(TestContext*);
-int test_vislib_triangle_list(TestContext*);
-int test_vislib_triangle_strip(TestContext*);
-int test_vislib_triangle_fan(TestContext*);
-int test_vislib_marker(TestContext*);
-int test_vislib_polygon(TestContext*);
-int test_vislib_path(TestContext*);
-int test_vislib_image_1(TestContext*);
-int test_vislib_image_cmap(TestContext*);
-int test_vislib_axes_2D_x(TestContext*);
-int test_vislib_axes_2D_y(TestContext*);
-int test_vislib_mesh(TestContext*);
-int test_vislib_volume(TestContext*);
-int test_vislib_volume_slice(TestContext*);
+// // Test builtin visuals.
+// int test_vislib_point(TestContext*);
+// int test_vislib_line_list(TestContext*);
+// int test_vislib_line_strip(TestContext*);
+// int test_vislib_triangle_list(TestContext*);
+// int test_vislib_triangle_strip(TestContext*);
+// int test_vislib_triangle_fan(TestContext*);
+// int test_vislib_marker(TestContext*);
+// int test_vislib_polygon(TestContext*);
+// int test_vislib_path(TestContext*);
+// int test_vislib_image_1(TestContext*);
+// int test_vislib_image_cmap(TestContext*);
+// int test_vislib_axes_2D_x(TestContext*);
+// int test_vislib_axes_2D_y(TestContext*);
+// int test_vislib_mesh(TestContext*);
+// int test_vislib_volume(TestContext*);
+// int test_vislib_volume_slice(TestContext*);
 
-// Test scene.
-int test_scene_empty(TestContext*);
-int test_scene_empty_visuals(TestContext*);
-int test_scene_single(TestContext*);
-int test_scene_double(TestContext*);
-int test_scene_link(TestContext*);
-int test_scene_different_size(TestContext*);
-int test_scene_different_controllers(TestContext*);
-int test_scene_dynamic_axes(TestContext*);
+// // Test scene.
+// int test_scene_empty(TestContext*);
+// int test_scene_empty_visuals(TestContext*);
+// int test_scene_single(TestContext*);
+// int test_scene_double(TestContext*);
+// int test_scene_link(TestContext*);
+// int test_scene_different_size(TestContext*);
+// int test_scene_different_controllers(TestContext*);
+// int test_scene_dynamic_axes(TestContext*);
 
 
 
@@ -210,10 +210,10 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(NONE, test_utils_array_mvp),  //
     CASE_FIXTURE(NONE, test_utils_array_3D),   //
 
-    CASE_FIXTURE(NONE, test_utils_transforms_1),     //
-    CASE_FIXTURE(NONE, test_utils_transforms_2),     //
-    CASE_FIXTURE(NONE, test_utils_transforms_3),     //
-    CASE_FIXTURE(NONE, test_utils_transforms_4),     //
+    // CASE_FIXTURE(NONE, test_utils_transforms_1),     //
+    // CASE_FIXTURE(NONE, test_utils_transforms_2),     //
+    // CASE_FIXTURE(NONE, test_utils_transforms_3),     //
+    // CASE_FIXTURE(NONE, test_utils_transforms_4),     //
     CASE_FIXTURE(NONE, test_utils_colormap_idx),     //
     CASE_FIXTURE(NONE, test_utils_colormap_uv),      //
     CASE_FIXTURE(NONE, test_utils_colormap_extent),  //
@@ -221,10 +221,10 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(NONE, test_utils_colormap_scale),   //
     CASE_FIXTURE(NONE, test_utils_colormap_packuv),  //
     CASE_FIXTURE(NONE, test_utils_colormap_array),   //
-    CASE_FIXTURE(NONE, test_utils_ticks_1),          //
-    CASE_FIXTURE(NONE, test_utils_ticks_2),          //
-    CASE_FIXTURE(NONE, test_utils_ticks_duplicate),  //
-    CASE_FIXTURE(NONE, test_utils_ticks_extend),     //
+    // CASE_FIXTURE(NONE, test_utils_ticks_1),          //
+    // CASE_FIXTURE(NONE, test_utils_ticks_2),          //
+    // CASE_FIXTURE(NONE, test_utils_ticks_duplicate),  //
+    // CASE_FIXTURE(NONE, test_utils_ticks_extend),     //
 
     // vklite.
     CASE_FIXTURE(NONE, test_vklite_app),             //
@@ -268,80 +268,80 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(APP, test_input_timer),       //
 
     // Canvas.
-    CASE_FIXTURE(APP, test_canvas_blank),              //
-    CASE_FIXTURE(APP, test_canvas_multiple),           //
-    CASE_FIXTURE(APP, test_canvas_events),             //
-    CASE_FIXTURE(APP, test_canvas_gui),                //
-    CASE_FIXTURE(APP, test_canvas_screencast),         //
-    CASE_FIXTURE(APP, test_canvas_video),              //
-    CASE_FIXTURE(APP, test_canvas_triangle_1),         //
-    CASE_FIXTURE(APP, test_canvas_triangle_resize),    //
-    CASE_FIXTURE(APP, test_canvas_triangle_offscreen), //
-    CASE_FIXTURE(APP, test_canvas_triangle_push),      //
-    CASE_FIXTURE(APP, test_canvas_triangle_upload),    //
-    CASE_FIXTURE(APP, test_canvas_triangle_uniform),   //
-    CASE_FIXTURE(APP, test_canvas_triangle_compute),   //
-    CASE_FIXTURE(APP, test_canvas_triangle_pick),      //
-    CASE_FIXTURE(APP, test_canvas_triangle_append),    //
+    CASE_FIXTURE(APP, test_canvas_blank), //
+    // CASE_FIXTURE(APP, test_canvas_multiple),           //
+    // CASE_FIXTURE(APP, test_canvas_events),             //
+    // CASE_FIXTURE(APP, test_canvas_gui),                //
+    // CASE_FIXTURE(APP, test_canvas_screencast),         //
+    // CASE_FIXTURE(APP, test_canvas_video),              //
+    // CASE_FIXTURE(APP, test_canvas_triangle_1),         //
+    // CASE_FIXTURE(APP, test_canvas_triangle_resize),    //
+    // CASE_FIXTURE(APP, test_canvas_triangle_offscreen), //
+    // CASE_FIXTURE(APP, test_canvas_triangle_push),      //
+    // CASE_FIXTURE(APP, test_canvas_triangle_upload),    //
+    // CASE_FIXTURE(APP, test_canvas_triangle_uniform),   //
+    // CASE_FIXTURE(APP, test_canvas_triangle_compute),   //
+    // CASE_FIXTURE(APP, test_canvas_triangle_pick),      //
+    // CASE_FIXTURE(APP, test_canvas_triangle_append),    //
 
-    // Interact.
-    CASE_FIXTURE(CANVAS, test_interact_panzoom), //
-    CASE_FIXTURE(CANVAS, test_interact_arcball), //
-    CASE_FIXTURE(CANVAS, test_interact_camera),  //
+    // // Interact.
+    // CASE_FIXTURE(CANVAS, test_interact_panzoom), //
+    // CASE_FIXTURE(CANVAS, test_interact_arcball), //
+    // CASE_FIXTURE(CANVAS, test_interact_camera),  //
 
-    // Graphics.
-    CASE_FIXTURE(CANVAS, test_graphics_point),          //
-    CASE_FIXTURE(CANVAS, test_graphics_line_list),      //
-    CASE_FIXTURE(CANVAS, test_graphics_line_strip),     //
-    CASE_FIXTURE(CANVAS, test_graphics_triangle_list),  //
-    CASE_FIXTURE(CANVAS, test_graphics_triangle_strip), //
-    CASE_FIXTURE(CANVAS, test_graphics_triangle_fan),   //
-    CASE_FIXTURE(CANVAS, test_graphics_marker),         //
-    CASE_FIXTURE(CANVAS, test_graphics_segment),        //
-    CASE_FIXTURE(CANVAS, test_graphics_path),           //
-    CASE_FIXTURE(CANVAS, test_graphics_text),           //
-    CASE_FIXTURE(CANVAS, test_graphics_image_1),        //
-    CASE_FIXTURE(CANVAS, test_graphics_image_cmap),     //
-    CASE_FIXTURE(CANVAS, test_graphics_volume_slice),   //
-    CASE_FIXTURE(CANVAS, test_graphics_volume_1),       //
-    CASE_FIXTURE(CANVAS, test_graphics_mesh),           //
+    // // Graphics.
+    // CASE_FIXTURE(CANVAS, test_graphics_point),          //
+    // CASE_FIXTURE(CANVAS, test_graphics_line_list),      //
+    // CASE_FIXTURE(CANVAS, test_graphics_line_strip),     //
+    // CASE_FIXTURE(CANVAS, test_graphics_triangle_list),  //
+    // CASE_FIXTURE(CANVAS, test_graphics_triangle_strip), //
+    // CASE_FIXTURE(CANVAS, test_graphics_triangle_fan),   //
+    // CASE_FIXTURE(CANVAS, test_graphics_marker),         //
+    // CASE_FIXTURE(CANVAS, test_graphics_segment),        //
+    // CASE_FIXTURE(CANVAS, test_graphics_path),           //
+    // CASE_FIXTURE(CANVAS, test_graphics_text),           //
+    // CASE_FIXTURE(CANVAS, test_graphics_image_1),        //
+    // CASE_FIXTURE(CANVAS, test_graphics_image_cmap),     //
+    // CASE_FIXTURE(CANVAS, test_graphics_volume_slice),   //
+    // CASE_FIXTURE(CANVAS, test_graphics_volume_1),       //
+    // CASE_FIXTURE(CANVAS, test_graphics_mesh),           //
 
-    // Visuals.
-    CASE_FIXTURE(CANVAS, test_visuals_sources),      //
-    CASE_FIXTURE(CANVAS, test_visuals_props),        //
-    CASE_FIXTURE(CANVAS, test_visuals_update_color), //
-    CASE_FIXTURE(CANVAS, test_visuals_update_pos),   //
-    CASE_FIXTURE(CANVAS, test_visuals_partial),      //
-    CASE_FIXTURE(CANVAS, test_visuals_append),       //
-    CASE_FIXTURE(CANVAS, test_visuals_shared),       //
+    // // Visuals.
+    // CASE_FIXTURE(CANVAS, test_visuals_sources),      //
+    // CASE_FIXTURE(CANVAS, test_visuals_props),        //
+    // CASE_FIXTURE(CANVAS, test_visuals_update_color), //
+    // CASE_FIXTURE(CANVAS, test_visuals_update_pos),   //
+    // CASE_FIXTURE(CANVAS, test_visuals_partial),      //
+    // CASE_FIXTURE(CANVAS, test_visuals_append),       //
+    // CASE_FIXTURE(CANVAS, test_visuals_shared),       //
 
-    // Builtin visuals.
-    CASE_FIXTURE(CANVAS, test_vislib_point),          //
-    CASE_FIXTURE(CANVAS, test_vislib_line_list),      //
-    CASE_FIXTURE(CANVAS, test_vislib_line_strip),     //
-    CASE_FIXTURE(CANVAS, test_vislib_triangle_list),  //
-    CASE_FIXTURE(CANVAS, test_vislib_triangle_strip), //
-    CASE_FIXTURE(CANVAS, test_vislib_triangle_fan),   //
-    CASE_FIXTURE(CANVAS, test_vislib_marker),         //
-    CASE_FIXTURE(CANVAS, test_vislib_polygon),        //
-    CASE_FIXTURE(CANVAS, test_vislib_path),           //
-    CASE_FIXTURE(CANVAS, test_vislib_image_1),        //
-    CASE_FIXTURE(CANVAS, test_vislib_image_cmap),     //
-    CASE_FIXTURE(CANVAS, test_vislib_axes_2D_x),      //
-    CASE_FIXTURE(CANVAS, test_vislib_axes_2D_y),      //
-    CASE_FIXTURE(CANVAS, test_vislib_mesh),           //
-    CASE_FIXTURE(CANVAS, test_vislib_volume),         //
-    CASE_FIXTURE(CANVAS, test_vislib_volume_slice),   //
+    // // Builtin visuals.
+    // CASE_FIXTURE(CANVAS, test_vislib_point),          //
+    // CASE_FIXTURE(CANVAS, test_vislib_line_list),      //
+    // CASE_FIXTURE(CANVAS, test_vislib_line_strip),     //
+    // CASE_FIXTURE(CANVAS, test_vislib_triangle_list),  //
+    // CASE_FIXTURE(CANVAS, test_vislib_triangle_strip), //
+    // CASE_FIXTURE(CANVAS, test_vislib_triangle_fan),   //
+    // CASE_FIXTURE(CANVAS, test_vislib_marker),         //
+    // CASE_FIXTURE(CANVAS, test_vislib_polygon),        //
+    // CASE_FIXTURE(CANVAS, test_vislib_path),           //
+    // CASE_FIXTURE(CANVAS, test_vislib_image_1),        //
+    // CASE_FIXTURE(CANVAS, test_vislib_image_cmap),     //
+    // CASE_FIXTURE(CANVAS, test_vislib_axes_2D_x),      //
+    // CASE_FIXTURE(CANVAS, test_vislib_axes_2D_y),      //
+    // CASE_FIXTURE(CANVAS, test_vislib_mesh),           //
+    // CASE_FIXTURE(CANVAS, test_vislib_volume),         //
+    // CASE_FIXTURE(CANVAS, test_vislib_volume_slice),   //
 
-    // Scene.
-    CASE_FIXTURE(CANVAS, test_scene_empty),                 //
-    CASE_FIXTURE(CANVAS, test_scene_empty_visuals),         //
-    CASE_FIXTURE(CANVAS, test_scene_single),                //
-    CASE_FIXTURE(CANVAS, test_scene_double),                //
-    CASE_FIXTURE(CANVAS, test_scene_link),                  //
-    CASE_FIXTURE(CANVAS, test_scene_different_size),        //
-    CASE_FIXTURE(CANVAS, test_scene_different_controllers), //
-    CASE_FIXTURE(CANVAS, test_scene_dynamic_axes),          //
+    // // Scene.
+    // CASE_FIXTURE(CANVAS, test_scene_empty),                 //
+    // CASE_FIXTURE(CANVAS, test_scene_empty_visuals),         //
+    // CASE_FIXTURE(CANVAS, test_scene_single),                //
+    // CASE_FIXTURE(CANVAS, test_scene_double),                //
+    // CASE_FIXTURE(CANVAS, test_scene_link),                  //
+    // CASE_FIXTURE(CANVAS, test_scene_different_size),        //
+    // CASE_FIXTURE(CANVAS, test_scene_different_controllers), //
+    // CASE_FIXTURE(CANVAS, test_scene_dynamic_axes),          //
 
 };
 

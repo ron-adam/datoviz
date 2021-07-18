@@ -8,7 +8,7 @@
 #include "common.h"
 #include "context.h"
 
-// #define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
 BEGIN_INCL_NO_WARN
 #include "../external/stb_image.h"
 END_INCL_NO_WARN

@@ -389,6 +389,8 @@ static void* backend_window(
     {
     case DVZ_BACKEND_GLFW:
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        ASSERT(width > 0);
+        ASSERT(height > 0);
         GLFWwindow* bwin = glfwCreateWindow((int)width, (int)height, APPLICATION_NAME, NULL, NULL);
         ASSERT(bwin != NULL);
         VkResult res = glfwCreateWindowSurface(instance, bwin, NULL, surface);

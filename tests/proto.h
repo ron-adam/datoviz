@@ -2,12 +2,13 @@
 #define DVZ_TEST_PROTO_HEADER
 
 #include "../include/datoviz/context.h"
-#include "../include/datoviz/visuals.h"
+// #include "../include/datoviz/visuals.h"
+#include "../include/datoviz/canvas.h"
 #include "../include/datoviz/vklite.h"
 
-BEGIN_INCL_NO_WARN
-#include "../external/stb_image.h"
-END_INCL_NO_WARN
+// BEGIN_INCL_NO_WARN
+// #include "../external/stb_image.h"
+// END_INCL_NO_WARN
 
 
 
@@ -236,7 +237,7 @@ static void destroy_visual(TestVisual* visual)
 static void _white_background(DvzCanvas* canvas)
 {
     canvas->render.renderpass.clear_values->color = (VkClearColorValue){{1, 1, 1, 1}};
-    dvz_canvas_to_refill(canvas);
+    // dvz_canvas_to_refill(canvas);
 }
 
 
@@ -244,7 +245,7 @@ static void _white_background(DvzCanvas* canvas)
 static void _dark_background(DvzCanvas* canvas)
 {
     canvas->render.renderpass.clear_values->color = DVZ_DEFAULT_BACKGROUND;
-    dvz_canvas_to_refill(canvas);
+    // dvz_canvas_to_refill(canvas);
 }
 
 
@@ -253,21 +254,22 @@ static void _dark_background(DvzCanvas* canvas)
 /*  Test textures                                                                                */
 /*************************************************************************************************/
 
-static DvzTexture* _earth_texture(DvzContext* context)
-{
-    DvzGpu* gpu = context->gpu;
-    char path[1024];
-    snprintf(path, sizeof(path), "%s/textures/earth.jpg", DATA_DIR);
-    int width, height, depth;
-    uint8_t* tex_data = stbi_load(path, &width, &height, &depth, STBI_rgb_alpha);
-    uint32_t tex_size = (uint32_t)(width * height);
-    DvzTexture* texture = dvz_ctx_texture(
-        gpu->context, 2, (uvec3){(uint32_t)width, (uint32_t)height, 1}, VK_FORMAT_R8G8B8A8_UNORM);
-    dvz_upload_texture(
-        context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, tex_size * sizeof(cvec4), tex_data);
-    FREE(tex_data)
-    return texture;
-}
+// static DvzTexture* _earth_texture(DvzContext* context)
+// {
+//     DvzGpu* gpu = context->gpu;
+//     char path[1024];
+//     snprintf(path, sizeof(path), "%s/textures/earth.jpg", DATA_DIR);
+//     int width, height, depth;
+//     uint8_t* tex_data = stbi_load(path, &width, &height, &depth, STBI_rgb_alpha);
+//     uint32_t tex_size = (uint32_t)(width * height);
+//     DvzTexture* texture = dvz_ctx_texture(
+//         gpu->context, 2, (uvec3){(uint32_t)width, (uint32_t)height, 1},
+//         VK_FORMAT_R8G8B8A8_UNORM);
+//     dvz_upload_texture(
+//         context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, tex_size * sizeof(cvec4), tex_data);
+//     FREE(tex_data)
+//     return texture;
+// }
 
 
 static DvzTexture* _synthetic_texture(DvzContext* context)
@@ -359,36 +361,36 @@ static DvzTexture* _volume_texture(DvzContext* context, int kind)
 /*  Test data                                                                                    */
 /*************************************************************************************************/
 
-static void _point_data(DvzVisual* visual)
-{
-    ASSERT(visual != NULL);
+// static void _point_data(DvzVisual* visual)
+// {
+//     ASSERT(visual != NULL);
 
-    // Create visual data.
-    uint32_t n = 50;
-    dvec3* pos = calloc(n, sizeof(dvec3));
-    cvec4* color = calloc(n, sizeof(cvec4));
-    double t = 0, r = .9;
-    // double aspect = dvz_canvas_aspect(visual->canvas);
-    for (uint32_t i = 0; i < n; i++)
-    {
-        t = i / (double)(n);
-        pos[i][0] = r * cos(M_2PI * t);
-        pos[i][1] = r * sin(M_2PI * t);
-        dvz_colormap(DVZ_CMAP_HSV, TO_BYTE(t), color[i]);
-        color[i][3] = 128;
-    }
+//     // Create visual data.
+//     uint32_t n = 50;
+//     dvec3* pos = calloc(n, sizeof(dvec3));
+//     cvec4* color = calloc(n, sizeof(cvec4));
+//     double t = 0, r = .9;
+//     // double aspect = dvz_canvas_aspect(visual->canvas);
+//     for (uint32_t i = 0; i < n; i++)
+//     {
+//         t = i / (double)(n);
+//         pos[i][0] = r * cos(M_2PI * t);
+//         pos[i][1] = r * sin(M_2PI * t);
+//         dvz_colormap(DVZ_CMAP_HSV, TO_BYTE(t), color[i]);
+//         color[i][3] = 128;
+//     }
 
-    // Set visual data.
-    dvz_visual_data(visual, DVZ_PROP_POS, 0, n, pos);
-    dvz_visual_data(visual, DVZ_PROP_COLOR, 0, n, color);
+//     // Set visual data.
+//     dvz_visual_data(visual, DVZ_PROP_POS, 0, n, pos);
+//     dvz_visual_data(visual, DVZ_PROP_COLOR, 0, n, color);
 
-    // Free the arrays.
-    FREE(pos);
-    FREE(color);
+//     // Free the arrays.
+//     FREE(pos);
+//     FREE(color);
 
-    // Params.
-    dvz_visual_data(visual, DVZ_PROP_MARKER_SIZE, 0, 1, (float[]){50});
-}
+//     // Params.
+//     dvz_visual_data(visual, DVZ_PROP_MARKER_SIZE, 0, 1, (float[]){50});
+// }
 
 
 

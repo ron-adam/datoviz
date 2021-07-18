@@ -1,9 +1,9 @@
 #include "../include/datoviz/array.h"
 #include "../include/datoviz/common.h"
 #include "../include/datoviz/fifo.h"
-#include "../include/datoviz/transforms.h"
-#include "../src/ticks.h"
-#include "../src/transforms_utils.h"
+// #include "../include/datoviz/transforms.h"
+// #include "../src/ticks.h"
+// #include "../src/transforms_utils.h"
 #include "tests.h"
 
 
@@ -875,157 +875,159 @@ int test_utils_array_3D(TestContext* tc)
 /* Transform tests                                                                               */
 /*************************************************************************************************/
 
-int test_utils_transforms_1(TestContext* tc)
-{
-    const uint32_t n = 100000;
-    const double eps = 1e-3;
+// int test_utils_transforms_1(TestContext* tc)
+// {
+//     const uint32_t n = 100000;
+//     const double eps = 1e-3;
 
-    // Compute the data bounds of an array of dvec3.
-    DvzArray pos_in = dvz_array(n, DVZ_DTYPE_DOUBLE);
-    double* positions = (double*)pos_in.data;
-    for (uint32_t i = 0; i < n; i++)
-        positions[i] = -5 + 10 * dvz_rand_float();
+//     // Compute the data bounds of an array of dvec3.
+//     DvzArray pos_in = dvz_array(n, DVZ_DTYPE_DOUBLE);
+//     double* positions = (double*)pos_in.data;
+//     for (uint32_t i = 0; i < n; i++)
+//         positions[i] = -5 + 10 * dvz_rand_float();
 
-    DvzBox box = _box_bounding(&pos_in);
-    AT(fabs(box.p0[0] + 5) < eps);
-    AT(fabs(box.p1[0] - 5) < eps);
+//     DvzBox box = _box_bounding(&pos_in);
+//     AT(fabs(box.p0[0] + 5) < eps);
+//     AT(fabs(box.p1[0] - 5) < eps);
 
-    box = _box_cube(box);
-    // AT(fabs(box.p0[0] + 2.5) < eps);
-    // AT(fabs(box.p1[0] - 7.5) < eps);
-    // AT(fabs(box.p0[1] - 3.5) < eps);
-    // AT(fabs(box.p1[1] - 13.5) < eps);
-    AT(fabs(box.p0[0] + 5) < eps);
-    AT(fabs(box.p1[0] - 5) < eps);
-
-
-    // // Normalize the data.
-    // DvzArray pos_out = dvz_array(n, DVZ_DTYPE_DOUBLE);
-    // _transform_linear(box, &pos_in, DVZ_BOX_NDC, &pos_out);
-    // positions = (double*)pos_out.data;
-    // double* pos = NULL;
-    // double v = 0;
-    // for (uint32_t i = 0; i < n; i++)
-    // {
-    //     pos = dvz_array_item(&pos_out, i);
-    //     //     v = (*pos)[0];
-    //     //     AT(-1 <= v && v <= +1);
-    //     //     v = (*pos)[1];
-    //     //     AT(-1 <= v && v <= +1);
-    //     v = (*pos);
-    //     AT(-1 - eps <= v && v <= +1 + eps);
-    // }
-
-    dvz_array_destroy(&pos_in);
-    // dvz_array_destroy(&pos_out);
-
-    return 0;
-}
+//     box = _box_cube(box);
+//     // AT(fabs(box.p0[0] + 2.5) < eps);
+//     // AT(fabs(box.p1[0] - 7.5) < eps);
+//     // AT(fabs(box.p0[1] - 3.5) < eps);
+//     // AT(fabs(box.p1[1] - 13.5) < eps);
+//     AT(fabs(box.p0[0] + 5) < eps);
+//     AT(fabs(box.p1[0] - 5) < eps);
 
 
+//     // // Normalize the data.
+//     // DvzArray pos_out = dvz_array(n, DVZ_DTYPE_DOUBLE);
+//     // _transform_linear(box, &pos_in, DVZ_BOX_NDC, &pos_out);
+//     // positions = (double*)pos_out.data;
+//     // double* pos = NULL;
+//     // double v = 0;
+//     // for (uint32_t i = 0; i < n; i++)
+//     // {
+//     //     pos = dvz_array_item(&pos_out, i);
+//     //     //     v = (*pos)[0];
+//     //     //     AT(-1 <= v && v <= +1);
+//     //     //     v = (*pos)[1];
+//     //     //     AT(-1 <= v && v <= +1);
+//     //     v = (*pos);
+//     //     AT(-1 - eps <= v && v <= +1 + eps);
+//     // }
 
-int test_utils_transforms_2(TestContext* tc)
-{
-    DvzBox box0 = {{0, 0, -1}, {10, 10, 1}};
-    DvzTransform tr = _transform_interp(box0, DVZ_BOX_NDC);
+//     dvz_array_destroy(&pos_in);
+//     // dvz_array_destroy(&pos_out);
 
-    {
-        dvec3 in = {0, 0, -1};
-        dvec3 out = {0};
-        _transform_apply(&tr, in, out);
-        for (uint32_t i = 0; i < 3; i++)
-            AT(out[i] == -1);
-    }
-
-    {
-        dvec3 in = {10, 10, 1};
-        dvec3 out = {0};
-        _transform_apply(&tr, in, out);
-        for (uint32_t i = 0; i < 3; i++)
-            AT(out[i] == +1);
-    }
-
-    tr = _transform_inv(&tr);
-
-    {
-        dvec3 in = {-1, -1, -1};
-        dvec3 out = {0};
-        _transform_apply(&tr, in, out);
-        AT(out[0] == 0);
-        AT(out[1] == 0);
-        AT(out[2] == -1);
-    }
-
-    {
-        dvec3 in = {1, 1, 1};
-        dvec3 out = {0};
-        _transform_apply(&tr, in, out);
-        AT(out[0] == 10);
-        AT(out[1] == 10);
-        AT(out[2] == 1);
-    }
-
-    return 0;
-}
+//     return 0;
+// }
 
 
 
-int test_utils_transforms_3(TestContext* tc)
-{
-    DvzMVP mvp = {0};
+// int test_utils_transforms_2(TestContext* tc)
+// {
+//     DvzBox box0 = {{0, 0, -1}, {10, 10, 1}};
+//     DvzTransform tr = _transform_interp(box0, DVZ_BOX_NDC);
 
-    glm_mat4_identity(mvp.model);
-    glm_mat4_identity(mvp.view);
-    glm_mat4_identity(mvp.proj);
+//     {
+//         dvec3 in = {0, 0, -1};
+//         dvec3 out = {0};
+//         _transform_apply(&tr, in, out);
+//         for (uint32_t i = 0; i < 3; i++)
+//             AT(out[i] == -1);
+//     }
 
-    glm_rotate(mvp.model, M_PI, (vec3){0, 1, 0});
+//     {
+//         dvec3 in = {10, 10, 1};
+//         dvec3 out = {0};
+//         _transform_apply(&tr, in, out);
+//         for (uint32_t i = 0; i < 3; i++)
+//             AT(out[i] == +1);
+//     }
 
-    DvzTransform tr = _transform_mvp(&mvp);
+//     tr = _transform_inv(&tr);
 
-    dvec3 in = {0.5, 0.5, 0};
-    dvec3 out = {0};
-    _transform_apply(&tr, in, out);
-    AC(out[0], -.5, EPS);
-    AC(out[1], -.5, EPS);
-    AC(out[2], +.5, EPS);
+//     {
+//         dvec3 in = {-1, -1, -1};
+//         dvec3 out = {0};
+//         _transform_apply(&tr, in, out);
+//         AT(out[0] == 0);
+//         AT(out[1] == 0);
+//         AT(out[2] == -1);
+//     }
 
-    return 0;
-}
+//     {
+//         dvec3 in = {1, 1, 1};
+//         dvec3 out = {0};
+//         _transform_apply(&tr, in, out);
+//         AT(out[0] == 10);
+//         AT(out[1] == 10);
+//         AT(out[2] == 1);
+//     }
 
-
-
-int test_utils_transforms_4(TestContext* tc)
-{
-    DvzBox box0 = {{0, 0, -1}, {10, 10, 1}};
-    DvzBox box1 = {{0, 0, 0}, {1, 2, 3}};
-    DvzTransform tr = _transform_interp(box0, DVZ_BOX_NDC);
-
-    DvzTransformChain tch = _transforms();
-    _transforms_append(&tch, tr);
-    tr = _transform_interp(DVZ_BOX_NDC, box1);
-    _transforms_append(&tch, tr);
-
-    {
-        dvec3 in = {10, 10, 1}, out = {0};
-        _transforms_apply(&tch, in, out);
-        AT(out[0] == 1);
-        AT(out[1] == 2);
-        AT(out[2] == 3);
-    }
-
-    {
-        dvec3 in = {1, 2, 3}, out = {0};
-        tch = _transforms_inv(&tch);
-        _transforms_apply(&tch, in, out);
-        AT(out[0] == 10);
-        AT(out[1] == 10);
-        AT(out[2] == 1);
-    }
-
-    return 0;
-}
+//     return 0;
+// }
 
 
+
+// int test_utils_transforms_3(TestContext* tc)
+// {
+//     DvzMVP mvp = {0};
+
+//     glm_mat4_identity(mvp.model);
+//     glm_mat4_identity(mvp.view);
+//     glm_mat4_identity(mvp.proj);
+
+//     glm_rotate(mvp.model, M_PI, (vec3){0, 1, 0});
+
+//     DvzTransform tr = _transform_mvp(&mvp);
+
+//     dvec3 in = {0.5, 0.5, 0};
+//     dvec3 out = {0};
+//     _transform_apply(&tr, in, out);
+//     AC(out[0], -.5, EPS);
+//     AC(out[1], -.5, EPS);
+//     AC(out[2], +.5, EPS);
+
+//     return 0;
+// }
+
+
+
+// int test_utils_transforms_4(TestContext* tc)
+// {
+//     DvzBox box0 = {{0, 0, -1}, {10, 10, 1}};
+//     DvzBox box1 = {{0, 0, 0}, {1, 2, 3}};
+//     DvzTransform tr = _transform_interp(box0, DVZ_BOX_NDC);
+
+//     DvzTransformChain tch = _transforms();
+//     _transforms_append(&tch, tr);
+//     tr = _transform_interp(DVZ_BOX_NDC, box1);
+//     _transforms_append(&tch, tr);
+
+//     {
+//         dvec3 in = {10, 10, 1}, out = {0};
+//         _transforms_apply(&tch, in, out);
+//         AT(out[0] == 1);
+//         AT(out[1] == 2);
+//         AT(out[2] == 3);
+//     }
+
+//     {
+//         dvec3 in = {1, 2, 3}, out = {0};
+//         tch = _transforms_inv(&tch);
+//         _transforms_apply(&tch, in, out);
+//         AT(out[0] == 10);
+//         AT(out[1] == 10);
+//         AT(out[2] == 1);
+//     }
+
+//     return 0;
+// }
+
+
+
+// DO NOT UNCOMMENT:
 
 // int test_utils_transforms_5(TestContext* tc)
 // {
@@ -1261,130 +1263,130 @@ int test_utils_colormap_array(TestContext* tc)
 /* Tick tests                                                                                    */
 /*************************************************************************************************/
 
-int test_utils_ticks_1(TestContext* context)
-{
-    DvzAxesContext ctx = {0};
-    ctx.coord = DVZ_AXES_COORD_X;
-    ctx.size_viewport = 1000;
-    ctx.size_glyph = 10;
+// int test_utils_ticks_1(TestContext* context)
+// {
+//     DvzAxesContext ctx = {0};
+//     ctx.coord = DVZ_AXES_COORD_X;
+//     ctx.size_viewport = 1000;
+//     ctx.size_glyph = 10;
 
-    DvzAxesTicks ticks = create_ticks(0, 1, 11, ctx);
-    ticks.lmin_in = 0;
-    ticks.lmax_in = 1;
-    ticks.lstep = .1;
-    const uint32_t N = tick_count(ticks.lmin_in, ticks.lmax_in, ticks.lstep);
-    ticks.value_count = N;
+//     DvzAxesTicks ticks = create_ticks(0, 1, 11, ctx);
+//     ticks.lmin_in = 0;
+//     ticks.lmax_in = 1;
+//     ticks.lstep = .1;
+//     const uint32_t N = tick_count(ticks.lmin_in, ticks.lmax_in, ticks.lstep);
+//     ticks.value_count = N;
 
-    ticks.labels = calloc(N * MAX_GLYPHS_PER_TICK, sizeof(char));
-    ticks.precision = 3;
+//     ticks.labels = calloc(N * MAX_GLYPHS_PER_TICK, sizeof(char));
+//     ticks.precision = 3;
 
-    for (bool scientific = false; scientific; scientific = true)
-    {
-        ticks.format = scientific ? DVZ_TICK_FORMAT_SCIENTIFIC : DVZ_TICK_FORMAT_DECIMAL;
-        make_labels(&ticks, &ctx, false);
-        char* s = NULL;
-        for (uint32_t i = 0; i < N; i++)
-        {
-            s = &ticks.labels[i * MAX_GLYPHS_PER_TICK];
-            if (strlen(s) == 0)
-                break;
-            log_debug("%s ", s);
-            if (i > 0)
-            {
-                if (scientific)
-                {
-                    AT(strchr(s, 'e') != NULL);
-                }
-                else
-                {
-                    AT(strchr(s, 'e') == NULL);
-                }
-            }
-        }
-    }
+//     for (bool scientific = false; scientific; scientific = true)
+//     {
+//         ticks.format = scientific ? DVZ_TICK_FORMAT_SCIENTIFIC : DVZ_TICK_FORMAT_DECIMAL;
+//         make_labels(&ticks, &ctx, false);
+//         char* s = NULL;
+//         for (uint32_t i = 0; i < N; i++)
+//         {
+//             s = &ticks.labels[i * MAX_GLYPHS_PER_TICK];
+//             if (strlen(s) == 0)
+//                 break;
+//             log_debug("%s ", s);
+//             if (i > 0)
+//             {
+//                 if (scientific)
+//                 {
+//                     AT(strchr(s, 'e') != NULL);
+//                 }
+//                 else
+//                 {
+//                     AT(strchr(s, 'e') == NULL);
+//                 }
+//             }
+//         }
+//     }
 
-    FREE(ticks.labels);
-    return 0;
-}
-
-
-
-int test_utils_ticks_2(TestContext* context)
-{
-    DvzAxesContext ctx = {0};
-    ctx.coord = DVZ_AXES_COORD_X;
-    ctx.size_viewport = 5000;
-    ctx.size_glyph = 5;
-    ctx.extensions = 0;
-
-    double x = 1.23456;
-    DvzAxesTicks ticks = dvz_ticks(x, x + 1e-8, ctx);
-    AT(ticks.format == DVZ_TICK_FORMAT_DECIMAL);
-    for (uint32_t i = 0; i < ticks.value_count; i++)
-        log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
-    return 0;
-}
+//     FREE(ticks.labels);
+//     return 0;
+// }
 
 
 
-int test_utils_ticks_duplicate(TestContext* context)
-{
-    DvzAxesContext ctx = {0};
-    ctx.coord = DVZ_AXES_COORD_X;
-    ctx.size_viewport = 2000;
-    ctx.size_glyph = 5;
+// int test_utils_ticks_2(TestContext* context)
+// {
+//     DvzAxesContext ctx = {0};
+//     ctx.coord = DVZ_AXES_COORD_X;
+//     ctx.size_viewport = 5000;
+//     ctx.size_glyph = 5;
+//     ctx.extensions = 0;
 
-    DvzAxesTicks ticks = dvz_ticks(-10.12, 20.34, ctx);
-    for (uint32_t i = 0; i < ticks.value_count; i++)
-        log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
-    AT(!duplicate_labels(&ticks, &ctx));
-
-    ticks = dvz_ticks(.001, .002, ctx);
-    for (uint32_t i = 0; i < ticks.value_count; i++)
-        log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
-    AT(!duplicate_labels(&ticks, &ctx));
-
-    ticks = dvz_ticks(-0.131456, -0.124789, ctx);
-    for (uint32_t i = 0; i < ticks.value_count; i++)
-        log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
-    AT(!duplicate_labels(&ticks, &ctx));
-
-    dvz_ticks_destroy(&ticks);
-    return 0;
-}
+//     double x = 1.23456;
+//     DvzAxesTicks ticks = dvz_ticks(x, x + 1e-8, ctx);
+//     AT(ticks.format == DVZ_TICK_FORMAT_DECIMAL);
+//     for (uint32_t i = 0; i < ticks.value_count; i++)
+//         log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
+//     return 0;
+// }
 
 
 
-int test_utils_ticks_extend(TestContext* context)
-{
-    DvzAxesContext ctx = {0};
-    ctx.coord = DVZ_AXES_COORD_X;
-    ctx.size_viewport = 1000;
-    ctx.size_glyph = 10;
+// int test_utils_ticks_duplicate(TestContext* context)
+// {
+//     DvzAxesContext ctx = {0};
+//     ctx.coord = DVZ_AXES_COORD_X;
+//     ctx.size_viewport = 2000;
+//     ctx.size_glyph = 5;
 
-    DvzAxesTicks ticks = {0};
+//     DvzAxesTicks ticks = dvz_ticks(-10.12, 20.34, ctx);
+//     for (uint32_t i = 0; i < ticks.value_count; i++)
+//         log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
+//     AT(!duplicate_labels(&ticks, &ctx));
 
-    // No extensions.
-    double x0 = -2.123, x1 = +2.456;
-    ctx.extensions = 0;
-    ticks = dvz_ticks(x0, x1, ctx);
-    for (uint32_t i = 0; i < ticks.value_count; i++)
-        log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
+//     ticks = dvz_ticks(.001, .002, ctx);
+//     for (uint32_t i = 0; i < ticks.value_count; i++)
+//         log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
+//     AT(!duplicate_labels(&ticks, &ctx));
 
-    // 1 extension on each side.
-    ctx.extensions = 1;
-    ticks = dvz_ticks(x0, x1, ctx);
-    for (uint32_t i = 0; i < ticks.value_count; i++)
-        log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
+//     ticks = dvz_ticks(-0.131456, -0.124789, ctx);
+//     for (uint32_t i = 0; i < ticks.value_count; i++)
+//         log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
+//     AT(!duplicate_labels(&ticks, &ctx));
 
-    // 2 extension on each side.
-    ctx.extensions = 2;
-    ticks = dvz_ticks(x0, x1, ctx);
-    for (uint32_t i = 0; i < ticks.value_count; i++)
-        log_debug(
-            "tick #%02d: %s (%f)", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK], ticks.values[i]);
+//     dvz_ticks_destroy(&ticks);
+//     return 0;
+// }
 
-    dvz_ticks_destroy(&ticks);
 
-    return 0;
-}
+
+// int test_utils_ticks_extend(TestContext* context)
+// {
+//     DvzAxesContext ctx = {0};
+//     ctx.coord = DVZ_AXES_COORD_X;
+//     ctx.size_viewport = 1000;
+//     ctx.size_glyph = 10;
+
+//     DvzAxesTicks ticks = {0};
+
+//     // No extensions.
+//     double x0 = -2.123, x1 = +2.456;
+//     ctx.extensions = 0;
+//     ticks = dvz_ticks(x0, x1, ctx);
+//     for (uint32_t i = 0; i < ticks.value_count; i++)
+//         log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
+
+//     // 1 extension on each side.
+//     ctx.extensions = 1;
+//     ticks = dvz_ticks(x0, x1, ctx);
+//     for (uint32_t i = 0; i < ticks.value_count; i++)
+//         log_debug("tick #%02d: %s", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK]);
+
+//     // 2 extension on each side.
+//     ctx.extensions = 2;
+//     ticks = dvz_ticks(x0, x1, ctx);
+//     for (uint32_t i = 0; i < ticks.value_count; i++)
+//         log_debug(
+//             "tick #%02d: %s (%f)", i, &ticks.labels[i * MAX_GLYPHS_PER_TICK], ticks.values[i]);
+
+//     dvz_ticks_destroy(&ticks);
+
+//     return 0;
+// }

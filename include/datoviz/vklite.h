@@ -821,7 +821,7 @@ DVZ_EXPORT int dvz_app_destroy(DvzApp* app);
 /**
  * Destroy the Dear ImGui global context if it was ever initialized.
  */
-DVZ_EXPORT void dvz_imgui_destroy();
+// DVZ_EXPORT void dvz_imgui_destroy();
 
 
 

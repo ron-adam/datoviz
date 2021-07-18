@@ -181,16 +181,16 @@ then
     fi
     VK_INSTANCE_LAYERS=$dump ./build/datoviz test $2
 
-    # When running all tests, also compile and run the standalone examples.
-    if [ -z "$2" ]
-    then
-        cd examples/standalone/
-        for filename in standalone_*.c*; do
-            ./build.sh $filename automated
-        done
-        cd ../..
-        ./build/datoviz demo
-    fi
+    # # When running all tests, also compile and run the standalone examples.
+    # if [ -z "$2" ]
+    # then
+    #     cd examples/standalone/
+    #     for filename in standalone_*.c*; do
+    #         ./build.sh $filename automated
+    #     done
+    #     cd ../..
+    #     ./build/datoviz demo
+    # fi
 fi
 
 if [ $1 == "demo" ]

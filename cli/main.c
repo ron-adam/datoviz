@@ -1,7 +1,7 @@
 #include <datoviz/datoviz.h>
 #include <unistd.h>
 
-#include "../examples/examples.h"
+// #include "../examples/examples.h"
 #include "../tests/runner.h"
 #include "../tests/tests.h"
 #include "main.h"
@@ -45,43 +45,43 @@
 /*  Demo functions                                                                               */
 /*************************************************************************************************/
 
-static int demo_scatter()
-{
-    const int32_t N = 50000;
-    log_info("running scatter plot demo with %d points", N);
+// static int demo_scatter()
+// {
+//     const int32_t N = 50000;
+//     log_info("running scatter plot demo with %d points", N);
 
-    dvec3* pos = calloc((uint32_t)N, sizeof(dvec3));
-    for (int32_t i = 0; i < N; i++)
-    {
-        pos[i][0] = .25 * dvz_rand_normal();
-        pos[i][1] = .25 * dvz_rand_normal();
-        pos[i][2] = .25 * dvz_rand_normal();
-    }
-    int res = dvz_demo_scatter(N, pos);
-    FREE(pos);
-    return res;
-}
+//     dvec3* pos = calloc((uint32_t)N, sizeof(dvec3));
+//     for (int32_t i = 0; i < N; i++)
+//     {
+//         pos[i][0] = .25 * dvz_rand_normal();
+//         pos[i][1] = .25 * dvz_rand_normal();
+//         pos[i][2] = .25 * dvz_rand_normal();
+//     }
+//     int res = dvz_demo_scatter(N, pos);
+//     FREE(pos);
+//     return res;
+// }
 
-static int demo_gui() { return dvz_demo_gui(); }
+// static int demo_gui() { return dvz_demo_gui(); }
 
-static int demo(int argc, char** argv)
-{
-    int res = 0;
+// static int demo(int argc, char** argv)
+// {
+//     int res = 0;
 
-    if (argc == 1)
-        putenv("DVZ_RUN_NFRAMES=5");
+//     if (argc == 1)
+//         putenv("DVZ_RUN_NFRAMES=5");
 
-    SWITCH_DEMO(scatter)
-    SWITCH_DEMO(gui)
-    SWITCH_DEMO(custom_visual)
-    SWITCH_DEMO(custom_graphics)
-    SWITCH_DEMO(mandelbrot)
+//     SWITCH_DEMO(scatter)
+//     SWITCH_DEMO(gui)
+//     SWITCH_DEMO(custom_visual)
+//     SWITCH_DEMO(custom_graphics)
+//     SWITCH_DEMO(mandelbrot)
 
-    if (argc == 1)
-        UNSET_NFRAMES;
+//     if (argc == 1)
+//         UNSET_NFRAMES;
 
-    return res;
-}
+//     return res;
+// }
 
 
 
@@ -156,6 +156,6 @@ int main(int argc, char** argv)
     int res = 0;
     SWITCH_CLI_ARG(info)
     SWITCH_CLI_ARG(test)
-    SWITCH_CLI_ARG(demo)
+    // SWITCH_CLI_ARG(demo)
     return res;
 }

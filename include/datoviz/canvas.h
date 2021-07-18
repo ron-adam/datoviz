@@ -70,6 +70,7 @@ extern "C" {
 /*  Enums                                                                                        */
 /*************************************************************************************************/
 
+// Canvas updates.
 typedef enum
 {
     DVZ_CANVAS_UPDATE_NONE,
@@ -79,6 +80,7 @@ typedef enum
 
 
 
+// Mouse type.
 typedef enum
 {
     DVZ_CANVAS_MOUSE_NONE, //
@@ -143,34 +145,34 @@ typedef enum
 
 
 
-// Transfer status.
-typedef enum
-{
-    DVZ_TRANSFER_STATUS_NONE,
-    DVZ_TRANSFER_STATUS_PROCESSING,
-    DVZ_TRANSFER_STATUS_DONE,
-} DvzTransferStatus;
+// // Transfer status.
+// typedef enum
+// {
+//     DVZ_TRANSFER_STATUS_NONE,
+//     DVZ_TRANSFER_STATUS_PROCESSING,
+//     DVZ_TRANSFER_STATUS_DONE,
+// } DvzTransferStatus;
 
 
 
-// Canvas refill status.
-typedef enum
-{
-    DVZ_REFILL_NONE,
-    DVZ_REFILL_REQUESTED,
-    DVZ_REFILL_PROCESSING,
-} DvzRefillStatus;
+// // Canvas refill status.
+// typedef enum
+// {
+//     DVZ_REFILL_NONE,
+//     DVZ_REFILL_REQUESTED,
+//     DVZ_REFILL_PROCESSING,
+// } DvzRefillStatus;
 
 
 
-// Screencast status.
-typedef enum
-{
-    DVZ_SCREENCAST_NONE,
-    DVZ_SCREENCAST_IDLE,
-    DVZ_SCREENCAST_AWAIT_COPY,
-    DVZ_SCREENCAST_AWAIT_TRANSFER,
-} DvzScreencastStatus;
+// // Screencast status.
+// typedef enum
+// {
+//     DVZ_SCREENCAST_NONE,
+//     DVZ_SCREENCAST_IDLE,
+//     DVZ_SCREENCAST_AWAIT_COPY,
+//     DVZ_SCREENCAST_AWAIT_TRANSFER,
+// } DvzScreencastStatus;
 
 
 
@@ -178,48 +180,48 @@ typedef enum
 /*  Event system                                                                                 */
 /*************************************************************************************************/
 
-/**
- * Event types.
- *
- * Events are emitted and consumed either in the main thread or in the background thread.
- *
- */
-// Event types
-typedef enum
-{
-    DVZ_EVENT_NONE,               //
-    DVZ_EVENT_INIT,               // called before the first frame
-    DVZ_EVENT_REFILL,             // called every time the command buffers need to be recreated
-    DVZ_EVENT_INTERACT,           // called at every frame, before event enqueue
-    DVZ_EVENT_FRAME,              // called at every frame, after event enqueue
-    DVZ_EVENT_IMGUI,              // called at every frame, after event enqueue
-    DVZ_EVENT_GUI,                // called whenever a GUI control changes or is activated
-    DVZ_EVENT_SCREENCAST,         // called when a screenshot has been downloaded
-    DVZ_EVENT_TIMER,              // called every X ms in the main thread, just after FRAME
-    DVZ_EVENT_MOUSE_PRESS,        // called when a mouse button is pressed
-    DVZ_EVENT_MOUSE_RELEASE,      // called when a mouse button is released
-    DVZ_EVENT_MOUSE_MOVE,         // called when the mouse moves
-    DVZ_EVENT_MOUSE_WHEEL,        // called when the mouse wheel is used
-    DVZ_EVENT_MOUSE_DRAG_BEGIN,   // called when a drag event starts
-    DVZ_EVENT_MOUSE_DRAG_END,     // called when a drag event stops
-    DVZ_EVENT_MOUSE_CLICK,        // called after a click (called once during a double click)
-    DVZ_EVENT_MOUSE_DOUBLE_CLICK, // called after a double click
-    DVZ_EVENT_KEY_PRESS,          // called after a keyboard key press
-    DVZ_EVENT_KEY_RELEASE,        // called after a keyboard key release
-    DVZ_EVENT_RESIZE,             // called at every resize
-    DVZ_EVENT_PRE_SEND,           // called before sending the commands buffers
-    DVZ_EVENT_POST_SEND,          // called after sending the commands buffers
-    DVZ_EVENT_DESTROY,            // called before destruction
-} DvzEventType;
+// /**
+//  * Event types.
+//  *
+//  * Events are emitted and consumed either in the main thread or in the background thread.
+//  *
+//  */
+// // Event types
+// typedef enum
+// {
+//     DVZ_EVENT_NONE,               //
+//     DVZ_EVENT_INIT,               // called before the first frame
+//     DVZ_EVENT_REFILL,             // called every time the command buffers need to be recreated
+//     DVZ_EVENT_INTERACT,           // called at every frame, before event enqueue
+//     DVZ_EVENT_FRAME,              // called at every frame, after event enqueue
+//     DVZ_EVENT_IMGUI,              // called at every frame, after event enqueue
+//     DVZ_EVENT_GUI,                // called whenever a GUI control changes or is activated
+//     DVZ_EVENT_SCREENCAST,         // called when a screenshot has been downloaded
+//     DVZ_EVENT_TIMER,              // called every X ms in the main thread, just after FRAME
+//     DVZ_EVENT_MOUSE_PRESS,        // called when a mouse button is pressed
+//     DVZ_EVENT_MOUSE_RELEASE,      // called when a mouse button is released
+//     DVZ_EVENT_MOUSE_MOVE,         // called when the mouse moves
+//     DVZ_EVENT_MOUSE_WHEEL,        // called when the mouse wheel is used
+//     DVZ_EVENT_MOUSE_DRAG_BEGIN,   // called when a drag event starts
+//     DVZ_EVENT_MOUSE_DRAG_END,     // called when a drag event stops
+//     DVZ_EVENT_MOUSE_CLICK,        // called after a click (called once during a double click)
+//     DVZ_EVENT_MOUSE_DOUBLE_CLICK, // called after a double click
+//     DVZ_EVENT_KEY_PRESS,          // called after a keyboard key press
+//     DVZ_EVENT_KEY_RELEASE,        // called after a keyboard key release
+//     DVZ_EVENT_RESIZE,             // called at every resize
+//     DVZ_EVENT_PRE_SEND,           // called before sending the commands buffers
+//     DVZ_EVENT_POST_SEND,          // called after sending the commands buffers
+//     DVZ_EVENT_DESTROY,            // called before destruction
+// } DvzEventType;
 
 
 
-// Event mode (sync/async)
-typedef enum
-{
-    DVZ_EVENT_MODE_SYNC,
-    DVZ_EVENT_MODE_ASYNC,
-} DvzEventMode;
+// // Event mode (sync/async)
+// typedef enum
+// {
+//     DVZ_EVENT_MODE_SYNC,
+//     DVZ_EVENT_MODE_ASYNC,
+// } DvzEventMode;
 
 
 
@@ -228,33 +230,34 @@ typedef enum
 /*************************************************************************************************/
 
 typedef struct DvzScene DvzScene;
-typedef struct DvzMouse DvzMouse;
-typedef struct DvzKeyboard DvzKeyboard;
+// typedef struct DvzMouse DvzMouse;
+// typedef struct DvzKeyboard DvzKeyboard;
 typedef struct DvzMouseLocal DvzMouseLocal;
 
-// Events structures.
-typedef struct DvzEvent DvzEvent;
-typedef struct DvzFrameEvent DvzFrameEvent;
-typedef struct DvzKeyEvent DvzKeyEvent;
-typedef struct DvzMouseButtonEvent DvzMouseButtonEvent;
-typedef struct DvzMouseClickEvent DvzMouseClickEvent;
-typedef struct DvzMouseDragEvent DvzMouseDragEvent;
-typedef struct DvzMouseMoveEvent DvzMouseMoveEvent;
-typedef struct DvzMouseWheelEvent DvzMouseWheelEvent;
-typedef struct DvzRefillEvent DvzRefillEvent;
-typedef struct DvzResizeEvent DvzResizeEvent;
-typedef struct DvzScreencastEvent DvzScreencastEvent;
-typedef struct DvzSubmitEvent DvzSubmitEvent;
-typedef struct DvzGuiEvent DvzGuiEvent;
-typedef struct DvzTimerEvent DvzTimerEvent;
 typedef struct DvzViewport DvzViewport;
-typedef union DvzEventUnion DvzEventUnion;
 
-typedef void (*DvzEventCallback)(DvzCanvas*, DvzEvent);
-typedef struct DvzEventCallbackRegister DvzEventCallbackRegister;
+// Events structures.
+// typedef struct DvzEvent DvzEvent;
+// typedef struct DvzFrameEvent DvzFrameEvent;
+// typedef struct DvzKeyEvent DvzKeyEvent;
+// typedef struct DvzMouseButtonEvent DvzMouseButtonEvent;
+// typedef struct DvzMouseClickEvent DvzMouseClickEvent;
+// typedef struct DvzMouseDragEvent DvzMouseDragEvent;
+// typedef struct DvzMouseMoveEvent DvzMouseMoveEvent;
+// typedef struct DvzMouseWheelEvent DvzMouseWheelEvent;
+// typedef struct DvzRefillEvent DvzRefillEvent;
+// typedef struct DvzResizeEvent DvzResizeEvent;
+// typedef struct DvzScreencastEvent DvzScreencastEvent;
+// typedef struct DvzSubmitEvent DvzSubmitEvent;
+// typedef struct DvzGuiEvent DvzGuiEvent;
+// typedef struct DvzTimerEvent DvzTimerEvent;
+// typedef union DvzEventUnion DvzEventUnion;
 
-typedef struct DvzScreencast DvzScreencast;
-typedef struct DvzPendingRefill DvzPendingRefill;
+// typedef void (*DvzEventCallback)(DvzCanvas*, DvzEvent);
+// typedef struct DvzEventCallbackRegister DvzEventCallbackRegister;
+
+// typedef struct DvzScreencast DvzScreencast;
+// typedef struct DvzPendingRefill DvzPendingRefill;
 
 // Canvas companion structs.
 typedef struct DvzRender DvzRender;
@@ -272,23 +275,23 @@ typedef struct DvzGuiControl DvzGuiControl;
 /*  Mouse and keyboard structs                                                                   */
 /*************************************************************************************************/
 
-struct DvzMouse
-{
-    DvzMouseButton button;
-    vec2 press_pos;
-    vec2 last_pos;
-    vec2 cur_pos;
-    vec2 wheel_delta;
-    float shift_length;
-    int modifiers;
+// struct DvzMouse
+// {
+//     DvzMouseButton button;
+//     vec2 press_pos;
+//     vec2 last_pos;
+//     vec2 cur_pos;
+//     vec2 wheel_delta;
+//     float shift_length;
+//     int modifiers;
 
-    DvzMouseStateType prev_state;
-    DvzMouseStateType cur_state;
+//     DvzMouseStateType prev_state;
+//     DvzMouseStateType cur_state;
 
-    double press_time;
-    double click_time;
-    bool is_active;
-};
+//     double press_time;
+//     double click_time;
+//     bool is_active;
+// };
 
 
 
@@ -304,17 +307,17 @@ struct DvzMouseLocal
 
 
 
-struct DvzKeyboard
-{
-    DvzKeyCode key_code;
-    int modifiers;
+// struct DvzKeyboard
+// {
+//     DvzKeyCode key_code;
+//     int modifiers;
 
-    DvzKeyboardStateType prev_state;
-    DvzKeyboardStateType cur_state;
+//     DvzKeyboardStateType prev_state;
+//     DvzKeyboardStateType cur_state;
 
-    double press_time;
-    bool is_active;
-};
+//     double press_time;
+//     bool is_active;
+// };
 
 
 
@@ -352,107 +355,107 @@ struct DvzViewport
 /*  Event structs                                                                                */
 /*************************************************************************************************/
 
-struct DvzFrameEvent
-{
-    uint64_t idx;    // frame index
-    double time;     // current time
-    double interval; // interval since last event
-};
+// struct DvzFrameEvent
+// {
+//     uint64_t idx;    // frame index
+//     double time;     // current time
+//     double interval; // interval since last event
+// };
 
 
 
-struct DvzTimerEvent
-{
-    uint64_t idx;    // event index
-    double time;     // current time
-    double interval; // interval since last event
-};
+// struct DvzTimerEvent
+// {
+//     uint64_t idx;    // event index
+//     double time;     // current time
+//     double interval; // interval since last event
+// };
 
 
 
-struct DvzScreencastEvent
-{
-    uint64_t idx;
-    double time;
-    double interval;
-    uint32_t width;
-    uint32_t height;
-    uint8_t* rgba;
-};
+// struct DvzScreencastEvent
+// {
+//     uint64_t idx;
+//     double time;
+//     double interval;
+//     uint32_t width;
+//     uint32_t height;
+//     uint8_t* rgba;
+// };
 
 
 
-struct DvzRefillEvent
-{
-    uint32_t img_idx;
-    uint32_t cmd_count;
-    DvzCommands* cmds[32];
-    DvzViewport viewport;
-    VkClearColorValue clear_color;
-};
+// struct DvzRefillEvent
+// {
+//     uint32_t img_idx;
+//     uint32_t cmd_count;
+//     DvzCommands* cmds[32];
+//     DvzViewport viewport;
+//     VkClearColorValue clear_color;
+// };
 
 
 
-struct DvzResizeEvent
-{
-    uvec2 size_screen;
-    uvec2 size_framebuffer;
-};
+// struct DvzResizeEvent
+// {
+//     uvec2 size_screen;
+//     uvec2 size_framebuffer;
+// };
 
 
 
-struct DvzSubmitEvent
-{
-    DvzSubmit* submit;
-};
+// struct DvzSubmitEvent
+// {
+//     DvzSubmit* submit;
+// };
 
 
 
-struct DvzGuiEvent
-{
-    DvzGui* gui;
-    DvzGuiControl* control;
-};
+// struct DvzGuiEvent
+// {
+//     DvzGui* gui;
+//     DvzGuiControl* control;
+// };
 
 
 
-union DvzEventUnion
-{
-    DvzFrameEvent f;       // for FRAME events
-    DvzFrameEvent t;       // for TIMER events
-    DvzKeyEvent k;         // for KEY events
-    DvzMouseButtonEvent b; // for MOUSE_BUTTON events
-    DvzMouseClickEvent c;  // for DRAG events
-    DvzMouseDragEvent d;   // for DRAG events
-    DvzMouseMoveEvent m;   // for MOUSE_MOVE events
-    DvzMouseWheelEvent w;  // for WHEEL events
-    DvzRefillEvent rf;     // for REFILL events
-    DvzResizeEvent r;      // for RESIZE events
-    DvzScreencastEvent sc; // for SCREENCAST events
-    DvzSubmitEvent s;      // for SUBMIT events
-    DvzGuiEvent g;         // for GUI events
-};
+// union DvzEventUnion
+// {
+//     DvzFrameEvent f;       // for FRAME events
+//     DvzFrameEvent t;       // for TIMER events
+//     DvzKeyEvent k;         // for KEY events
+//     DvzMouseButtonEvent b; // for MOUSE_BUTTON events
+//     DvzMouseClickEvent c;  // for DRAG events
+//     DvzMouseDragEvent d;   // for DRAG events
+//     DvzMouseMoveEvent m;   // for MOUSE_MOVE events
+//     DvzMouseWheelEvent w;  // for WHEEL events
+//     DvzRefillEvent rf;     // for REFILL events
+//     DvzResizeEvent r;      // for RESIZE events
+//     DvzScreencastEvent sc; // for SCREENCAST events
+//     DvzSubmitEvent s;      // for SUBMIT events
+//     DvzGuiEvent g;         // for GUI events
+// };
 
 
 
-struct DvzEvent
-{
-    DvzEventType type;
-    void* user_data;
-    DvzEventUnion u;
-};
+// struct DvzEvent
+// {
+//     DvzEventType type;
+//     void* user_data;
+//     DvzEventUnion u;
+// };
 
 
 
-struct DvzEventCallbackRegister
-{
-    DvzEventType type;
-    uint64_t idx; // used by TIMER events: increases every time the TIMER event is raised
-    double param;
-    DvzEventMode mode;
-    DvzEventCallback callback;
-    void* user_data;
-};
+// struct DvzEventCallbackRegister
+// {
+//     DvzEventType type;
+//     uint64_t idx; // used by TIMER events: increases every time the TIMER event is raised
+//     double param;
+//     DvzEventMode mode;
+//     DvzEventCallback callback;
+//     void* user_data;
+// };
 
 
 
@@ -460,31 +463,31 @@ struct DvzEventCallbackRegister
 /*  Misc structs                                                                                 */
 /*************************************************************************************************/
 
-struct DvzScreencast
-{
-    DvzObject obj;
-    bool is_active;
+// struct DvzScreencast
+// {
+//     DvzObject obj;
+//     bool is_active;
 
-    bool has_alpha;
-    DvzCanvas* canvas;
-    DvzCommands cmds;
-    DvzSemaphores semaphore;
-    DvzFences fence;
-    DvzImages staging;
-    DvzSubmit submit;
-    uint64_t frame_idx;
-    DvzClock clock;
-    DvzScreencastStatus status;
-    void* user_data;
-};
+//     bool has_alpha;
+//     DvzCanvas* canvas;
+//     DvzCommands cmds;
+//     DvzSemaphores semaphore;
+//     DvzFences fence;
+//     DvzImages staging;
+//     DvzSubmit submit;
+//     uint64_t frame_idx;
+//     DvzClock clock;
+//     DvzScreencastStatus status;
+//     void* user_data;
+// };
 
 
 
-struct DvzPendingRefill
-{
-    bool completed[DVZ_MAX_SWAPCHAIN_IMAGES];
-    atomic(DvzRefillStatus, status);
-};
+// struct DvzPendingRefill
+// {
+//     bool completed[DVZ_MAX_SWAPCHAIN_IMAGES];
+//     atomic(DvzRefillStatus, status);
+// };
 
 
 
@@ -526,6 +529,8 @@ struct DvzCanvasSync
     DvzFences fences_render_finished;
     DvzFences fences_flight;
 };
+
+
 
 struct DvzCanvas
 {
@@ -570,30 +575,29 @@ struct DvzCanvas
 
     DvzInput input;
 
-    // GUIs.
-    DvzGuiContext* gui_context;
-    DvzContainer guis;
+    // // GUIs.
+    // DvzGuiContext* gui_context;
+    // DvzContainer guis;
 
-    DvzScreencast* screencast;
-    DvzPendingRefill refills;
+    // DvzScreencast* screencast;
+    // DvzPendingRefill refills;
 
     DvzViewport viewport;
     DvzScene* scene;
 
-
-    // TO BE REMOVED:
-    // Event callbacks, running in the background thread, may be slow, for end-users.
-    uint32_t callbacks_count;
-    DvzEventCallbackRegister callbacks[DVZ_MAX_EVENT_CALLBACKS];
-    // DvzThread thread; // processes the async events
-    // Event queue.
-    DvzFifo event_queue;
-    // DvzEvent events[DVZ_MAX_FIFO_CAPACITY];
-    DvzThread event_thread;
-    bool enable_lock;
-    atomic(DvzEventType, event_processing);
-    DvzMouse mouse;
-    DvzKeyboard keyboard;
+    // // TO BE REMOVED:
+    // // Event callbacks, running in the background thread, may be slow, for end-users.
+    // uint32_t callbacks_count;
+    // DvzEventCallbackRegister callbacks[DVZ_MAX_EVENT_CALLBACKS];
+    // // DvzThread thread; // processes the async events
+    // // Event queue.
+    // DvzFifo event_queue;
+    // // DvzEvent events[DVZ_MAX_FIFO_CAPACITY];
+    // DvzThread event_thread;
+    // bool enable_lock;
+    // atomic(DvzEventType, event_processing);
+    // DvzMouse mouse;
+    // DvzKeyboard keyboard;
 };
 
 
@@ -761,28 +765,29 @@ DVZ_EXPORT void dvz_canvas_dpi_scaling(DvzCanvas* canvas, float scaling);
 /*  Callbacks                                                                                    */
 /*************************************************************************************************/
 
-/**
- * Register a callback for canvas events.
- *
- * These user callbacks run either in the main thread (*sync* callbacks) or in the background
- * thread * (*async* callbacks). Callbacks can access the `DvzMouse` and `DvzKeyboard` structures
- * with the current state of the mouse and keyboard.
- *
- * Callback function signature: `void(DvzCanvas*, DvzEvent)`
- *
- * The event object has a field with the user-specified pointer `user_data`.
- *
- * @param canvas the canvas
- * @param type the event type
- * @param param time interval for TIMER events, in seconds
- * @param mode whether the callback is sync or async
- * @param callback the callback function
- * @param user_data a pointer to arbitrary user data
- *
- */
-DVZ_EXPORT void dvz_event_callback(
-    DvzCanvas* canvas, DvzEventType type, double param, DvzEventMode mode, //
-    DvzEventCallback callback, void* user_data);
+// /**
+//  * Register a callback for canvas events.
+//  *
+//  * These user callbacks run either in the main thread (*sync* callbacks) or in the background
+//  * thread * (*async* callbacks). Callbacks can access the `DvzMouse` and `DvzKeyboard`
+//  structures
+//  * with the current state of the mouse and keyboard.
+//  *
+//  * Callback function signature: `void(DvzCanvas*, DvzEvent)`
+//  *
+//  * The event object has a field with the user-specified pointer `user_data`.
+//  *
+//  * @param canvas the canvas
+//  * @param type the event type
+//  * @param param time interval for TIMER events, in seconds
+//  * @param mode whether the callback is sync or async
+//  * @param callback the callback function
+//  * @param user_data a pointer to arbitrary user data
+//  *
+//  */
+// DVZ_EXPORT void dvz_event_callback(
+//     DvzCanvas* canvas, DvzEventType type, double param, DvzEventMode mode, //
+//     DvzEventCallback callback, void* user_data);
 
 
 
@@ -790,19 +795,19 @@ DVZ_EXPORT void dvz_event_callback(
 /*  State changes                                                                                */
 /*************************************************************************************************/
 
-/**
- * Trigger a canvas refill at the next frame.
- *
- * @param canvas the canvas
- */
-DVZ_EXPORT void dvz_canvas_to_refill(DvzCanvas* canvas);
+// /**
+//  * Trigger a canvas refill at the next frame.
+//  *
+//  * @param canvas the canvas
+//  */
+// DVZ_EXPORT void dvz_canvas_to_refill(DvzCanvas* canvas);
 
-/**
- * Close the canvas at the next frame.
- *
- * @param canvas the canvas
- */
-DVZ_EXPORT void dvz_canvas_to_close(DvzCanvas* canvas);
+// /**
+//  * Close the canvas at the next frame.
+//  *
+//  * @param canvas the canvas
+//  */
+// DVZ_EXPORT void dvz_canvas_to_close(DvzCanvas* canvas);
 
 
 
@@ -810,32 +815,34 @@ DVZ_EXPORT void dvz_canvas_to_close(DvzCanvas* canvas);
 /*  Screencast                                                                                   */
 /*************************************************************************************************/
 
-/**
- * Prepare the canvas for a screencast.
- *
- * A **screencast** is a live record of one or several frames of the canvas during the interactive
- * execution of the app. Creating a screencast is required for:
- * - screenshots,
- * - video records (requires ffmpeg)
- *
- * This command creates a host-coherent GPU image with the same size as the current framebuffer
- * size.
- *
- * If the interval is non-zero, the canvas will raise periodic SCREENCAST events every  `interval`
- * seconds. The event payload will contain a pointer to the grabbed framebuffer image.
- *
- * @param canvas the canvas
- * @param interval screencast events interval
- * @param has_alpha whether the screencast array is RGB or RGBA
- */
-DVZ_EXPORT void dvz_screencast(DvzCanvas* canvas, double interval, bool has_alpha);
+// /**
+//  * Prepare the canvas for a screencast.
+//  *
+//  * A **screencast** is a live record of one or several frames of the canvas during the
+//  interactive
+//  * execution of the app. Creating a screencast is required for:
+//  * - screenshots,
+//  * - video records (requires ffmpeg)
+//  *
+//  * This command creates a host-coherent GPU image with the same size as the current framebuffer
+//  * size.
+//  *
+//  * If the interval is non-zero, the canvas will raise periodic SCREENCAST events every
+//  `interval`
+//  * seconds. The event payload will contain a pointer to the grabbed framebuffer image.
+//  *
+//  * @param canvas the canvas
+//  * @param interval screencast events interval
+//  * @param has_alpha whether the screencast array is RGB or RGBA
+//  */
+// DVZ_EXPORT void dvz_screencast(DvzCanvas* canvas, double interval, bool has_alpha);
 
-/**
- * Destroy the screencast.
- *
- * @param canvas the canvas
- */
-DVZ_EXPORT void dvz_screencast_destroy(DvzCanvas* canvas);
+// /**
+//  * Destroy the screencast.
+//  *
+//  * @param canvas the canvas
+//  */
+// DVZ_EXPORT void dvz_screencast_destroy(DvzCanvas* canvas);
 
 /**
  * Make a screenshot.
@@ -864,285 +871,290 @@ DVZ_EXPORT uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha);
  */
 DVZ_EXPORT void dvz_screenshot_file(DvzCanvas* canvas, const char* png_path);
 
-/**
- * Pick a pixel in a canvas from a pixel position.
- *
- * !!! note
- *     If the canvas has been created with the `DVZ_CANVAS_FLAGS_PICK` flag, this function returns
- *     the pixel value from the picking attachment. Otherwise, it returns the image color at that
- *     point.
- *
- * @param canvas the canvas
- * @param pos_screen the coordinates of the point, in pixel coordinates
- * @param[out] picked the components at the requested position
- */
-DVZ_EXPORT void dvz_canvas_pick(DvzCanvas* canvas, uvec2 pos_screen, ivec4 picked);
+// /**
+//  * Pick a pixel in a canvas from a pixel position.
+//  *
+//  * !!! note
+//  *     If the canvas has been created with the `DVZ_CANVAS_FLAGS_PICK` flag, this function
+//  returns
+//  *     the pixel value from the picking attachment. Otherwise, it returns the image color at
+//  that
+//  *     point.
+//  *
+//  * @param canvas the canvas
+//  * @param pos_screen the coordinates of the point, in pixel coordinates
+//  * @param[out] picked the components at the requested position
+//  */
+// DVZ_EXPORT void dvz_canvas_pick(DvzCanvas* canvas, uvec2 pos_screen, ivec4 picked);
 
 
 
-/*************************************************************************************************/
-/*  Video                                                                                        */
-/*************************************************************************************************/
+// /*************************************************************************************************/
+// /*  Video */
+// /*************************************************************************************************/
 
-/**
- * Record a live screencast video of the canvas.
- *
- * This function should be run *before* calling ` dvz_app_run()`.
- *
- * @param canvas the canvas
- * @param framerate the framerate in images per second (30 recommended)
- * @param bitrate the bitrate, in  bytes (10000000 for high quality)
- * @param path path to the file (.mp4 extension recommended)
- * @param record whether to start recording immediately or not
- */
-DVZ_EXPORT void
-dvz_canvas_video(DvzCanvas* canvas, int framerate, int bitrate, const char* path, bool record);
+// /**
+//  * Record a live screencast video of the canvas.
+//  *
+//  * This function should be run *before* calling ` dvz_app_run()`.
+//  *
+//  * @param canvas the canvas
+//  * @param framerate the framerate in images per second (30 recommended)
+//  * @param bitrate the bitrate, in  bytes (10000000 for high quality)
+//  * @param path path to the file (.mp4 extension recommended)
+//  * @param record whether to start recording immediately or not
+//  */
+// DVZ_EXPORT void
+// dvz_canvas_video(DvzCanvas* canvas, int framerate, int bitrate, const char* path, bool record);
 
-/**
- * Pause the live video screencast.
- *
- * @param canvas the canvas
- * @param record whether to pause or continue the recording
- */
-DVZ_EXPORT void dvz_canvas_pause(DvzCanvas* canvas, bool record);
+// /**
+//  * Pause the live video screencast.
+//  *
+//  * @param canvas the canvas
+//  * @param record whether to pause or continue the recording
+//  */
+// DVZ_EXPORT void dvz_canvas_pause(DvzCanvas* canvas, bool record);
 
-/**
- * Stop the live video screencast and save the file.
- *
- * @param canvas the canvas
- */
-DVZ_EXPORT void dvz_canvas_stop(DvzCanvas* canvas);
-
-
-
-/*************************************************************************************************/
-/*  Mouse and keyboard                                                                           */
-/*************************************************************************************************/
-
-/**
- * Create the mouse object holding the current mouse state.
- *
- * @returns mouse object
- */
-DVZ_EXPORT DvzMouse dvz_mouse(void);
-
-/**
- * Active or deactivate interactive mouse events.
- *
- * @param mouse the mouse object
- * @param enable whether to activate or deactivate mouse events
- */
-DVZ_EXPORT void dvz_mouse_toggle(DvzMouse* mouse, bool enable);
-
-/**
- * Reset the mouse state.
- *
- * @param mouse the mouse object
- */
-DVZ_EXPORT void dvz_mouse_reset(DvzMouse* mouse);
-
-/**
- * Emit a mouse event.
- *
- * @param mouse the mouse object
- * @param canvas the canvas
- * @param ev the mouse event
- */
-DVZ_EXPORT void dvz_mouse_event(DvzMouse* mouse, DvzCanvas* canvas, DvzEvent ev);
-
-/**
- * Convert mouse coordinates from global to local.
- *
- * * Global coordinates: in pixels, origin at the top-left corner of the window.
- * * Local coordinates: in normalize coordinates [-1, 1], origin at the center of a given viewport,
- *   taking viewport margins into account
- *
- * @param mouse the mouse object
- * @param mouse_local the mouse local object
- * @param canvas the canvas
- * @param viewport the viewport defining the local coordinates
- */
-DVZ_EXPORT void dvz_mouse_local(
-    DvzMouse* mouse, DvzMouseLocal* mouse_local, DvzCanvas* canvas, DvzViewport viewport);
-
-/**
- * Create the keyboard object holding the current keyboard state.
- *
- * @returns keyboard object
- */
-DVZ_EXPORT DvzKeyboard dvz_keyboard(void);
-
-/**
- * Active or deactivate interactive keyboard events.
- *
- * @param keyboard the keyboard object
- * @param enable whether to activate or deactivate keyboard events
- */
-DVZ_EXPORT void dvz_keyboard_toggle(DvzKeyboard* keyboard, bool enable);
-
-/**
- * Reset the keyboard state
- *
- * @returns keyboard object
- */
-DVZ_EXPORT void dvz_keyboard_reset(DvzKeyboard* keyboard);
-
-/**
- * Emit a keyboard event.
- *
- * @param keyboard the keyboard object
- * @param canvas the canvas
- * @param ev the keyboard event
- */
-DVZ_EXPORT void dvz_keyboard_event(DvzKeyboard* keyboard, DvzCanvas* canvas, DvzEvent ev);
+// /**
+//  * Stop the live video screencast and save the file.
+//  *
+//  * @param canvas the canvas
+//  */
+// DVZ_EXPORT void dvz_canvas_stop(DvzCanvas* canvas);
 
 
 
-/*************************************************************************************************/
-/*  Event system                                                                                 */
-/*************************************************************************************************/
+// /*************************************************************************************************/
+// /*  Mouse and keyboard */
+// /*************************************************************************************************/
 
-/**
- * Emit a mouse press event.
- *
- * @param canvas the canvas
- * @param button the mouse button
- * @param modifiers flags with the active keyboard modifiers
- */
-DVZ_EXPORT void dvz_event_mouse_press(DvzCanvas* canvas, DvzMouseButton button, int modifiers);
+// /**
+//  * Create the mouse object holding the current mouse state.
+//  *
+//  * @returns mouse object
+//  */
+// DVZ_EXPORT DvzMouse dvz_mouse(void);
 
-/**
- * Emit a mouse release event.
- *
- * @param canvas the canvas
- * @param button the mouse button
- * @param modifiers flags with the active keyboard modifiers
- */
-DVZ_EXPORT void dvz_event_mouse_release(DvzCanvas* canvas, DvzMouseButton button, int modifiers);
+// /**
+//  * Active or deactivate interactive mouse events.
+//  *
+//  * @param mouse the mouse object
+//  * @param enable whether to activate or deactivate mouse events
+//  */
+// DVZ_EXPORT void dvz_mouse_toggle(DvzMouse* mouse, bool enable);
 
-/**
- * Emit a mouse move event.
- *
- * @param canvas the canvas
- * @param pos the current mouse position, in pixels
- * @param modifiers flags with the active keyboard modifiers
- */
-DVZ_EXPORT void dvz_event_mouse_move(DvzCanvas* canvas, vec2 pos, int modifiers);
+// /**
+//  * Reset the mouse state.
+//  *
+//  * @param mouse the mouse object
+//  */
+// DVZ_EXPORT void dvz_mouse_reset(DvzMouse* mouse);
 
-/**
- * Emit a mouse wheel event.
- *
- * @param canvas the canvas
- * @param pos the current mouse position, in pixels
- * @param dir the mouse wheel direction
- * @param modifiers flags with the active keyboard modifiers
- */
-DVZ_EXPORT void dvz_event_mouse_wheel(DvzCanvas* canvas, vec2 pos, vec2 dir, int modifiers);
+// /**
+//  * Emit a mouse event.
+//  *
+//  * @param mouse the mouse object
+//  * @param canvas the canvas
+//  * @param ev the mouse event
+//  */
+// DVZ_EXPORT void dvz_mouse_event(DvzMouse* mouse, DvzCanvas* canvas, DvzEvent ev);
 
-/**
- * Emit a mouse click event.
- *
- * @param canvas the canvas
- * @param pos the click position
- * @param button the mouse button
- * @param modifiers flags with the active keyboard modifiers
- */
-DVZ_EXPORT void
-dvz_event_mouse_click(DvzCanvas* canvas, vec2 pos, DvzMouseButton button, int modifiers);
+// /**
+//  * Convert mouse coordinates from global to local.
+//  *
+//  * * Global coordinates: in pixels, origin at the top-left corner of the window.
+//  * * Local coordinates: in normalize coordinates [-1, 1], origin at the center of a given
+//  viewport,
+//  *   taking viewport margins into account
+//  *
+//  * @param mouse the mouse object
+//  * @param mouse_local the mouse local object
+//  * @param canvas the canvas
+//  * @param viewport the viewport defining the local coordinates
+//  */
+// DVZ_EXPORT void dvz_mouse_local(
+//     DvzMouse* mouse, DvzMouseLocal* mouse_local, DvzCanvas* canvas, DvzViewport viewport);
 
-/**
- * Emit a mouse double-click event.
- *
- * @param canvas the canvas
- * @param pos the double-click position
- * @param button the mouse button
- * @param modifiers flags with the active keyboard modifiers
- */
-DVZ_EXPORT void
-dvz_event_mouse_double_click(DvzCanvas* canvas, vec2 pos, DvzMouseButton button, int modifiers);
+// /**
+//  * Create the keyboard object holding the current keyboard state.
+//  *
+//  * @returns keyboard object
+//  */
+// DVZ_EXPORT DvzKeyboard dvz_keyboard(void);
 
-/**
- * Emit a mouse drag event.
- *
- * @param canvas the canvas
- * @param pos the drag start position
- * @param button the mouse button
- * @param modifiers flags with the active keyboard modifiers
- */
-DVZ_EXPORT void
-dvz_event_mouse_drag(DvzCanvas* canvas, vec2 pos, DvzMouseButton button, int modifiers);
+// /**
+//  * Active or deactivate interactive keyboard events.
+//  *
+//  * @param keyboard the keyboard object
+//  * @param enable whether to activate or deactivate keyboard events
+//  */
+// DVZ_EXPORT void dvz_keyboard_toggle(DvzKeyboard* keyboard, bool enable);
 
-/**
- * Emit a mouse drag end event.
- *
- * @param canvas the canvas
- * @param pos the drag end position
- * @param button the mouse button
- * @param modifiers flags with the active keyboard modifiers
- */
-DVZ_EXPORT void
-dvz_event_mouse_drag_end(DvzCanvas* canvas, vec2 pos, DvzMouseButton button, int modifiers);
+// /**
+//  * Reset the keyboard state
+//  *
+//  * @returns keyboard object
+//  */
+// DVZ_EXPORT void dvz_keyboard_reset(DvzKeyboard* keyboard);
 
-/**
- * Emit a key press event.
- *
- * @param canvas the canvas
- * @param key_code the key
- * @param modifiers flags with the active keyboard modifiers
- */
-DVZ_EXPORT void dvz_event_key_press(DvzCanvas* canvas, DvzKeyCode key_code, int modifiers);
+// /**
+//  * Emit a keyboard event.
+//  *
+//  * @param keyboard the keyboard object
+//  * @param canvas the canvas
+//  * @param ev the keyboard event
+//  */
+// DVZ_EXPORT void dvz_keyboard_event(DvzKeyboard* keyboard, DvzCanvas* canvas, DvzEvent ev);
 
-/**
- * Emit a key release event.
- *
- * @param canvas the canvas
- * @param key_code the key
- * @param modifiers flags with the active keyboard modifiers
- */
-DVZ_EXPORT void dvz_event_key_release(DvzCanvas* canvas, DvzKeyCode key_code, int modifiers);
 
-/**
- * Emit a frame event.
- *
- * Typically raised at every canvas frame.
- *
- * @param canvas the canvas
- * @param idx the frame index
- * @param time the current time
- * @param interval the interval since the last frame event
- */
-DVZ_EXPORT void dvz_event_frame(DvzCanvas* canvas, uint64_t idx, double time, double interval);
 
-/**
- * Emit a timer event.
- *
- * @param canvas the canvas
- * @param idx the timer event index
- * @param time the current time
- * @param interval the interval since the last timer event
- */
-DVZ_EXPORT void dvz_event_timer(DvzCanvas* canvas, uint64_t idx, double time, double interval);
+// /*************************************************************************************************/
+// /*  Event system */
+// /*************************************************************************************************/
 
-/**
- * Return the number of pending events.
- *
- * This is the number of events of the given type that are still being processed or pending in the
- * queue.
- *
- * @param canvas the canvas
- * @param type the event type
- * @returns the number of pending events
- */
-DVZ_EXPORT int dvz_event_pending(DvzCanvas* canvas, DvzEventType type);
+// /**
+//  * Emit a mouse press event.
+//  *
+//  * @param canvas the canvas
+//  * @param button the mouse button
+//  * @param modifiers flags with the active keyboard modifiers
+//  */
+// DVZ_EXPORT void dvz_event_mouse_press(DvzCanvas* canvas, DvzMouseButton button, int modifiers);
 
-/**
- * Stop the background event loop.
- *
- * This function sends a special "closing" event to the event loop, causing it to stop.
- *
- * @param canvas the canvas
- */
-DVZ_EXPORT void dvz_event_stop(DvzCanvas* canvas);
+// /**
+//  * Emit a mouse release event.
+//  *
+//  * @param canvas the canvas
+//  * @param button the mouse button
+//  * @param modifiers flags with the active keyboard modifiers
+//  */
+// DVZ_EXPORT void dvz_event_mouse_release(DvzCanvas* canvas, DvzMouseButton button, int
+// modifiers);
+
+// /**
+//  * Emit a mouse move event.
+//  *
+//  * @param canvas the canvas
+//  * @param pos the current mouse position, in pixels
+//  * @param modifiers flags with the active keyboard modifiers
+//  */
+// DVZ_EXPORT void dvz_event_mouse_move(DvzCanvas* canvas, vec2 pos, int modifiers);
+
+// /**
+//  * Emit a mouse wheel event.
+//  *
+//  * @param canvas the canvas
+//  * @param pos the current mouse position, in pixels
+//  * @param dir the mouse wheel direction
+//  * @param modifiers flags with the active keyboard modifiers
+//  */
+// DVZ_EXPORT void dvz_event_mouse_wheel(DvzCanvas* canvas, vec2 pos, vec2 dir, int modifiers);
+
+// /**
+//  * Emit a mouse click event.
+//  *
+//  * @param canvas the canvas
+//  * @param pos the click position
+//  * @param button the mouse button
+//  * @param modifiers flags with the active keyboard modifiers
+//  */
+// DVZ_EXPORT void
+// dvz_event_mouse_click(DvzCanvas* canvas, vec2 pos, DvzMouseButton button, int modifiers);
+
+// /**
+//  * Emit a mouse double-click event.
+//  *
+//  * @param canvas the canvas
+//  * @param pos the double-click position
+//  * @param button the mouse button
+//  * @param modifiers flags with the active keyboard modifiers
+//  */
+// DVZ_EXPORT void
+// dvz_event_mouse_double_click(DvzCanvas* canvas, vec2 pos, DvzMouseButton button, int modifiers);
+
+// /**
+//  * Emit a mouse drag event.
+//  *
+//  * @param canvas the canvas
+//  * @param pos the drag start position
+//  * @param button the mouse button
+//  * @param modifiers flags with the active keyboard modifiers
+//  */
+// DVZ_EXPORT void
+// dvz_event_mouse_drag(DvzCanvas* canvas, vec2 pos, DvzMouseButton button, int modifiers);
+
+// /**
+//  * Emit a mouse drag end event.
+//  *
+//  * @param canvas the canvas
+//  * @param pos the drag end position
+//  * @param button the mouse button
+//  * @param modifiers flags with the active keyboard modifiers
+//  */
+// DVZ_EXPORT void
+// dvz_event_mouse_drag_end(DvzCanvas* canvas, vec2 pos, DvzMouseButton button, int modifiers);
+
+// /**
+//  * Emit a key press event.
+//  *
+//  * @param canvas the canvas
+//  * @param key_code the key
+//  * @param modifiers flags with the active keyboard modifiers
+//  */
+// DVZ_EXPORT void dvz_event_key_press(DvzCanvas* canvas, DvzKeyCode key_code, int modifiers);
+
+// /**
+//  * Emit a key release event.
+//  *
+//  * @param canvas the canvas
+//  * @param key_code the key
+//  * @param modifiers flags with the active keyboard modifiers
+//  */
+// DVZ_EXPORT void dvz_event_key_release(DvzCanvas* canvas, DvzKeyCode key_code, int modifiers);
+
+// /**
+//  * Emit a frame event.
+//  *
+//  * Typically raised at every canvas frame.
+//  *
+//  * @param canvas the canvas
+//  * @param idx the frame index
+//  * @param time the current time
+//  * @param interval the interval since the last frame event
+//  */
+// DVZ_EXPORT void dvz_event_frame(DvzCanvas* canvas, uint64_t idx, double time, double interval);
+
+// /**
+//  * Emit a timer event.
+//  *
+//  * @param canvas the canvas
+//  * @param idx the timer event index
+//  * @param time the current time
+//  * @param interval the interval since the last timer event
+//  */
+// DVZ_EXPORT void dvz_event_timer(DvzCanvas* canvas, uint64_t idx, double time, double interval);
+
+// /**
+//  * Return the number of pending events.
+//  *
+//  * This is the number of events of the given type that are still being processed or pending in
+//  the
+//  * queue.
+//  *
+//  * @param canvas the canvas
+//  * @param type the event type
+//  * @returns the number of pending events
+//  */
+// DVZ_EXPORT int dvz_event_pending(DvzCanvas* canvas, DvzEventType type);
+
+// /**
+//  * Stop the background event loop.
+//  *
+//  * This function sends a special "closing" event to the event loop, causing it to stop.
+//  *
+//  * @param canvas the canvas
+//  */
+// DVZ_EXPORT void dvz_event_stop(DvzCanvas* canvas);
 
 
 

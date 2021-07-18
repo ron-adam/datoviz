@@ -353,10 +353,24 @@ add_custom_command(
 
 # Define the datoviz library target
 file(GLOB sources
-    "include/*.h*"
-    "src/*.h*" "src/*.c*"
-    "external/*.h*" "external/*.c*"
-    "external/imgui/*.h*" "external/imgui/*.c*"
+    # "include/*.h*"
+    # "src/*.h*" "src/*.c*"
+
+    "src/canvas.c"
+    "src/common.c"
+    "src/fifo.c"
+    "src/log.c"
+    "src/spirv.c"
+    "src/context.c"
+    "src/transfers.c"
+    "src/vklite.c"
+    "src/input.c"
+
+    # "external/*.h*"
+    "external/*.c*"
+
+    # "external/imgui/*.h*"
+    "external/imgui/*.c*"
     "external/imgui/backends/imgui_impl_glfw.*"
     "external/imgui/backends/imgui_impl_vulkan.*"
 )
@@ -418,7 +432,17 @@ endfunction()
 # -------------------------------------------------------------------------------------------------
 
 if (DATOVIZ_WITH_CLI)
-    file(GLOB cli "cli/*.c" "tests/*.c*")
+
+    # file(GLOB cli "cli/*.c" "tests/*.c*")
+    file(GLOB cli
+        "cli/main.c"
+        "tests/test_utils.c"
+        "tests/test_vklite.c"
+        "tests/test_context.c"
+        "tests/test_input.c"
+        "tests/test_canvas.c"
+    )
+
     add_executable(datovizcli ${cli})
     target_datoviz(datovizcli)
     set_target_properties(datovizcli PROPERTIES OUTPUT_NAME "datoviz")
