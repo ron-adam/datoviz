@@ -33,8 +33,17 @@ extern "C" {
 typedef enum
 {
     DVZ_DEQ_PROC_CALLBACK_PRE,
-    DVZ_DEQ_PROC_CALLBACK_POST
+    DVZ_DEQ_PROC_CALLBACK_POST,
 } DvzDeqProcCallbackPosition;
+
+
+
+// Batch callback position: begin or end.
+typedef enum
+{
+    DVZ_DEQ_PROC_BATCH_BEGIN,
+    DVZ_DEQ_PROC_BATCH_END,
+} DvzDeqProcBatchPosition;
 
 
 
@@ -58,11 +67,14 @@ typedef struct DvzDeqProc DvzDeqProc;
 typedef struct DvzDeqCallbackRegister DvzDeqCallbackRegister;
 typedef struct DvzDeqProcCallbackRegister DvzDeqProcCallbackRegister;
 typedef struct DvzDeqProcWaitCallbackRegister DvzDeqProcWaitCallbackRegister;
+typedef struct DvzDeqProcBatchCallbackRegister DvzDeqProcBatchCallbackRegister;
 
 typedef void (*DvzDeqCallback)(DvzDeq* deq, void* item, void* user_data);
 typedef void (*DvzDeqProcCallback)(
     DvzDeq* deq, uint32_t deq_idx, int type, void* item, void* user_data);
 typedef void (*DvzDeqProcWaitCallback)(DvzDeq* deq, void* user_data);
+typedef void (*DvzDeqProcBatchCallback)(
+    DvzDeq* deq, DvzDeqProcBatchPosition pos, uint32_t item_count, void** items, void* user_data);
 
 
 
@@ -104,6 +116,13 @@ struct DvzDeqProcWaitCallbackRegister
     void* user_data;
 };
 
+struct DvzDeqProcBatchCallbackRegister
+{
+    DvzDeqProcBatchCallback callback;
+    DvzDeqProcBatchPosition pos;
+    void* user_data;
+};
+
 struct DvzDeqProcCallbackRegister
 {
     DvzDeqProcCallback callback;
@@ -139,6 +158,10 @@ struct DvzDeqProc
     // Callbacks called while waiting with a max_wait delay.
     uint32_t wait_callback_count;
     DvzDeqProcWaitCallbackRegister wait_callbacks[DVZ_DEQ_MAX_CALLBACKS];
+
+    // Callbacks called when dequeuing multiple items at once (batch dequeue).
+    uint32_t batch_callback_count;
+    DvzDeqProcBatchCallbackRegister batch_callbacks[DVZ_DEQ_MAX_CALLBACKS];
 
     // Mutex and cond to signal when the deq is non-empty, and when to dequeue the first non-empty
     // underlying FIFO queues.
@@ -331,6 +354,22 @@ DVZ_EXPORT void dvz_deq_proc_callback(
  */
 DVZ_EXPORT void dvz_deq_proc_wait_callback(
     DvzDeq* deq, uint32_t proc_idx, DvzDeqProcWaitCallback callback, void* user_data);
+
+/**
+ * Register a Proc batch callback.
+ *
+ * A batch callback is called in dvz_deq_dequeue_batch(), before *and* after dequeuing all items in
+ * a proc.
+ *
+ * @param deq the Deq
+ * @param proc_idx the Proc index (should be regularly increasing: 0, 1, 2, ...)
+ * @param pos called either at the beginning or at the end of the batch dequeue
+ * @param callback the callback
+ * @param user_data pointer to arbitrary data
+ */
+DVZ_EXPORT void dvz_deq_proc_batch_callback(
+    DvzDeq* deq, uint32_t proc_idx, DvzDeqProcBatchPosition pos, DvzDeqProcBatchCallback callback,
+    void* user_data);
 
 /**
  * Enqueue an item.

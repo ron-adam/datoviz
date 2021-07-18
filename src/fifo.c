@@ -483,6 +483,28 @@ void dvz_deq_proc_wait_callback(
 
 
 
+void dvz_deq_proc_batch_callback(
+    DvzDeq* deq, uint32_t proc_idx, DvzDeqProcBatchPosition pos, DvzDeqProcBatchCallback callback,
+    void* user_data)
+{
+    ASSERT(deq != NULL);
+
+    ASSERT(proc_idx < deq->proc_count);
+    DvzDeqProc* proc = &deq->procs[proc_idx];
+    ASSERT(proc != NULL);
+
+    ASSERT(callback != NULL);
+
+    DvzDeqProcBatchCallbackRegister* reg = &proc->batch_callbacks[proc->batch_callback_count++];
+    ASSERT(reg != NULL);
+
+    reg->callback = callback;
+    reg->pos = pos;
+    reg->user_data = user_data;
+}
+
+
+
 static void _deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item, bool enqueue_first)
 {
     ASSERT(deq != NULL);
