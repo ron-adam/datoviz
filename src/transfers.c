@@ -7,6 +7,10 @@
 
 
 
+// NOTE WARNING: PUBLIC FUNCTIONS HERE NOT TESTED YET
+
+
+
 /*************************************************************************************************/
 /*  FIFO                                                                                         */
 /*************************************************************************************************/
@@ -41,7 +45,7 @@
 /*  Buffer transfers                                                                             */
 /*************************************************************************************************/
 
-// static void _process_buffer_upload(DvzContext* context, DvzTransfer tr)
+// static void _process_buffer_upload(DvzContext* ctx, DvzTransfer tr)
 // {
 //     ASSERT(context != NULL);
 //     DvzGpu* gpu = context->gpu;
@@ -74,7 +78,7 @@
 
 
 
-// static void _process_buffer_download(DvzContext* context, DvzTransfer tr)
+// static void _process_buffer_download(DvzContext* ctx, DvzTransfer tr)
 // {
 //     ASSERT(context != NULL);
 //     ASSERT(tr.type == DVZ_TRANSFER_BUFFER_DOWNLOAD);
@@ -105,7 +109,7 @@
 
 
 
-// static void _process_buffer_copy(DvzContext* context, DvzTransfer tr)
+// static void _process_buffer_copy(DvzContext* ctx, DvzTransfer tr)
 // {
 //     ASSERT(context != NULL);
 //     ASSERT(tr.type == DVZ_TRANSFER_BUFFER_COPY);
@@ -127,7 +131,7 @@
 /*  Texture transfers                                                                            */
 /*************************************************************************************************/
 
-// static void _process_texture_upload(DvzContext* context, DvzTransfer tr)
+// static void _process_texture_upload(DvzContext* ctx, DvzTransfer tr)
 // {
 //     ASSERT(context != NULL);
 //     ASSERT(tr.type == DVZ_TRANSFER_TEXTURE_UPLOAD);
@@ -138,7 +142,7 @@
 
 
 
-// static void _process_texture_download(DvzContext* context, DvzTransfer tr)
+// static void _process_texture_download(DvzContext* ctx, DvzTransfer tr)
 // {
 //     ASSERT(context != NULL);
 //     ASSERT(tr.type == DVZ_TRANSFER_TEXTURE_DOWNLOAD);
@@ -149,7 +153,7 @@
 
 
 
-// static void _process_texture_copy(DvzContext* context, DvzTransfer tr)
+// static void _process_texture_copy(DvzContext* ctx, DvzTransfer tr)
 // {
 //     ASSERT(context != NULL);
 //     ASSERT(tr.type == DVZ_TRANSFER_TEXTURE_COPY);
@@ -227,7 +231,7 @@
 /*************************************************************************************************/
 
 // static void _enqueue_buffer_transfer(
-//     DvzContext* context, DvzDataTransferType type, DvzBufferRegions br, //
+//     DvzContext* ctx, DvzDataTransferType type, DvzBufferRegions br, //
 //     VkDeviceSize offset, VkDeviceSize size, void* data)
 // {
 //     ASSERT(context != NULL);
@@ -253,21 +257,49 @@
 
 // WARNING: these functions require that the pointer lives through the next frame (no copy)
 void dvz_upload_buffer(
-    DvzContext* context, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size, void* data)
+    DvzContext* ctx, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size, void* data)
 {
+    ASSERT(ctx != NULL);
+    ASSERT(br.buffer != NULL);
+    ASSERT(data != NULL);
+    ASSERT(size > 0);
+
+    // TODO: better staging buffer allocation
+    DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
+
+    // Enqueue an upload transfer task.
+    _enqueue_buffer_upload(&ctx->deq, br, offset, stg, 0, size, data);
+    // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
+    // (the background thread only processes download/upload tasks).
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
 }
 
 
 
 void dvz_download_buffer(
-    DvzContext* context, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size, void* data)
+    DvzContext* ctx, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size, void* data)
 {
+    ASSERT(ctx != NULL);
+    ASSERT(br.buffer != NULL);
+    ASSERT(data != NULL);
+    ASSERT(size > 0);
+
+    // TODO: better staging buffer allocation
+    DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
+
+    // Enqueue an upload transfer task.
+    _enqueue_buffer_download(&ctx->deq, br, offset, stg, 0, size, data);
+    // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
+    // (the background thread only processes download/upload tasks).
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
 }
 
 
 
 // void dvz_copy_buffer(
-//     DvzContext* context, DvzBufferRegions src, VkDeviceSize src_offset, //
+//     DvzContext* ctx, DvzBufferRegions src, VkDeviceSize src_offset, //
 //     DvzBufferRegions dst, VkDeviceSize dst_offset, VkDeviceSize size)
 // {
 //     ASSERT(context != NULL);
@@ -301,7 +333,7 @@ void dvz_download_buffer(
 /*************************************************************************************************/
 
 // static void _enqueue_texture_transfer(
-//     DvzContext* context, DvzDataTransferType type, DvzTexture* texture, //
+//     DvzContext* ctx, DvzDataTransferType type, DvzTexture* texture, //
 //     uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
 // {
 //     ASSERT(context != NULL);
@@ -337,6 +369,19 @@ void dvz_download_buffer(
 
 
 
+static uint32_t _get_texture_ndims(DvzTexture* tex)
+{
+    if (tex->image->image_type == VK_IMAGE_TYPE_1D)
+        return 1;
+    else if (tex->image->image_type == VK_IMAGE_TYPE_2D)
+        return 2;
+    else if (tex->image->image_type == VK_IMAGE_TYPE_3D)
+        return 3;
+    return 0;
+}
+
+
+
 void dvz_upload_texture(
     DvzContext* ctx, DvzTexture* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
 {
@@ -345,10 +390,11 @@ void dvz_upload_texture(
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
-    DvzTexture* stg = dvz_ctx_texture(ctx, 2, shape, tex->image->format);
+    DvzTexture* stg = dvz_ctx_texture(ctx, _get_texture_ndims(tex), shape, tex->image->format);
     _enqueue_texture_upload(&ctx->deq, tex, offset, stg, (uvec3){0}, shape, size, data);
 
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
 
     dvz_texture_destroy(stg);
 }
@@ -356,15 +402,26 @@ void dvz_upload_texture(
 
 
 void dvz_download_texture(
-    DvzContext* context, DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size,
-    void* data)
+    DvzContext* ctx, DvzTexture* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
 {
+    ASSERT(ctx != NULL);
+    ASSERT(tex != NULL);
+    ASSERT(data != NULL);
+    ASSERT(size > 0);
+
+    DvzTexture* stg = dvz_ctx_texture(ctx, _get_texture_ndims(tex), shape, tex->image->format);
+    _enqueue_texture_download(&ctx->deq, tex, offset, stg, (uvec3){0}, shape, size, data);
+
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+
+    dvz_texture_destroy(stg);
 }
 
 
 
 // void dvz_copy_texture(
-//     DvzContext* context, DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset,
+//     DvzContext* ctx, DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset,
 //     uvec3 shape, VkDeviceSize size)
 // {
 //     ASSERT(context != NULL);
