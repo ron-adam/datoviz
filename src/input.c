@@ -103,9 +103,9 @@ static void _remove_key(DvzInputKeyboard* keyboard, DvzKeyCode key_code, uint32_
     keyboard->key_count--;
 
     // Reset the unset positions in the array.
-    log_debug(
-        "reset %d keys after pos %d", DVZ_INPUT_MAX_KEYS - keyboard->key_count,
-        keyboard->key_count);
+    // log_trace(
+    //     "reset %d keys after pos %d", DVZ_INPUT_MAX_KEYS - keyboard->key_count,
+    //     keyboard->key_count);
     memset(
         &keyboard->keys[keyboard->key_count], 0,
         (DVZ_INPUT_MAX_KEYS - keyboard->key_count) * sizeof(DvzKeyCode));

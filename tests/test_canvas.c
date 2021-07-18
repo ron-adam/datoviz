@@ -98,6 +98,11 @@ static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)
 /*  Blank canvas                                                                                 */
 /*************************************************************************************************/
 
+static void _on_mouse_move(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    log_debug("mouse position: %.0fx%.0f", ev.m.pos[0], ev.m.pos[1]);
+}
+
 int test_canvas_blank(TestContext* tc)
 {
     DvzApp* app = tc->app;
@@ -108,25 +113,30 @@ int test_canvas_blank(TestContext* tc)
 
     dvz_canvas_create(canvas);
 
-    // if (app->backend != DVZ_BACKEND_OFFSCREEN)
+    uvec2 size = {0};
+
+    // Framebuffer size.
+    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_FRAMEBUFFER, size);
+    log_debug("canvas framebuffer size is %dx%d", size[0], size[1]);
+    ASSERT(size[0] > 0);
+    ASSERT(size[1] > 0);
+
+    // Screen size.
+    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
+    log_debug("canvas screen size is %dx%d", size[0], size[1]);
+    ASSERT(size[0] > 0);
+    ASSERT(size[1] > 0);
+
+    // Mouse position.
+    dvz_input_callback(&canvas->input, DVZ_INPUT_MOUSE_MOVE, _on_mouse_move, NULL);
+
+    // // GLFW event loop for testing purposes only.
+    // GLFWwindow* w = canvas->window->backend_window;
+    // ASSERT(w != NULL);
+    // while (!glfwWindowShouldClose(w))
     // {
-    //     ASSERT(canvas->window != NULL);
-    //     ASSERT(canvas->window->app != NULL);
+    //     glfwPollEvents();
     // }
-
-    // uvec2 size = {0};
-
-    // // Framebuffer size.
-    // dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_FRAMEBUFFER, size);
-    // log_debug("canvas framebuffer size is %dx%d", size[0], size[1]);
-    // ASSERT(size[0] > 0);
-    // ASSERT(size[1] > 0);
-
-    // // Screen size.
-    // dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
-    // log_debug("canvas screen size is %dx%d", size[0], size[1]);
-    // ASSERT(size[0] > 0);
-    // ASSERT(size[1] > 0);
 
     // dvz_app_run(app, N_FRAMES);
 
