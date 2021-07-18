@@ -563,6 +563,7 @@ struct DvzCanvas
     bool offscreen;
     bool overlay;
     bool with_pick;
+    bool vsync;
     uvec2 init_size;
     int flags;
 
@@ -651,6 +652,14 @@ DVZ_EXPORT void dvz_canvas_with_pick(DvzCanvas* canvas, bool with_pick);
  * @param with_gui boolean
  */
 DVZ_EXPORT void dvz_canvas_with_gui(DvzCanvas* canvas, bool with_gui);
+
+/**
+ * Specify whether to enable vertical synchronization (use false for benchmarking).
+ *
+ * @param canvas the canvas
+ * @param vsync boolean
+ */
+DVZ_EXPORT void dvz_canvas_vsync(DvzCanvas* canvas, bool vsync);
 
 /**
  * Create a canvas after it has been initialized.

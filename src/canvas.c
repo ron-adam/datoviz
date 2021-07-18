@@ -233,6 +233,14 @@ void dvz_canvas_with_gui(DvzCanvas* canvas, bool with_gui)
 
 
 
+void dvz_canvas_vsync(DvzCanvas* canvas, bool vsync)
+{
+    ASSERT(canvas != NULL);
+    canvas->vsync = vsync;
+}
+
+
+
 static void _canvas_window(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
@@ -290,6 +298,91 @@ static void _canvas_renderpass(DvzCanvas* canvas)
             canvas->gpu, DVZ_DEFAULT_IMAGE_FORMAT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 }
 
+static void _canvas_swapchain(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+
+    dvz_swapchain_format(&canvas->render.swapchain, DVZ_DEFAULT_IMAGE_FORMAT);
+
+    if (!canvas->offscreen)
+    {
+        dvz_swapchain_present_mode(
+            &canvas->render.swapchain,
+            canvas->vsync ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR);
+        dvz_swapchain_create(&canvas->render.swapchain);
+    }
+    else
+    {
+        canvas->render.swapchain.images = calloc(1, sizeof(DvzImages));
+        ASSERT(canvas->render.swapchain.img_count == 1);
+        *canvas->render.swapchain.images =
+            dvz_images(canvas->render.swapchain.gpu, VK_IMAGE_TYPE_2D, 1);
+        DvzImages* images = canvas->render.swapchain.images;
+
+        // Color attachment
+        dvz_images_format(images, canvas->render.renderpass.attachments[0].format);
+        dvz_images_size(images, canvas->init_size[0], canvas->init_size[1], 1);
+        dvz_images_tiling(images, VK_IMAGE_TILING_OPTIMAL);
+        dvz_images_usage(
+            images, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+        dvz_images_memory(images, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        dvz_images_aspect(images, VK_IMAGE_ASPECT_COLOR_BIT);
+        dvz_images_layout(images, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        dvz_images_queue_access(images, DVZ_DEFAULT_QUEUE_RENDER);
+        dvz_images_create(images);
+
+        dvz_obj_created(&canvas->render.swapchain.obj);
+    }
+}
+
+static void _canvas_attachments(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    DvzGpu* gpu = canvas->gpu;
+
+    // Depth attachment.
+    canvas->render.depth_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
+    depth_image(
+        &canvas->render.depth_image, &canvas->render.renderpass, //
+        canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
+
+    // Pick attachment.
+    if (canvas->with_pick)
+    {
+        canvas->render.pick_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
+        pick_image(
+            &canvas->render.pick_image, &canvas->render.renderpass, //
+            canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
+        canvas->render.pick_staging = _staging_image(
+            canvas, canvas->render.pick_image.format, DVZ_PICK_STAGING_SIZE,
+            DVZ_PICK_STAGING_SIZE);
+    }
+}
+
+static void _canvas_framebuffers(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    DvzGpu* gpu = canvas->gpu;
+
+    canvas->render.framebuffers = dvz_framebuffers(gpu);
+    dvz_framebuffers_attachment(&canvas->render.framebuffers, 0, canvas->render.swapchain.images);
+    dvz_framebuffers_attachment(&canvas->render.framebuffers, 1, &canvas->render.depth_image);
+    if (canvas->with_pick)
+        dvz_framebuffers_attachment(&canvas->render.framebuffers, 2, &canvas->render.pick_image);
+    dvz_framebuffers_create(&canvas->render.framebuffers, &canvas->render.renderpass);
+
+    if (canvas->overlay)
+    {
+        canvas->render.framebuffers_overlay = dvz_framebuffers(gpu);
+        dvz_framebuffers_attachment(
+            &canvas->render.framebuffers_overlay, 0, canvas->render.swapchain.images);
+        dvz_framebuffers_create(
+            &canvas->render.framebuffers_overlay, &canvas->render.renderpass_overlay);
+    }
+}
+
+
+
 void dvz_canvas_create(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
@@ -303,8 +396,24 @@ void dvz_canvas_create(DvzCanvas* canvas)
     // Make sure the GPU and context have been created.
     _canvas_ensure_context(canvas);
 
-    // Create the renderpass(es).
+    // Initialize the renderpass(es).
     _canvas_renderpass(canvas);
+
+    // Create the swapchain.
+    uint32_t min_img_count = canvas->offscreen ? 1 : DVZ_MIN_SWAPCHAIN_IMAGE_COUNT;
+    canvas->render.swapchain = dvz_swapchain(canvas->gpu, canvas->window, min_img_count);
+    _canvas_swapchain(canvas);
+
+    // Create the attachments.
+    _canvas_attachments(canvas);
+
+    // Create the renderpass(es).
+    dvz_renderpass_create(&canvas->render.renderpass);
+    if (canvas->overlay)
+        dvz_renderpass_create(&canvas->render.renderpass_overlay);
+
+    // Create the framebuffers.
+    _canvas_framebuffers(canvas);
 }
 
 
