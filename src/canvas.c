@@ -33,7 +33,8 @@
 static void blank_commands(DvzCanvas* canvas, DvzCommands* cmds, uint32_t cmd_idx)
 {
     dvz_cmd_begin(cmds, cmd_idx);
-    dvz_cmd_begin_renderpass(cmds, cmd_idx, &canvas->renderpass, &canvas->render.framebuffers);
+    dvz_cmd_begin_renderpass(
+        cmds, cmd_idx, &canvas->render.renderpass, &canvas->render.framebuffers);
     dvz_cmd_end_renderpass(cmds, cmd_idx);
     dvz_cmd_end(cmds, cmd_idx);
 }
@@ -454,10 +455,10 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     }
 
     // Create default renderpass.
-    canvas->renderpass = default_renderpass(
+    canvas->render.renderpass = default_renderpass(
         gpu, DVZ_DEFAULT_BACKGROUND, DVZ_DEFAULT_IMAGE_FORMAT, overlay, support_pick);
     if (overlay)
-        canvas->renderpass_overlay = default_renderpass_overlay(
+        canvas->render.renderpass_overlay = default_renderpass_overlay(
             gpu, DVZ_DEFAULT_IMAGE_FORMAT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
     // Create swapchain
@@ -482,7 +483,7 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
             DvzImages* images = canvas->render.swapchain.images;
 
             // Color attachment
-            dvz_images_format(images, canvas->renderpass.attachments[0].format);
+            dvz_images_format(images, canvas->render.renderpass.attachments[0].format);
             dvz_images_size(images, width, height, 1);
             dvz_images_tiling(images, VK_IMAGE_TILING_OPTIMAL);
             dvz_images_usage(
@@ -499,7 +500,7 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
         // Depth attachment.
         canvas->render.depth_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
         depth_image(
-            &canvas->render.depth_image, &canvas->renderpass, //
+            &canvas->render.depth_image, &canvas->render.renderpass, //
             canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
 
         // Pick attachment.
@@ -507,7 +508,7 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
         {
             canvas->render.pick_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
             pick_image(
-                &canvas->render.pick_image, &canvas->renderpass, //
+                &canvas->render.pick_image, &canvas->render.renderpass, //
                 canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
             canvas->render.pick_staging = _staging_image(
                 canvas, canvas->render.pick_image.format, DVZ_PICK_STAGING_SIZE,
@@ -516,9 +517,9 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     }
 
     // Create renderpass.
-    dvz_renderpass_create(&canvas->renderpass);
+    dvz_renderpass_create(&canvas->render.renderpass);
     if (overlay)
-        dvz_renderpass_create(&canvas->renderpass_overlay);
+        dvz_renderpass_create(&canvas->render.renderpass_overlay);
 
     // Create framebuffers.
     {
@@ -529,7 +530,7 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
         if (support_pick)
             dvz_framebuffers_attachment(
                 &canvas->render.framebuffers, 2, &canvas->render.pick_image);
-        dvz_framebuffers_create(&canvas->render.framebuffers, &canvas->renderpass);
+        dvz_framebuffers_create(&canvas->render.framebuffers, &canvas->render.renderpass);
 
         if (overlay)
         {
@@ -537,7 +538,7 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
             dvz_framebuffers_attachment(
                 &canvas->render.framebuffers_overlay, 0, canvas->render.swapchain.images);
             dvz_framebuffers_create(
-                &canvas->render.framebuffers_overlay, &canvas->renderpass_overlay);
+                &canvas->render.framebuffers_overlay, &canvas->render.renderpass_overlay);
         }
     }
 
@@ -685,9 +686,9 @@ void dvz_canvas_recreate(DvzCanvas* canvas)
     DvzGpu* gpu = canvas->gpu;
     DvzSwapchain* swapchain = &canvas->render.swapchain;
     DvzFramebuffers* framebuffers = &canvas->render.framebuffers;
-    DvzRenderpass* renderpass = &canvas->renderpass;
+    DvzRenderpass* renderpass = &canvas->render.renderpass;
     DvzFramebuffers* framebuffers_overlay = &canvas->render.framebuffers_overlay;
-    DvzRenderpass* renderpass_overlay = &canvas->renderpass_overlay;
+    DvzRenderpass* renderpass_overlay = &canvas->render.renderpass_overlay;
     bool support_pick = _support_pick(canvas);
 
     ASSERT(window != NULL);
@@ -836,7 +837,7 @@ void dvz_canvas_buffers(
 void dvz_canvas_clear_color(DvzCanvas* canvas, float red, float green, float blue)
 {
     ASSERT(canvas != NULL);
-    canvas->renderpass.clear_values->color = (VkClearColorValue){{red, green, blue, 1}};
+    canvas->render.renderpass.clear_values->color = (VkClearColorValue){{red, green, blue, 1}};
     dvz_canvas_to_refill(canvas);
 }
 
@@ -2537,9 +2538,9 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
 
     // Destroy the renderpasses.
     log_trace("canvas destroy renderpass");
-    dvz_renderpass_destroy(&canvas->renderpass);
+    dvz_renderpass_destroy(&canvas->render.renderpass);
     if (canvas->overlay)
-        dvz_renderpass_destroy(&canvas->renderpass_overlay);
+        dvz_renderpass_destroy(&canvas->render.renderpass_overlay);
 
     // Destroy the swapchain.
     log_trace("canvas destroy swapchain");

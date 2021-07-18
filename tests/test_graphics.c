@@ -74,7 +74,7 @@ static void _graphics_refill(DvzCanvas* canvas, DvzEvent ev)
 
     // Commands.
     dvz_cmd_begin(cmds, idx);
-    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->render.framebuffers);
+    dvz_cmd_begin_renderpass(cmds, idx, &canvas->render.renderpass, &canvas->render.framebuffers);
     dvz_cmd_viewport(cmds, idx, canvas->viewport.viewport);
     dvz_cmd_bind_vertex_buffer(cmds, idx, *br, 0);
     if (br_index->buffer != NULL)

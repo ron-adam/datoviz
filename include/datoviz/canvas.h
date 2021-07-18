@@ -495,10 +495,17 @@ struct DvzRender
 {
     DvzSwapchain swapchain;
     DvzImages depth_image;
+
     DvzImages pick_image;
     DvzImages pick_staging;
+
     DvzFramebuffers framebuffers;
     DvzFramebuffers framebuffers_overlay; // used by the overlay renderpass
+
+    // Renderpasses.
+    DvzRenderpass renderpass;         // default renderpass
+    DvzRenderpass renderpass_overlay; // GUI overlay renderpass
+
     DvzSubmit submit;
 };
 
@@ -537,10 +544,6 @@ struct DvzCanvas
     uint64_t frame_idx;
     DvzClock clock;
     DvzFPS fps;
-
-    // Renderpasses.
-    DvzRenderpass renderpass;         // default renderpass
-    DvzRenderpass renderpass_overlay; // GUI overlay renderpass
 
     // Synchronization events.
     DvzSemaphores sem_img_available;

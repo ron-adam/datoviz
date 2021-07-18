@@ -61,7 +61,7 @@ static void _presend(DvzCanvas* canvas, DvzEvent ev)
 
     dvz_cmd_begin(cmds, idx);
     dvz_cmd_begin_renderpass(
-        cmds, idx, &canvas->renderpass_overlay, &canvas->render.framebuffers_overlay);
+        cmds, idx, &canvas->render.renderpass_overlay, &canvas->render.framebuffers_overlay);
 
     // Begin new frame.
     if (has_imgui_context)
@@ -309,7 +309,7 @@ static void _imgui_canvas_enable(DvzCanvas* canvas)
         init_info.MinImageCount = canvas->render.swapchain.img_count;
         init_info.ImageCount = canvas->render.swapchain.img_count;
         init_info.CheckVkResultFn = _imgui_check_vk_result;
-        ImGui_ImplVulkan_Init(&init_info, canvas->renderpass_overlay.renderpass);
+        ImGui_ImplVulkan_Init(&init_info, canvas->render.renderpass_overlay.renderpass);
 
         // Only need to run once, for the first canvas, as Dear ImGui uses a global context.
         _imgui_fonts_upload(canvas);

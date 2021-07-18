@@ -546,7 +546,7 @@ void dvz_visual_fill_begin(DvzCanvas* canvas, DvzCommands* cmds, uint32_t idx)
 {
     ASSERT(canvas != NULL);
     dvz_cmd_begin(cmds, idx);
-    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->render.framebuffers);
+    dvz_cmd_begin_renderpass(cmds, idx, &canvas->render.renderpass, &canvas->render.framebuffers);
 }
 
 

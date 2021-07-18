@@ -316,7 +316,7 @@ DvzGraphics* dvz_blank_graphics(DvzScene* scene, int flags)
     dvz_graphics_slot(graphics, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER); // viewport
 
     // Renderpass.
-    dvz_graphics_renderpass(graphics, &canvas->renderpass, 0);
+    dvz_graphics_renderpass(graphics, &canvas->render.renderpass, 0);
 
     return graphics;
 }

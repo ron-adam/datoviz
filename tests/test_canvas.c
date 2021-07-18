@@ -49,7 +49,7 @@ static TestVisual triangle(DvzCanvas* canvas, const char* suffix)
 
     TestVisual visual = {0};
     visual.gpu = gpu;
-    visual.renderpass = &canvas->renderpass;
+    visual.renderpass = &canvas->render.renderpass;
     visual.framebuffers = &canvas->render.framebuffers;
 
     // Make the graphics.
@@ -72,7 +72,7 @@ static void triangle_refill(DvzCanvas* canvas, DvzEvent ev)
     ASSERT(visual != NULL);
 
     triangle_commands(
-        cmds, idx, &canvas->renderpass, &canvas->render.framebuffers, //
+        cmds, idx, &canvas->render.renderpass, &canvas->render.framebuffers, //
         &visual->graphics, &visual->bindings, visual->br);
 }
 
@@ -817,7 +817,7 @@ static void triangle_refill_compute(DvzCanvas* canvas, DvzEvent ev)
     dvz_cmd_compute(cmds, idx, visual->compute, (uvec3){3, 1, 1});
     _buffer_barrier(visual, cmds, idx, 1);
 
-    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->render.framebuffers);
+    dvz_cmd_begin_renderpass(cmds, idx, &canvas->render.renderpass, &canvas->render.framebuffers);
     dvz_cmd_viewport(cmds, idx, canvas->viewport.viewport);
     dvz_cmd_bind_vertex_buffer(cmds, idx, visual->br, 0);
     dvz_cmd_bind_graphics(cmds, idx, &visual->graphics, &visual->bindings, 0);

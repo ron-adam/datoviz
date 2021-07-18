@@ -393,7 +393,7 @@ static bool _is_white_background(DvzCanvas* canvas)
 {
     // TODO: refactor this and put elsewhere
     ASSERT(canvas != NULL);
-    float* color = canvas->renderpass.clear_values->color.float32;
+    float* color = canvas->render.renderpass.clear_values->color.float32;
     return color[0] == 1 && color[1] == 1 && color[2] == 1;
 }
 

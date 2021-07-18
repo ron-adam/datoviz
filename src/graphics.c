@@ -37,7 +37,7 @@ static inline void _load_shader(
     }
 
 #define PRIMITIVE(x)                                                                              \
-    dvz_graphics_renderpass(graphics, &canvas->renderpass, 0);                                    \
+    dvz_graphics_renderpass(graphics, &canvas->render.renderpass, 0);                             \
     dvz_graphics_topology(graphics, VK_PRIMITIVE_TOPOLOGY_##x);                                   \
     dvz_graphics_polygon_mode(graphics, VK_POLYGON_MODE_FILL);
 
@@ -98,7 +98,7 @@ static void _graphics_basic(DvzCanvas* canvas, DvzGraphics* graphics, VkPrimitiv
     SHADER(VERTEX, "graphics_basic_vert")
     SHADER(FRAGMENT, "graphics_basic_frag")
 
-    dvz_graphics_renderpass(graphics, &canvas->renderpass, 0);
+    dvz_graphics_renderpass(graphics, &canvas->render.renderpass, 0);
     dvz_graphics_topology(graphics, topology);
     dvz_graphics_polygon_mode(graphics, VK_POLYGON_MODE_FILL);
 

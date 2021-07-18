@@ -235,7 +235,7 @@ static void destroy_visual(TestVisual* visual)
 
 static void _white_background(DvzCanvas* canvas)
 {
-    canvas->renderpass.clear_values->color = (VkClearColorValue){{1, 1, 1, 1}};
+    canvas->render.renderpass.clear_values->color = (VkClearColorValue){{1, 1, 1, 1}};
     dvz_canvas_to_refill(canvas);
 }
 
@@ -243,7 +243,7 @@ static void _white_background(DvzCanvas* canvas)
 
 static void _dark_background(DvzCanvas* canvas)
 {
-    canvas->renderpass.clear_values->color = DVZ_DEFAULT_BACKGROUND;
+    canvas->render.renderpass.clear_values->color = DVZ_DEFAULT_BACKGROUND;
     dvz_canvas_to_refill(canvas);
 }
 
