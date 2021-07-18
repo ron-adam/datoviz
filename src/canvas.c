@@ -381,6 +381,59 @@ static void _canvas_framebuffers(DvzCanvas* canvas)
     }
 }
 
+static void _canvas_sync(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    DvzGpu* gpu = canvas->gpu;
+
+    uint32_t frames_in_flight = canvas->offscreen ? 1 : DVZ_MAX_FRAMES_IN_FLIGHT;
+
+    canvas->sync.sem_img_available = dvz_semaphores(gpu, frames_in_flight);
+    canvas->sync.sem_render_finished = dvz_semaphores(gpu, frames_in_flight);
+    canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
+
+    canvas->sync.fences_render_finished = dvz_fences(gpu, frames_in_flight, true);
+    canvas->sync.fences_flight.gpu = gpu;
+    canvas->sync.fences_flight.count = canvas->render.swapchain.img_count;
+}
+
+static void _canvas_commands(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+
+    // Default transfer commands.
+    canvas->cmds_transfer = dvz_commands(canvas->gpu, DVZ_DEFAULT_QUEUE_TRANSFER, 1);
+
+    // Default render commands.
+    canvas->cmds_render =
+        dvz_commands(canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER, canvas->render.swapchain.img_count);
+
+    // Default submit.
+    canvas->render.submit = dvz_submit(canvas->gpu);
+}
+
+static void _canvas_input(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+
+    canvas->input = dvz_input();
+    dvz_input_backend(&canvas->input, canvas->app->backend, canvas->window->backend_window);
+}
+
+static void _canvas_deq(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+
+    canvas->deq = dvz_deq(1);
+
+    // Procs
+    dvz_deq_proc(&canvas->deq, 0, 1, (uint32_t[]){0});
+
+    // Deq callbacks: canvas updates.
+    dvz_deq_callback(&canvas->deq, 0, DVZ_CANVAS_UPDATE_TO_REFILL, _canvas_to_refill, canvas);
+    dvz_deq_callback(&canvas->deq, 0, DVZ_CANVAS_UPDATE_TO_CLOSE, _canvas_to_close, canvas);
+}
+
 
 
 void dvz_canvas_create(DvzCanvas* canvas)
@@ -414,6 +467,21 @@ void dvz_canvas_create(DvzCanvas* canvas)
 
     // Create the framebuffers.
     _canvas_framebuffers(canvas);
+
+    // Create synchronization objects.
+    _canvas_sync(canvas);
+
+    // Create the command buffers.
+    _canvas_commands(canvas);
+
+    // Create the Input instance.
+    _canvas_input(canvas);
+
+    // Create the Deq for canvas updates.
+    _canvas_deq(canvas);
+
+    // The canvas is created!
+    dvz_obj_created(&canvas->obj);
 }
 
 
@@ -492,6 +560,7 @@ void dvz_canvas_buffers(
     ASSERT(idx < br.count);
     dvz_buffer_upload(br.buffer, br.offsets[idx] + offset, size, data);
 }
+
 
 
 /*************************************************************************************************/
