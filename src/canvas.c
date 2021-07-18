@@ -268,7 +268,7 @@ static void _refill_frame(DvzCanvas* canvas)
         atomic_store(&canvas->refills.status, status);
 
         // Wait for command buffer to be ready for update.
-        dvz_fences_wait(&canvas->fences_flight, img_idx);
+        dvz_fences_wait(&canvas->sync.fences_flight, img_idx);
 
         // HACK: avoid edge effects when the resize takes some time and the dt becomes too large
         // canvas->clock.interval = 0;
@@ -546,13 +546,13 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     {
         uint32_t frames_in_flight = offscreen ? 1 : DVZ_MAX_FRAMES_IN_FLIGHT;
 
-        canvas->sem_img_available = dvz_semaphores(gpu, frames_in_flight);
-        canvas->sem_render_finished = dvz_semaphores(gpu, frames_in_flight);
-        canvas->present_semaphores = &canvas->sem_render_finished;
+        canvas->sync.sem_img_available = dvz_semaphores(gpu, frames_in_flight);
+        canvas->sync.sem_render_finished = dvz_semaphores(gpu, frames_in_flight);
+        canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
 
-        canvas->fences_render_finished = dvz_fences(gpu, frames_in_flight, true);
-        canvas->fences_flight.gpu = gpu;
-        canvas->fences_flight.count = canvas->render.swapchain.img_count;
+        canvas->sync.fences_render_finished = dvz_fences(gpu, frames_in_flight, true);
+        canvas->sync.fences_flight.gpu = gpu;
+        canvas->sync.fences_flight.count = canvas->render.swapchain.img_count;
     }
 
     // Default transfer commands.
@@ -752,9 +752,9 @@ void dvz_canvas_recreate(DvzCanvas* canvas)
 
     // Recreate the semaphores.
     dvz_app_wait(canvas->app);
-    dvz_semaphores_recreate(&canvas->sem_img_available);
-    dvz_semaphores_recreate(&canvas->sem_render_finished);
-    canvas->present_semaphores = &canvas->sem_render_finished;
+    dvz_semaphores_recreate(&canvas->sync.sem_img_available);
+    dvz_semaphores_recreate(&canvas->sync.sem_render_finished);
+    canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
 }
 
 
@@ -1627,7 +1627,7 @@ static void _screencast_timer_callback(DvzCanvas* canvas, DvzEvent ev)
     // Wait for "image_ready" semaphore
     dvz_submit_wait_semaphores(
         submit, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, //
-        &canvas->sem_render_finished, canvas->cur_frame);
+        &canvas->sync.sem_render_finished, canvas->cur_frame);
 
     // Signal screencast_finished semaphore
     dvz_submit_signal_semaphores(submit, &screencast->semaphore, 0);
@@ -1651,7 +1651,7 @@ static void _screencast_post_send(DvzCanvas* canvas, DvzEvent ev)
 
     uint32_t img_idx = canvas->render.swapchain.img_idx;
     // Always make sure the present semaphore is reset to its original value.
-    canvas->present_semaphores = &canvas->sem_render_finished;
+    canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
 
     // Do nothing if the screencast image is not ready.
     if (screencast->status <= DVZ_SCREENCAST_IDLE)
@@ -1671,7 +1671,7 @@ static void _screencast_post_send(DvzCanvas* canvas, DvzEvent ev)
         dvz_submit_send(&screencast->submit, img_idx, &screencast->fence, 0);
         // canvas->frame_idx == 0 ? NULL : &screencast->fence, 0);
 
-        canvas->present_semaphores = &screencast->semaphore;
+        canvas->sync.present_semaphores = &screencast->semaphore;
         screencast->status = DVZ_SCREENCAST_AWAIT_TRANSFER;
     }
 
@@ -2139,8 +2139,8 @@ void dvz_canvas_frame_submit(DvzCanvas* canvas)
 
     // Keep track of the fence associated to the current swapchain image.
     dvz_fences_copy(
-        &canvas->fences_render_finished, f, //
-        &canvas->fences_flight, img_idx);
+        &canvas->sync.fences_render_finished, f, //
+        &canvas->sync.fences_flight, img_idx);
 
     // Reset the Submit instance before adding the command buffers.
     dvz_submit_reset(s);
@@ -2172,10 +2172,10 @@ void dvz_canvas_frame_submit(DvzCanvas* canvas)
     {
         dvz_submit_wait_semaphores(
             s, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, //
-            &canvas->sem_img_available, f);
+            &canvas->sync.sem_img_available, f);
 
         // Once the render is finished, we signal another semaphore.
-        dvz_submit_signal_semaphores(s, &canvas->sem_render_finished, f);
+        dvz_submit_signal_semaphores(s, &canvas->sync.sem_render_finished, f);
     }
 
     // SEND callbacks and send the Submit instance.
@@ -2184,7 +2184,7 @@ void dvz_canvas_frame_submit(DvzCanvas* canvas)
         _event_presend(canvas);
 
         // Send the Submit instance.
-        dvz_submit_send(s, img_idx, &canvas->fences_render_finished, f);
+        dvz_submit_send(s, img_idx, &canvas->sync.fences_render_finished, f);
 
         // Call POST_SEND callbacks
         _event_postsend(canvas);
@@ -2196,9 +2196,10 @@ void dvz_canvas_frame_submit(DvzCanvas* canvas)
     if (!canvas->offscreen)
         dvz_swapchain_present(
             &canvas->render.swapchain, 1, //
-            canvas->present_semaphores, CLIP(f, 0, canvas->present_semaphores->count - 1));
+            canvas->sync.present_semaphores,
+            CLIP(f, 0, canvas->sync.present_semaphores->count - 1));
 
-    canvas->cur_frame = (f + 1) % canvas->fences_render_finished.count;
+    canvas->cur_frame = (f + 1) % canvas->sync.fences_render_finished.count;
 }
 
 
@@ -2272,10 +2273,11 @@ int dvz_canvas_frame(DvzCanvas* canvas)
     // NOTE: this call modifies swapchain->img_idx
     if (!canvas->offscreen)
         dvz_swapchain_acquire(
-            &canvas->render.swapchain, &canvas->sem_img_available, canvas->cur_frame, NULL, 0);
+            &canvas->render.swapchain, &canvas->sync.sem_img_available, canvas->cur_frame, NULL,
+            0);
 
     // Wait for fence.
-    dvz_fences_wait(&canvas->fences_flight, canvas->render.swapchain.img_idx);
+    dvz_fences_wait(&canvas->sync.fences_flight, canvas->render.swapchain.img_idx);
 
     // If there is a problem with swapchain image acquisition, wait and try again later.
     if (canvas->render.swapchain.obj.status == DVZ_OBJECT_STATUS_INVALID)
@@ -2574,12 +2576,12 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
 
     // Destroy the semaphores.
     log_trace("canvas destroy semaphores");
-    dvz_semaphores_destroy(&canvas->sem_img_available);
-    dvz_semaphores_destroy(&canvas->sem_render_finished);
+    dvz_semaphores_destroy(&canvas->sync.sem_img_available);
+    dvz_semaphores_destroy(&canvas->sync.sem_render_finished);
 
     // Destroy the fences.
     log_trace("canvas destroy fences");
-    dvz_fences_destroy(&canvas->fences_render_finished);
+    dvz_fences_destroy(&canvas->sync.fences_render_finished);
 
     // Free the GUI context if it has been set.
     FREE(canvas->gui_context);

@@ -259,6 +259,7 @@ typedef struct DvzPendingRefill DvzPendingRefill;
 // Canvas companion structs.
 typedef struct DvzRender DvzRender;
 typedef struct DvzFPS DvzFPS;
+typedef struct DvzCanvasSync DvzCanvasSync;
 
 
 // Forward declarations.
@@ -517,6 +518,15 @@ struct DvzFPS
     double max_delay_roll[10];
 };
 
+struct DvzCanvasSync
+{
+    DvzSemaphores sem_img_available;
+    DvzSemaphores sem_render_finished;
+    DvzSemaphores* present_semaphores;
+    DvzFences fences_render_finished;
+    DvzFences fences_flight;
+};
+
 struct DvzCanvas
 {
     DvzObject obj;
@@ -546,11 +556,7 @@ struct DvzCanvas
     DvzFPS fps;
 
     // Synchronization events.
-    DvzSemaphores sem_img_available;
-    DvzSemaphores sem_render_finished;
-    DvzSemaphores* present_semaphores;
-    DvzFences fences_render_finished;
-    DvzFences fences_flight;
+    DvzCanvasSync sync;
 
     // Default command buffers.
     DvzCommands cmds_transfer;
