@@ -359,13 +359,15 @@ struct DvzViewport
 
 // Override the application running in order to automate running and generate automatic
 // screenshots or videos.
+// NOTE: applies only to the first canvas
 struct DvzAutorun
 {
-    bool enable;       // whether to enable autorun or not
-    bool offscreen;    // whether the autorun is done in offscreen mode or not
-    char* screenshot;  // automatic saving of screenshot
-    char* video;       // automatic saving of screencast
-    uint64_t n_frames; // total number of frames for the autorun
+    bool enable;      // whether to enable autorun or not
+    bool offscreen;   // whether to run the canvas offscreen or not
+    char* screenshot; // automatic saving of screenshot at the last frame, or ignored if infinite
+                      // loop
+    char* video;      // automatic saving of screencast
+    uint64_t frame_count; // total number of frames to run
 };
 
 
@@ -557,17 +559,23 @@ struct DvzCanvas
     DvzApp* app;
     DvzGpu* gpu;
 
+    // Flags.
     bool offscreen;
     bool overlay;
-    bool resized;
-    float dpi_scaling;
+    bool with_pick;
     int flags;
+
+    float dpi_scaling;
     void* user_data;
     DvzWindow* window;
+    DvzViewport viewport;
 
     // Frames.
     uint32_t cur_frame; // current frame within the images in flight
     uint64_t frame_idx;
+    bool resized;
+
+    // FPS.
     DvzClock clock;
     DvzFPS fps;
 
@@ -587,9 +595,10 @@ struct DvzCanvas
     DvzDeq deq;
     bool captured; // if true, mouse and keyboard should not be processed
 
+    // Input.
     DvzInput input;
 
-    DvzViewport viewport;
+    // Scene.
     DvzScene* scene;
 
     // GUIs.
@@ -606,7 +615,10 @@ struct DvzCanvas
 /*************************************************************************************************/
 
 /**
- * Create a canvas.
+ * Initialize a canvas.
+ *
+ * This function does not create the window and the GPU objects: that will be the task of
+ * canvas_create().
  *
  * @param gpu the GPU to use for swapchain presentation
  * @param width the initial window width, in pixels
@@ -614,6 +626,37 @@ struct DvzCanvas
  * @param flags the creation flags for the canvas
  */
 DVZ_EXPORT DvzCanvas* dvz_canvas(DvzGpu* gpu, uint32_t width, uint32_t height, int flags);
+
+/**
+ * Specify whether a canvas is offscreen or not.
+ *
+ * @param canvas the canvas
+ * @param is_offscreen boolean
+ */
+DVZ_EXPORT void dvz_canvas_offscreen(DvzCanvas* canvas, bool is_offscreen);
+
+/**
+ * Specify whether a canvas supports picking or not.
+ *
+ * @param canvas the canvas
+ * @param with_pick boolean
+ */
+DVZ_EXPORT void dvz_canvas_with_pick(DvzCanvas* canvas, bool with_pick);
+
+/**
+ * Specify whether a canvas supports GUIs or not.
+ *
+ * @param canvas the canvas
+ * @param with_gui boolean
+ */
+DVZ_EXPORT void dvz_canvas_with_gui(DvzCanvas* canvas, bool with_gui);
+
+/**
+ * Create a canvas after it has been initialized.
+ *
+ * @param canvas the canvas
+ */
+DVZ_EXPORT void dvz_canvas_create(DvzCanvas* canvas);
 
 /**
  * Recreate the canvas GPU resources and swapchain.

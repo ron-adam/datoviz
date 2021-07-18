@@ -114,7 +114,7 @@ DvzViewport dvz_viewport_default(uint32_t width, uint32_t height)
 
 
 /*************************************************************************************************/
-/*  Canvas creation                                                                              */
+/*  Canvas initialization                                                                        */
 /*************************************************************************************************/
 
 static DvzCanvas*
@@ -199,6 +199,42 @@ void dvz_canvas_reset(DvzCanvas* canvas)
     canvas->cur_frame = 0;
     canvas->frame_idx = 0;
     canvas->fps.last_frame_idx = 0;
+}
+
+
+
+/*************************************************************************************************/
+/*  Canvas creation                                                                              */
+/*************************************************************************************************/
+
+void dvz_canvas_offscreen(DvzCanvas* canvas, bool is_offscreen)
+{
+    ASSERT(canvas != NULL);
+    canvas->offscreen = is_offscreen;
+}
+
+
+
+void dvz_canvas_with_pick(DvzCanvas* canvas, bool with_pick)
+{
+    ASSERT(canvas != NULL);
+    canvas->with_pick = with_pick;
+}
+
+
+
+void dvz_canvas_with_gui(DvzCanvas* canvas, bool with_gui)
+{
+    ASSERT(canvas != NULL);
+    canvas->overlay = with_gui;
+}
+
+
+
+void dvz_canvas_create(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    //
 }
 
 
