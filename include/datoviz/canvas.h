@@ -565,11 +565,6 @@ struct DvzCanvas
     void* user_data;
     DvzWindow* window;
 
-    // This thread-safe variable is used by the background thread to
-    // safely communicate a status change of the canvas
-    // atomic(DvzObjectStatus, cur_status);
-    // atomic(bool, to_close);
-
     // Frames.
     uint32_t cur_frame; // current frame within the images in flight
     uint64_t frame_idx;
@@ -594,29 +589,14 @@ struct DvzCanvas
 
     DvzInput input;
 
-    // // GUIs.
-    // DvzGuiContext* gui_context;
-    // DvzContainer guis;
-
-    // DvzScreencast* screencast;
-    // DvzPendingRefill refills;
-
     DvzViewport viewport;
     DvzScene* scene;
 
-    // // TO BE REMOVED:
-    // // Event callbacks, running in the background thread, may be slow, for end-users.
-    // uint32_t callbacks_count;
-    // DvzEventCallbackRegister callbacks[DVZ_MAX_EVENT_CALLBACKS];
-    // // DvzThread thread; // processes the async events
-    // // Event queue.
-    // DvzFifo event_queue;
-    // // DvzEvent events[DVZ_MAX_FIFO_CAPACITY];
-    // DvzThread event_thread;
-    // bool enable_lock;
-    // atomic(DvzEventType, event_processing);
-    // DvzMouse mouse;
-    // DvzKeyboard keyboard;
+    // GUIs.
+    // DvzGuiContext* gui_context;
+    // DvzContainer guis;
+    // Screencast.
+    // DvzScreencast* screencast;
 };
 
 
@@ -776,7 +756,7 @@ DVZ_EXPORT DvzViewport dvz_viewport_full(DvzCanvas* canvas);
  * @param canvas the canvas
  * @param scaling the scaling factor
  */
-DVZ_EXPORT void dvz_canvas_dpi_scaling(DvzCanvas* canvas, float scaling);
+// DVZ_EXPORT void dvz_canvas_dpi_scaling(DvzCanvas* canvas, float scaling);
 
 
 
@@ -1218,14 +1198,14 @@ DVZ_EXPORT void dvz_screenshot_file(DvzCanvas* canvas, const char* png_path);
  * @param canvas the canvas
  * @returns 0 if the frame was successfully presented, 1 othersiwe
  */
-DVZ_EXPORT int dvz_canvas_frame(DvzCanvas* canvas);
+// DVZ_EXPORT int dvz_canvas_frame(DvzCanvas* canvas);
 
 /**
  * Submit the rendered frame to the swapchain system.
  *
  * @param canvas the canvas
  */
-DVZ_EXPORT void dvz_canvas_frame_submit(DvzCanvas* canvas);
+// DVZ_EXPORT void dvz_canvas_frame_submit(DvzCanvas* canvas);
 
 /**
  * Start the main event loop.
@@ -1236,7 +1216,7 @@ DVZ_EXPORT void dvz_canvas_frame_submit(DvzCanvas* canvas);
  * @param frame_count number of frames to process (0 for infinite loop)
  * @returns the number of active canvases at the time the function returns
  */
-DVZ_EXPORT int dvz_app_run(DvzApp* app, uint64_t frame_count);
+// DVZ_EXPORT int dvz_app_run(DvzApp* app, uint64_t frame_count);
 
 
 

@@ -909,11 +909,14 @@ void dvz_input_destroy(DvzInput* input)
 {
     ASSERT(input != NULL);
 
-    // Enqueue a STOP task to stop the UL and DL threads.
-    dvz_deq_enqueue(&input->deq, DVZ_INPUT_NONE, 0, NULL);
+    if (dvz_obj_is_created(&input->thread.obj))
+    {
+        // Enqueue a STOP task to stop the UL and DL threads.
+        dvz_deq_enqueue(&input->deq, DVZ_INPUT_NONE, 0, NULL);
 
-    // Join the thread.
-    dvz_thread_join(&input->thread);
+        // Join the thread.
+        dvz_thread_join(&input->thread);
+    }
 
     // Destroy the timers.
     DvzContainerIterator iter = dvz_container_iterator(&input->timers);

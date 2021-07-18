@@ -789,6 +789,34 @@ void dvz_triangulate_polygon(
 
 
 
+static inline double _mean(uint32_t n, double* values)
+{
+    ASSERT(n > 0);
+    ASSERT(values != NULL);
+    double mean = 0;
+    for (uint32_t i = 0; i < n; i++)
+        mean += values[i];
+    mean /= n;
+    ASSERT(mean >= 0);
+    return mean;
+}
+
+// static inline bool _all_true(uint32_t n, bool* arr)
+// {
+//     bool all_updated = true;
+//     for (uint32_t i = 0; i < n; i++)
+//     {
+//         if (!arr[i])
+//         {
+//             all_updated = false;
+//             break;
+//         }
+//     }
+//     return all_updated;
+// }
+
+
+
 /*************************************************************************************************/
 /*  Random                                                                                       */
 /*************************************************************************************************/

@@ -106,25 +106,25 @@ int test_canvas_blank(TestContext* tc)
     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
     ASSERT(canvas->app != NULL);
 
-    if (app->backend != DVZ_BACKEND_OFFSCREEN)
-    {
-        ASSERT(canvas->window != NULL);
-        ASSERT(canvas->window->app != NULL);
-    }
+    // if (app->backend != DVZ_BACKEND_OFFSCREEN)
+    // {
+    //     ASSERT(canvas->window != NULL);
+    //     ASSERT(canvas->window->app != NULL);
+    // }
 
-    uvec2 size = {0};
+    // uvec2 size = {0};
 
-    // Framebuffer size.
-    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_FRAMEBUFFER, size);
-    log_debug("canvas framebuffer size is %dx%d", size[0], size[1]);
-    ASSERT(size[0] > 0);
-    ASSERT(size[1] > 0);
+    // // Framebuffer size.
+    // dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_FRAMEBUFFER, size);
+    // log_debug("canvas framebuffer size is %dx%d", size[0], size[1]);
+    // ASSERT(size[0] > 0);
+    // ASSERT(size[1] > 0);
 
-    // Screen size.
-    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
-    log_debug("canvas screen size is %dx%d", size[0], size[1]);
-    ASSERT(size[0] > 0);
-    ASSERT(size[1] > 0);
+    // // Screen size.
+    // dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
+    // log_debug("canvas screen size is %dx%d", size[0], size[1]);
+    // ASSERT(size[0] > 0);
+    // ASSERT(size[1] > 0);
 
     // dvz_app_run(app, N_FRAMES);
 
