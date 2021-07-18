@@ -8,6 +8,7 @@
 #include "backend_glfw.h"
 #include "canvas_utils.h"
 #include "canvas_utils_old.h"
+#include "events_utils.h"
 #include "vklite_utils.h"
 
 #include <stdlib.h>
@@ -484,6 +485,8 @@ static void _fps_init(DvzCanvas* canvas, bool show_fps)
             canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback_fps, NULL);
 }
 
+
+
 static DvzCanvas*
 _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overlay, int flags)
 {
@@ -605,7 +608,13 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     // Default submit instance.
     canvas->render.submit = dvz_submit(gpu);
 
-    // Event system.
+    // Input.
+    {
+        // canvas->input = dvz_input();
+        // dvz_input_backend(&canvas->input, canvas->app->backend, canvas->window->backend_window);
+    }
+
+    // Event system. TO REMOVE
     {
         canvas->event_queue = dvz_fifo(DVZ_MAX_FIFO_CAPACITY);
         canvas->event_thread = dvz_thread(_event_thread, canvas);
@@ -618,35 +627,14 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
 
     // Canvas Deq.
     {
-        canvas->deq = dvz_deq(4);
+        canvas->deq = dvz_deq(1);
 
         // Procs
-        dvz_deq_proc(
-            &canvas->deq, DVZ_CANVAS_PROC_UPDATES, 1, (uint32_t[]){DVZ_CANVAS_DEQ_UPDATES});
-        dvz_deq_proc(&canvas->deq, DVZ_CANVAS_PROC_SYNC, 1, (uint32_t[]){DVZ_CANVAS_DEQ_SYNC});
-        // One Proc for mouse and keyboard events in the async thread.
-        dvz_deq_proc(
-            &canvas->deq, DVZ_CANVAS_PROC_ASYNC, 2,
-            (uint32_t[]){DVZ_CANVAS_DEQ_MOUSE, DVZ_CANVAS_DEQ_KEYBOARD});
+        dvz_deq_proc(&canvas->deq, 0, 1, (uint32_t[]){0});
 
         // Deq callbacks: canvas updates.
-        // TODO
-        // dvz_deq_callback(
-        //     &canvas->deq, DVZ_CANVAS_DEQ_UPDATES, //
-        //     DVZ_CANVAS_UPDATE_TO_REFILL,          //
-        //     _canvas_to_refill, canvas);
-        // dvz_deq_callback(
-        //     &canvas->deq, DVZ_CANVAS_DEQ_UPDATES, //
-        //     DVZ_CANVAS_UPDATE_TO_CLOSE,           //
-        //     _canvas_to_close, canvas);
-
-        // dvz_deq_callback(
-        //     &canvas->deq, DVZ_CANVAS_DEQ_MOUSE, //
-        //     DVZ_CANVAS_MOUSE_MOVE,              //
-        //     _canvas_mouse_move, canvas);
-
-        // Thread processing the async events.
-        // canvas->thread = dvz_thread(_canvas_thread, canvas);
+        dvz_deq_callback(&canvas->deq, 0, DVZ_CANVAS_UPDATE_TO_REFILL, _canvas_to_refill, canvas);
+        dvz_deq_callback(&canvas->deq, 0, DVZ_CANVAS_UPDATE_TO_CLOSE, _canvas_to_close, canvas);
     }
 
     dvz_obj_created(&canvas->obj);
@@ -2538,14 +2526,7 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
 
     // Destroy the canvas deq.
     {
-        // Enqueue a STOP task to stop the UL and DL threads.
-        // dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_UPDATES, 0, NULL);
-        // dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_SYNC, 0, NULL);
-        // dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_PROC_ASYNC, 0, NULL);
-
-        // Join the UL and DL threads.
-        // dvz_thread_join(&canvas->thread);
-
+        // dvz_input_destroy(&canvas->input);
         dvz_deq_destroy(&canvas->deq);
     }
 

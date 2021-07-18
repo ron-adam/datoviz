@@ -52,17 +52,17 @@ extern "C" {
 #define DVZ_DEFAULT_COMMANDS_RENDER   1
 #define DVZ_MAX_FRAMES_IN_FLIGHT      2
 
-// Three Deq queues: for canvas updates, sync event callbacks, async event callbacks (mouse,
-// keyboard).
-#define DVZ_CANVAS_DEQ_UPDATES  0
-#define DVZ_CANVAS_DEQ_SYNC     1
-#define DVZ_CANVAS_DEQ_MOUSE    2
-#define DVZ_CANVAS_DEQ_KEYBOARD 3
+// // Three Deq queues: for canvas updates, sync event callbacks, async event callbacks (mouse,
+// // keyboard).
+// #define DVZ_CANVAS_DEQ_UPDATES  0
+// #define DVZ_CANVAS_DEQ_SYNC     1
+// #define DVZ_CANVAS_DEQ_MOUSE    2
+// #define DVZ_CANVAS_DEQ_KEYBOARD 3
 
-// Three groups of queues. The Async proc is for mouse and keyboard events.
-#define DVZ_CANVAS_PROC_UPDATES 0
-#define DVZ_CANVAS_PROC_SYNC    1
-#define DVZ_CANVAS_PROC_ASYNC   2
+// // Three groups of queues. The Async proc is for mouse and keyboard events.
+// #define DVZ_CANVAS_PROC_UPDATES 0
+// #define DVZ_CANVAS_PROC_SYNC    1
+// #define DVZ_CANVAS_PROC_ASYNC   2
 
 
 
@@ -585,7 +585,7 @@ struct DvzCanvas
     // Event callbacks, running in the background thread, may be slow, for end-users.
     uint32_t callbacks_count;
     DvzEventCallbackRegister callbacks[DVZ_MAX_EVENT_CALLBACKS];
-    DvzThread thread; // processes the async events
+    // DvzThread thread; // processes the async events
     // Event queue.
     DvzFifo event_queue;
     // DvzEvent events[DVZ_MAX_FIFO_CAPACITY];

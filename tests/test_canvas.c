@@ -228,7 +228,7 @@ static void _timer_callback(DvzCanvas* canvas, DvzEvent ev)
 static void _frame_callback(DvzCanvas* canvas, DvzEvent ev)
 {
     ASSERT(canvas != NULL);
-    log_debug(
+    log_trace(
         "canvas #%d, frame callback #%d, time %.6f, interval %.6f", //
         canvas->obj.id, ev.u.f.idx, ev.u.f.time, ev.u.f.interval);
     EventHolder* events = (EventHolder*)ev.user_data;

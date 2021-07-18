@@ -13,17 +13,6 @@ extern "C" {
 /*  Canvas Deq callbacks                                                                         */
 /*************************************************************************************************/
 
-// Process the async events in a background thread.
-static void* _canvas_thread(void* user_data)
-{
-    DvzCanvas* canvas = (DvzCanvas*)user_data;
-    ASSERT(canvas != NULL);
-    // Process both mouse and keyboard events in that thread.
-    return _deq_loop(&canvas->deq, DVZ_CANVAS_PROC_ASYNC);
-}
-
-
-
 static void _canvas_to_refill(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);

@@ -99,28 +99,6 @@ static void _glfw_button_callback(GLFWwindow* window, int button, int action, in
         dvz_event_mouse_release(canvas, b, mods);
 }
 
-static void _enqueue_mouse_move(DvzCanvas* canvas, vec2 pos, int modifiers)
-{
-    DvzMouseMoveEvent* ev = calloc(1, sizeof(DvzMouseMoveEvent));
-    ev->pos[0] = pos[0];
-    ev->pos[1] = pos[1];
-    ev->modifiers = modifiers;
-    dvz_deq_enqueue(&canvas->deq, DVZ_CANVAS_DEQ_MOUSE, DVZ_CANVAS_MOUSE_MOVE, ev);
-}
-
-static void _glfw_move_callback(GLFWwindow* window, double xpos, double ypos)
-{
-    DvzCanvas* canvas = (DvzCanvas*)glfwGetWindowUserPointer(window);
-    ASSERT(canvas != NULL);
-    ASSERT(canvas->window != NULL);
-    if (!canvas->mouse.is_active)
-        return;
-
-    // TODO: get modifier from canvas struct
-    _enqueue_mouse_move(canvas, (vec2){xpos, ypos}, 0);
-    // dvz_event_mouse_move(canvas, (vec2){xpos, ypos}, canvas->mouse.modifiers);
-}
-
 static void _glfw_frame_callback(DvzCanvas* canvas, DvzEvent ev)
 {
     ASSERT(canvas != NULL);
@@ -188,7 +166,7 @@ static void backend_event_callbacks(DvzCanvas* canvas)
 
         // Register the mouse move callback.
         // TODO: comment?? if commented, see _glfw_frame_callback
-        glfwSetCursorPosCallback(w, _glfw_move_callback);
+        // glfwSetCursorPosCallback(w, _glfw_move_callback);
 
         // Register a function called at every frame, after event polling and state update
         dvz_event_callback(
