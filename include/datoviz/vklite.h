@@ -763,6 +763,7 @@ struct DvzSubmit
 struct DvzTexture
 {
     DvzObject obj;
+    uint32_t dims; // 1, 2, or 3
 
     DvzContext* context;
 

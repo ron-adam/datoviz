@@ -83,19 +83,6 @@ void dvz_copy_buffer(
 /*  Texture transfers                                                                            */
 /*************************************************************************************************/
 
-static uint32_t _get_texture_ndims(DvzTexture* tex)
-{
-    if (tex->image->image_type == VK_IMAGE_TYPE_1D)
-        return 1;
-    else if (tex->image->image_type == VK_IMAGE_TYPE_2D)
-        return 2;
-    else if (tex->image->image_type == VK_IMAGE_TYPE_3D)
-        return 3;
-    return 0;
-}
-
-
-
 static void _full_tex_shape(DvzTexture* tex, uvec3 shape)
 {
     ASSERT(tex != NULL);

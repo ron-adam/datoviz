@@ -557,6 +557,7 @@ static VkImageType image_type_from_dims(uint32_t dims)
 DvzTexture* dvz_ctx_texture(DvzContext* context, uint32_t dims, uvec3 size, VkFormat format)
 {
     ASSERT(context != NULL);
+    ASSERT(1 <= dims && dims <= 3);
     log_debug(
         "creating %dD texture with shape %dx%dx%d and format %d", //
         dims, size[0], size[1], size[2], format);
@@ -569,6 +570,7 @@ DvzTexture* dvz_ctx_texture(DvzContext* context, uint32_t dims, uvec3 size, VkFo
     *image = dvz_images(context->gpu, image_type_from_dims(dims), 1);
     *sampler = dvz_sampler(context->gpu);
 
+    texture->dims = dims;
     texture->image = image;
     texture->sampler = sampler;
 
