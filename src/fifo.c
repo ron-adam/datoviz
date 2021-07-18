@@ -332,12 +332,14 @@ static void _proc_batch_callbacks(
     ASSERT(deq != NULL);
     ASSERT(proc_idx < deq->proc_count);
     DvzDeqProc* proc = &deq->procs[proc_idx];
+    DvzDeqProcBatchCallbackRegister* reg = NULL;
 
     for (uint32_t i = 0; i < proc->batch_callback_count; i++)
     {
-        ASSERT(proc->batch_callbacks[i].callback != NULL);
-        proc->batch_callbacks[i].callback(
-            deq, pos, item_count, items, proc->batch_callbacks[i].user_data);
+        reg = &proc->batch_callbacks[i];
+        ASSERT(reg->callback != NULL);
+        if (reg->pos == pos)
+            reg->callback(deq, pos, item_count, items, reg->user_data);
     }
 }
 
@@ -727,7 +729,8 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
     // Allocate the memory for the items to be dequeued.
     if (item_count > 0)
         items = calloc(item_count, sizeof(DvzDeqItem));
-    uint32_t k = 0;
+    uint32_t k = 0;     // item index for each queue
+    uint32_t k_tot = 0; // item index across all queues
 
     // Call the BEGIN batch callbacks.
     atomic_store(&proc->is_processing, true);
@@ -739,6 +742,7 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
     uint32_t deq_idx = 0;
     for (uint32_t i = 0; i < proc->queue_count; i++)
     {
+        k = 0;
         // This is the ID of the queue.
         deq_idx = proc->queue_indices[i];
         ASSERT(deq_idx < deq->queue_count);
@@ -748,20 +752,25 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
 
         // Dequeue it immediately, return NULL if the queue was empty.
         deq_item = dvz_fifo_dequeue(fifo, false);
-        if (deq_item != NULL)
+        while (deq_item != NULL)
         {
             // Make a copy of the struct.
             item_s = *deq_item;
             // Consistency check.
             ASSERT(deq_idx == item_s.deq_idx);
             log_trace("dequeue item from FIFO queue #%d with type %d", deq_idx, item_s.type);
+            log_warn("FREE %d", (uint64_t)deq_item);
             FREE(deq_item);
             // Copy the item into the array allocated above.
             items[k++] = item_s;
+            k_tot++;
+            // Dequeue the next item, if any.
+            deq_item = dvz_fifo_dequeue(fifo, false);
         }
-        log_trace("queue #%d was empty", deq_idx);
+        log_trace("%d items batch-dequeued from queue #%d", k, deq_idx);
     }
-    ASSERT(k == item_count);
+    log_trace("%d items batch-dequeued from %d queues", k_tot, proc->queue_count);
+    ASSERT(k_tot == item_count);
 
     // IMPORTANT: we must unlock BEFORE calling the callbacks if we want to permit callbacks to
     // enqueue new tasks.
@@ -781,6 +790,7 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
     _proc_batch_callbacks(deq, proc_idx, DVZ_DEQ_PROC_BATCH_END, item_count, items);
 
     atomic_store(&proc->is_processing, false);
+    FREE(items);
 }
 
 

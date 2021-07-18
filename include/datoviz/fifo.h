@@ -469,6 +469,7 @@ DVZ_EXPORT void dvz_deq_destroy(DvzDeq* deq);
 
 
 
+// WARNING: when using this function, the items that are enqueued will be FREE-ed automatically!
 static void* _deq_loop(DvzDeq* deq, uint32_t proc_idx)
 {
     ASSERT(deq != NULL);
