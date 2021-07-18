@@ -74,7 +74,8 @@ typedef void (*DvzDeqProcCallback)(
     DvzDeq* deq, uint32_t deq_idx, int type, void* item, void* user_data);
 typedef void (*DvzDeqProcWaitCallback)(DvzDeq* deq, void* user_data);
 typedef void (*DvzDeqProcBatchCallback)(
-    DvzDeq* deq, DvzDeqProcBatchPosition pos, uint32_t item_count, void** items, void* user_data);
+    DvzDeq* deq, DvzDeqProcBatchPosition pos, uint32_t item_count, DvzDeqItem* items,
+    void* user_data);
 
 
 
@@ -439,6 +440,17 @@ DVZ_EXPORT void dvz_deq_strategy(DvzDeq* deq, uint32_t proc_idx, DvzDeqStrategy 
  * @param wait whether this call should be blocking
  */
 DVZ_EXPORT DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait);
+
+/**
+ * Immediately dequeue the existing items in batch from all queues in a proc.
+ *
+ * The registered callbacks will be called as usual for every dequeued item. But in addition to
+ * that, batch BEGIN or END callbacks will be also called before and after the dequeues.
+ *
+ * @param deq the Deq
+ * @param proc_idx the Proc index
+ */
+DVZ_EXPORT void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx);
 
 /**
  * Wait until all queues within a given Proc are empty.
