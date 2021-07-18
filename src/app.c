@@ -58,6 +58,7 @@ static void backend_terminate(DvzBackend backend)
 DvzApp* dvz_app(DvzBackend backend)
 {
     log_set_level_env();
+    log_debug("create the app with backend %d", backend);
 
     DvzApp* app = calloc(1, sizeof(DvzApp));
     dvz_obj_init(&app->obj);
@@ -143,7 +144,7 @@ int dvz_app_destroy(DvzApp* app)
 {
     ASSERT(app != NULL);
 
-    log_debug("starting destruction of app...");
+    log_debug("destroy the app with backend %d", app->backend);
     dvz_app_wait(app);
 
     // Destroy the canvases.

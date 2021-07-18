@@ -2378,6 +2378,95 @@ int dvz_canvas_frame(DvzCanvas* canvas)
 
 
 
+int dvz_app_run(DvzApp* app, uint64_t frame_count)
+{
+    ASSERT(app != NULL);
+
+    // // Single run of this function at a given time.
+    // if (app->is_running && frame_count != 1)
+    // {
+    //     log_debug("discard dvz_app_run() as the app seems to be already running");
+    //     return -1;
+    // }
+    // app->is_running = true;
+
+    // if (frame_count == 0 && app->autorun.n_frames > 0)
+    //     frame_count = app->autorun.n_frames;
+
+    // // Check if autorun is enabled.
+    // // HACK: disable dvz_app_run(app, 0) in autorun mode.
+    // if (_app_autorun(app) == 0 && frame_count == 0)
+    //     return 0;
+
+    // HACK: prevent infinite loop with offscreen rendering.
+    if (app->backend == DVZ_BACKEND_OFFSCREEN && frame_count == 0)
+    {
+        log_warn(
+            "infinite rendering loop detected with the offscreen backend, this might block the "
+            "application");
+        // frame_count = 10;
+    }
+
+    // Number of frames.
+    if (frame_count > 1)
+        log_debug("start main loop with %d frames (0=infinite)", frame_count);
+    // if (frame_count == 0)
+    //     frame_count = UINT64_MAX;
+    // ASSERT(frame_count > 0);
+
+    // Main loop.
+    DvzContainerIterator iterator;
+    DvzCanvas* canvas = NULL;
+    uint32_t n_canvas_active = 0;
+    uint64_t iter = 0;
+    for (iter = 0; iter < frame_count; iter++)
+    {
+        n_canvas_active = 0;
+
+        // Loop over all canvases.
+        iterator = dvz_container_iterator(&app->canvases);
+        canvas = NULL;
+        while (iterator.item != NULL)
+        {
+            canvas = (DvzCanvas*)iterator.item;
+            ASSERT(canvas != NULL);
+
+            // Run and present the next canvas frame, and count the canvas as active if the
+            // presentation was successfull.
+            if (dvz_canvas_frame(canvas) == 0)
+                n_canvas_active++;
+
+            // Go to the next canvas.
+            dvz_container_iter(&iterator);
+        }
+
+        // Process the pending GPU transfers after all canvases have executed their frame.
+        _process_gpu_transfers(app);
+
+        // Close the application if all canvases have been closed.
+        if (n_canvas_active == 0 && frame_count != 1)
+        {
+            log_trace("no more active canvas, closing the app");
+            break;
+        }
+    }
+
+    if (frame_count != 1)
+    {
+        log_trace("end main loop");
+        dvz_app_wait(app);
+        app->is_running = false;
+    }
+
+    return (int)n_canvas_active;
+}
+
+
+
+/*************************************************************************************************/
+/*  Autorun                                                                                      */
+/*************************************************************************************************/
+
 // void dvz_autorun_env(DvzApp* app)
 // {
 //     ASSERT(app != NULL);
@@ -2454,87 +2543,6 @@ int dvz_canvas_frame(DvzCanvas* canvas)
 
 //     return 0;
 // }
-
-int dvz_app_run(DvzApp* app, uint64_t frame_count)
-{
-    ASSERT(app != NULL);
-
-    // Single run of this function at a given time.
-    if (app->is_running && frame_count != 1)
-    {
-        log_debug("discard dvz_app_run() as the app seems to be already running");
-        return -1;
-    }
-    app->is_running = true;
-
-    // if (frame_count == 0 && app->autorun.n_frames > 0)
-    //     frame_count = app->autorun.n_frames;
-
-    // // Check if autorun is enabled.
-    // // HACK: disable dvz_app_run(app, 0) in autorun mode.
-    // if (_app_autorun(app) == 0 && frame_count == 0)
-    //     return 0;
-
-    // HACK: prevent infinite loop with offscreen rendering.
-    if (app->backend == DVZ_BACKEND_OFFSCREEN && frame_count == 0)
-    {
-        log_warn("infinite rendering loop forbidden with the offscreen backend");
-        frame_count = 10;
-    }
-
-    // Number of frames.
-    if (frame_count > 1)
-        log_debug("start main loop with %d frames", frame_count);
-    if (frame_count == 0)
-        frame_count = UINT64_MAX;
-    ASSERT(frame_count > 0);
-
-    // Main loop.
-    DvzContainerIterator iterator;
-    DvzCanvas* canvas = NULL;
-    uint32_t n_canvas_active = 0;
-    uint64_t iter = 0;
-    for (iter = 0; iter < frame_count; iter++)
-    {
-        n_canvas_active = 0;
-
-        // Loop over all canvases.
-        iterator = dvz_container_iterator(&app->canvases);
-        canvas = NULL;
-        while (iterator.item != NULL)
-        {
-            canvas = (DvzCanvas*)iterator.item;
-            ASSERT(canvas != NULL);
-
-            // Run and present the next canvas frame, and count the canvas as active if the
-            // presentation was successfull.
-            if (dvz_canvas_frame(canvas) == 0)
-                n_canvas_active++;
-
-            // Go to the next canvas.
-            dvz_container_iter(&iterator);
-        }
-
-        // Process the pending GPU transfers after all canvases have executed their frame.
-        _process_gpu_transfers(app);
-
-        // Close the application if all canvases have been closed.
-        if (n_canvas_active == 0 && frame_count != 1)
-        {
-            log_trace("no more active canvas, closing the app");
-            break;
-        }
-    }
-
-    if (frame_count != 1)
-    {
-        log_trace("end main loop");
-        dvz_app_wait(app);
-        app->is_running = false;
-    }
-
-    return (int)n_canvas_active;
-}
 
 
 
