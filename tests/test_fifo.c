@@ -417,24 +417,35 @@ static void _proc_batch(
     void* user_data)
 {
     ASSERT(deq != NULL);
+    int* res = (int*)user_data;
+    ASSERT(res != NULL);
     if (pos == DVZ_DEQ_PROC_BATCH_BEGIN)
     {
         log_info("begin batch, %d item(s) to be dequeued", item_count);
+        ASSERT(item_count == 5);
         ASSERT(items == NULL);
     }
     else
     {
         log_info("end batch, %d item(s) processed", item_count);
+        ASSERT(item_count == 5);
+        // Compute the sum of all dequeued items in the batch.
+        for (uint32_t i = 0; i < item_count; i++)
+        {
+            *res += *(int*)items[i].item;
+        }
     }
 }
 
 int test_utils_deq_batch(TestContext* tc)
 {
     DvzDeq deq = dvz_deq(2);
-    dvz_deq_proc(&deq, 0, 2, (uint32_t[]){0, 1});
+    dvz_deq_proc(&deq, 0, 1, (uint32_t[]){0});
+    dvz_deq_proc(&deq, 1, 1, (uint32_t[]){1});
+
     int res = 0;
-    dvz_deq_proc_batch_callback(&deq, 0, DVZ_DEQ_PROC_BATCH_BEGIN, _proc_batch, &res);
-    dvz_deq_proc_batch_callback(&deq, 0, DVZ_DEQ_PROC_BATCH_END, _proc_batch, &res);
+    dvz_deq_proc_batch_callback(&deq, 1, DVZ_DEQ_PROC_BATCH_BEGIN, _proc_batch, &res);
+    dvz_deq_proc_batch_callback(&deq, 1, DVZ_DEQ_PROC_BATCH_END, _proc_batch, &res);
 
     for (uint32_t i = 0; i < 10; i++)
     {
@@ -445,7 +456,10 @@ int test_utils_deq_batch(TestContext* tc)
         dvz_deq_enqueue(&deq, i % 2, (int)i, item);
     }
 
-    dvz_deq_dequeue_batch(&deq, 0);
+    dvz_deq_dequeue_batch(&deq, 1);
+
+    // 1+3+5+7+9 because we batch-dequeue the second proc only.
+    AT(res == 25);
 
     dvz_deq_destroy(&deq);
     return 0;
