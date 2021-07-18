@@ -255,20 +255,12 @@ DvzContext* dvz_context(DvzGpu* gpu)
             &context->deq, DVZ_TRANSFER_DEQ_UL, //
             DVZ_TRANSFER_BUFFER_UPLOAD,         //
             _transfer_buffer_upload, context);
-        // dvz_deq_callback(
-        //     &context->deq, DVZ_TRANSFER_DEQ_UL, //
-        //     DVZ_TRANSFER_TEXTURE_UPLOAD,        //
-        //     _transfer_texture_upload, context);
 
         // Downloads.
         dvz_deq_callback(
             &context->deq, DVZ_TRANSFER_DEQ_DL, //
             DVZ_TRANSFER_BUFFER_DOWNLOAD,       //
             _transfer_buffer_download, context);
-        // dvz_deq_callback(
-        //     &context->deq, DVZ_TRANSFER_DEQ_DL, //
-        //     DVZ_TRANSFER_TEXTURE_DOWNLOAD,      //
-        //     _transfer_texture_download, context);
 
         // Copies.
         dvz_deq_callback(

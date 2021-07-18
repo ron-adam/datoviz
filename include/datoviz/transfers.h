@@ -39,8 +39,6 @@ typedef enum
     DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE,
     DVZ_TRANSFER_BUFFER_COPY,
 
-    DVZ_TRANSFER_TEXTURE_UPLOAD,
-    DVZ_TRANSFER_TEXTURE_DOWNLOAD,
     DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE,
     DVZ_TRANSFER_TEXTURE_COPY,
 
@@ -111,7 +109,6 @@ struct DvzTransferTextureCopy
     DvzTexture *src, *dst;
     uvec3 src_offset, dst_offset, shape;
     VkDeviceSize size;
-    // void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
 };
 
 
@@ -123,7 +120,6 @@ struct DvzTransferBufferTexture
     DvzBufferRegions br;
     VkDeviceSize buf_offset;
     VkDeviceSize size;
-    // void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
 };
 
 

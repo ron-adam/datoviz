@@ -52,8 +52,6 @@ int test_transfers_buffer_mappable(TestContext* tc)
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
 
     // Check that the copy worked.
-    // for (uint32_t i = 0; i < 128; i++)
-    //     DBG(data2[i]);
     AT(data2[127] == 127);
     AT(memcmp(data2, data, 128) == 0);
     AT(res == 42);
@@ -177,7 +175,6 @@ int test_transfers_texture(TestContext* tc)
     // Texture.
     DvzTexture* tex = dvz_ctx_texture(ctx, 2, shape_full, format);
     DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
-    // DvzTexture* stg = dvz_ctx_texture(ctx, 2, shape, format);
 
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().

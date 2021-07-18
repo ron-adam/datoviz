@@ -332,7 +332,7 @@ static void _enqueue_texture_download(
 
 static void _enqueue_texture_copy(
     DvzDeq* deq, DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset, uvec3 shape,
-    VkDeviceSize size) //, void* to_download)
+    VkDeviceSize size)
 {
     ASSERT(deq != NULL);
     ASSERT(src != NULL);
@@ -344,7 +344,6 @@ static void _enqueue_texture_copy(
     tr->src = src;
     tr->dst = dst;
     tr->size = size;
-    // tr->to_download = to_download;
     memcpy(tr->src_offset, src_offset, sizeof(uvec3));
     memcpy(tr->dst_offset, dst_offset, sizeof(uvec3));
     memcpy(tr->shape, shape, sizeof(uvec3));
@@ -369,48 +368,6 @@ static void _enqueue_texture_download_done(DvzDeq* deq, VkDeviceSize size, void*
 /*************************************************************************************************/
 /*  Texture transfer task processing                                                             */
 /*************************************************************************************************/
-
-// static void _transfer_texture_upload(DvzDeq* deq, void* item, void* user_data)
-// {
-//     DvzTransferTexture* tr = (DvzTransferTexture*)item;
-//     ASSERT(tr != NULL);
-//     log_trace("process texture upload");
-
-//     // Copy the data to the staging buffer.
-//     ASSERT(tr->tex != NULL);
-//     ASSERT(tr->size > 0);
-//     ASSERT(tr->data != NULL);
-//     ASSERT(tr->stg.buffer != NULL);
-
-//     // Upload the data to the staging buffer.
-//     _enqueue_buffer_upload(
-//         deq, (DvzBufferRegions){0}, 0, tr->stg, tr->stg_offset, //
-//         // Let the task processor that once uploaded to the staging buffer, the data will have
-//         to
-//         // be copied to the texture.
-//         tr->tex, tr->offset, tr->shape, tr->size, tr->data);
-// }
-
-// static void _transfer_texture_download(DvzDeq* deq, void* item, void* user_data)
-// {
-//     DvzTransferTexture* tr = (DvzTransferTexture*)item;
-//     ASSERT(tr != NULL);
-//     log_trace("process texture download");
-
-//     // Copy the data to the staging buffer.
-//     ASSERT(tr->tex != NULL);
-//     ASSERT(tr->size > 0);
-//     ASSERT(tr->data != NULL);
-//     ASSERT(tr->stg.buffer != NULL);
-
-//     // First, copy the texture to the staging buffer.
-//     _enqueue_texture_buffer(
-//         deq, tr->tex, tr->offset, tr->shape, // texture
-//         tr->stg, tr->stg_offset, tr->size,   // staging buffer
-//         tr->data); // tell the processor that once copied to the buffer, the data will have to
-//         be
-//                    // downloaded from the staging buffer
-// }
 
 static void _transfer_texture_copy(DvzDeq* deq, void* item, void* user_data)
 {
