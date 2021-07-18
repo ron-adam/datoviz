@@ -26,17 +26,17 @@
 /*  Utils                                                                                    */
 /*************************************************************************************************/
 
-static bool _show_fps(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-    return ((canvas->flags >> 1) & 1) != 0;
-}
+// static bool _show_fps(DvzCanvas* canvas)
+// {
+//     ASSERT(canvas != NULL);
+//     return ((canvas->flags >> 1) & 1) != 0;
+// }
 
-static bool _support_pick(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-    return ((canvas->flags >> 2) & 1) != 0;
-}
+// static bool _support_pick(DvzCanvas* canvas)
+// {
+//     ASSERT(canvas != NULL);
+//     return ((canvas->flags >> 2) & 1) != 0;
+// }
 
 
 
@@ -136,18 +136,20 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     canvas->app = app;
     canvas->gpu = gpu;
     canvas->offscreen = offscreen;
+    canvas->init_size[0] = width;
+    canvas->init_size[1] = height;
 
     canvas->dpi_scaling = DVZ_DEFAULT_DPI_SCALING;
-    int flag_dpi = flags >> 12;
-    if (flag_dpi > 0)
-        canvas->dpi_scaling *= (.5 * flag_dpi);
+    // int flag_dpi = flags >> 12;
+    // if (flag_dpi > 0)
+    //     canvas->dpi_scaling *= (.5 * flag_dpi);
 
-    canvas->overlay = overlay;
-    canvas->flags = flags;
+    // canvas->overlay = overlay;
+    // canvas->flags = flags;
 
-    bool show_fps = _show_fps(canvas);
-    bool support_pick = _support_pick(canvas);
-    log_trace("creating canvas with show_fps=%d, support_pick=%d", show_fps, support_pick);
+    // bool show_fps = _show_fps(canvas);
+    // bool support_pick = _support_pick(canvas);
+    // log_trace("creating canvas with show_fps=%d, support_pick=%d", show_fps, support_pick);
 
     // Allocate memory for canvas objects.
     canvas->commands =
@@ -231,10 +233,78 @@ void dvz_canvas_with_gui(DvzCanvas* canvas, bool with_gui)
 
 
 
+static void _canvas_window(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    ASSERT(canvas->app != NULL);
+
+    if (canvas->offscreen)
+        return;
+
+    DvzWindow* window = dvz_window(canvas->app, canvas->init_size[0], canvas->init_size[1]);
+
+    if (window == NULL)
+    {
+        log_error("window creation failed, forcing offscreen mode for the canvas");
+        canvas->offscreen = true;
+    }
+    else
+    {
+        ASSERT(window->app == canvas->app);
+        ASSERT(window->app != NULL);
+        canvas->window = window;
+
+        uint32_t framebuffer_width, framebuffer_height;
+        // NOTE: function name unclear, this call sets the window size...
+        dvz_window_get_size(window, &framebuffer_width, &framebuffer_height);
+        ASSERT(framebuffer_width > 0);
+        ASSERT(framebuffer_height > 0);
+    }
+}
+
+static void _canvas_ensure_context(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    DvzGpu* gpu = canvas->gpu;
+
+    // Automatic creation of GPU with default queues and features.
+    if (!dvz_obj_is_created(&gpu->obj))
+        dvz_gpu_default(gpu, canvas->window);
+
+    // Automatic creation of GPU context.
+    if (gpu->context == NULL || !dvz_obj_is_created(&gpu->context->obj))
+    {
+        log_trace("canvas automatically create the GPU context");
+        gpu->context = dvz_context(gpu);
+    }
+}
+
+static void _canvas_renderpass(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    canvas->render.renderpass = default_renderpass(
+        canvas->gpu, DVZ_DEFAULT_BACKGROUND, DVZ_DEFAULT_IMAGE_FORMAT, canvas->overlay,
+        canvas->with_pick);
+    if (canvas->overlay)
+        canvas->render.renderpass_overlay = default_renderpass_overlay(
+            canvas->gpu, DVZ_DEFAULT_IMAGE_FORMAT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+}
+
 void dvz_canvas_create(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
-    //
+
+    // Initialize the canvas local clock.
+    _clock_init(&canvas->clock);
+
+    // Create the window.
+    _canvas_window(canvas);
+
+    // Make sure the GPU and context have been created.
+    _canvas_ensure_context(canvas);
+
+    // Create the renderpass(es).
+    _canvas_renderpass(canvas);
 }
 
 

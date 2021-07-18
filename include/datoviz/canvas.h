@@ -563,6 +563,7 @@ struct DvzCanvas
     bool offscreen;
     bool overlay;
     bool with_pick;
+    uvec2 init_size;
     int flags;
 
     float dpi_scaling;

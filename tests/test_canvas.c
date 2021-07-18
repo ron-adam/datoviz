@@ -106,6 +106,8 @@ int test_canvas_blank(TestContext* tc)
     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
     ASSERT(canvas->app != NULL);
 
+    dvz_canvas_create(canvas);
+
     // if (app->backend != DVZ_BACKEND_OFFSCREEN)
     // {
     //     ASSERT(canvas->window != NULL);
