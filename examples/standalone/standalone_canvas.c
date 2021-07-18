@@ -34,7 +34,7 @@ static void _triangle_refill(DvzCanvas* canvas, DvzEvent ev)
     dvz_cmd_begin(cmds, idx);
 
     // We begin the default render pass.
-    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->framebuffers);
+    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->render.framebuffers);
 
     // We set the viewport to the entire framebuffer size.
     dvz_cmd_viewport(cmds, idx, canvas->viewport.viewport);

@@ -256,6 +256,9 @@ typedef struct DvzEventCallbackRegister DvzEventCallbackRegister;
 typedef struct DvzScreencast DvzScreencast;
 typedef struct DvzPendingRefill DvzPendingRefill;
 
+typedef struct DvzRender DvzRender;
+
+
 // Forward declarations.
 typedef struct DvzGui DvzGui;
 typedef struct DvzGuiContext DvzGuiContext;
@@ -486,6 +489,17 @@ struct DvzPendingRefill
 /*  Canvas struct                                                                                */
 /*************************************************************************************************/
 
+struct DvzRender
+{
+    DvzSwapchain swapchain;
+    DvzImages depth_image;
+    DvzImages pick_image;
+    DvzImages pick_staging;
+    DvzFramebuffers framebuffers;
+    DvzFramebuffers framebuffers_overlay; // used by the overlay renderpass
+    DvzSubmit submit;
+};
+
 struct DvzCanvas
 {
     DvzObject obj;
@@ -506,14 +520,7 @@ struct DvzCanvas
 
     DvzWindow* window;
 
-    // Swapchain.
-    DvzSwapchain swapchain;
-    DvzImages depth_image;
-    DvzImages pick_image;
-    DvzImages pick_staging;
-    DvzFramebuffers framebuffers;
-    DvzFramebuffers framebuffers_overlay; // used by the overlay renderpass
-    DvzSubmit submit;
+    DvzRender render;
 
     // FPS.
     uint32_t cur_frame; // current frame within the images in flight

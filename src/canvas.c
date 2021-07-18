@@ -33,7 +33,7 @@
 static void blank_commands(DvzCanvas* canvas, DvzCommands* cmds, uint32_t cmd_idx)
 {
     dvz_cmd_begin(cmds, cmd_idx);
-    dvz_cmd_begin_renderpass(cmds, cmd_idx, &canvas->renderpass, &canvas->framebuffers);
+    dvz_cmd_begin_renderpass(cmds, cmd_idx, &canvas->renderpass, &canvas->render.framebuffers);
     dvz_cmd_end_renderpass(cmds, cmd_idx);
     dvz_cmd_end(cmds, cmd_idx);
 }
@@ -168,7 +168,7 @@ static int _event_presend(DvzCanvas* canvas)
 {
     DvzEvent ev = {0};
     ev.type = DVZ_EVENT_PRE_SEND;
-    ev.u.s.submit = &canvas->submit;
+    ev.u.s.submit = &canvas->render.submit;
     return _event_produce(canvas, ev);
 }
 
@@ -178,7 +178,7 @@ static int _event_postsend(DvzCanvas* canvas)
 {
     DvzEvent ev = {0};
     ev.type = DVZ_EVENT_POST_SEND;
-    ev.u.s.submit = &canvas->submit;
+    ev.u.s.submit = &canvas->render.submit;
     return _event_produce(canvas, ev);
 }
 
@@ -249,7 +249,7 @@ static void _refill_frame(DvzCanvas* canvas)
     // _refill_canvas(canvas, UINT32_MAX);
     // return;
 
-    uint32_t img_idx = canvas->swapchain.img_idx;
+    uint32_t img_idx = canvas->render.swapchain.img_idx;
     // Only proceed if the current swapchain image has not been processed yet.
     if (atomic_load(&canvas->refills.status) == DVZ_REFILL_REQUESTED ||
         atomic_load(&canvas->refills.status) == DVZ_REFILL_PROCESSING)
@@ -279,7 +279,7 @@ static void _refill_frame(DvzCanvas* canvas)
         canvas->refills.completed[img_idx] = true;
 
         // We move away from NEED_UPDATE status only if all swapchain images have been updated.
-        if (_all_true(canvas->swapchain.img_count, canvas->refills.completed))
+        if (_all_true(canvas->render.swapchain.img_count, canvas->refills.completed))
         {
             log_trace("all command buffers updated, no longer need to update");
             status = DVZ_REFILL_NONE;
@@ -463,22 +463,23 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     // Create swapchain
     {
         uint32_t min_img_count = offscreen ? 1 : DVZ_MIN_SWAPCHAIN_IMAGE_COUNT;
-        canvas->swapchain = dvz_swapchain(gpu, window, min_img_count);
-        dvz_swapchain_format(&canvas->swapchain, DVZ_DEFAULT_IMAGE_FORMAT);
+        canvas->render.swapchain = dvz_swapchain(gpu, window, min_img_count);
+        dvz_swapchain_format(&canvas->render.swapchain, DVZ_DEFAULT_IMAGE_FORMAT);
 
         if (!offscreen)
         {
             dvz_swapchain_present_mode(
-                &canvas->swapchain,
+                &canvas->render.swapchain,
                 show_fps ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR);
-            dvz_swapchain_create(&canvas->swapchain);
+            dvz_swapchain_create(&canvas->render.swapchain);
         }
         else
         {
-            canvas->swapchain.images = calloc(1, sizeof(DvzImages));
-            ASSERT(canvas->swapchain.img_count == 1);
-            *canvas->swapchain.images = dvz_images(canvas->swapchain.gpu, VK_IMAGE_TYPE_2D, 1);
-            DvzImages* images = canvas->swapchain.images;
+            canvas->render.swapchain.images = calloc(1, sizeof(DvzImages));
+            ASSERT(canvas->render.swapchain.img_count == 1);
+            *canvas->render.swapchain.images =
+                dvz_images(canvas->render.swapchain.gpu, VK_IMAGE_TYPE_2D, 1);
+            DvzImages* images = canvas->render.swapchain.images;
 
             // Color attachment
             dvz_images_format(images, canvas->renderpass.attachments[0].format);
@@ -492,24 +493,25 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
             dvz_images_queue_access(images, DVZ_DEFAULT_QUEUE_RENDER);
             dvz_images_create(images);
 
-            dvz_obj_created(&canvas->swapchain.obj);
+            dvz_obj_created(&canvas->render.swapchain.obj);
         }
 
         // Depth attachment.
-        canvas->depth_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
+        canvas->render.depth_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
         depth_image(
-            &canvas->depth_image, &canvas->renderpass, //
-            canvas->swapchain.images->width, canvas->swapchain.images->height);
+            &canvas->render.depth_image, &canvas->renderpass, //
+            canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
 
         // Pick attachment.
         if (support_pick)
         {
-            canvas->pick_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
+            canvas->render.pick_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
             pick_image(
-                &canvas->pick_image, &canvas->renderpass, //
-                canvas->swapchain.images->width, canvas->swapchain.images->height);
-            canvas->pick_staging = _staging_image(
-                canvas, canvas->pick_image.format, DVZ_PICK_STAGING_SIZE, DVZ_PICK_STAGING_SIZE);
+                &canvas->render.pick_image, &canvas->renderpass, //
+                canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
+            canvas->render.pick_staging = _staging_image(
+                canvas, canvas->render.pick_image.format, DVZ_PICK_STAGING_SIZE,
+                DVZ_PICK_STAGING_SIZE);
         }
     }
 
@@ -520,19 +522,22 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
 
     // Create framebuffers.
     {
-        canvas->framebuffers = dvz_framebuffers(gpu);
-        dvz_framebuffers_attachment(&canvas->framebuffers, 0, canvas->swapchain.images);
-        dvz_framebuffers_attachment(&canvas->framebuffers, 1, &canvas->depth_image);
+        canvas->render.framebuffers = dvz_framebuffers(gpu);
+        dvz_framebuffers_attachment(
+            &canvas->render.framebuffers, 0, canvas->render.swapchain.images);
+        dvz_framebuffers_attachment(&canvas->render.framebuffers, 1, &canvas->render.depth_image);
         if (support_pick)
-            dvz_framebuffers_attachment(&canvas->framebuffers, 2, &canvas->pick_image);
-        dvz_framebuffers_create(&canvas->framebuffers, &canvas->renderpass);
+            dvz_framebuffers_attachment(
+                &canvas->render.framebuffers, 2, &canvas->render.pick_image);
+        dvz_framebuffers_create(&canvas->render.framebuffers, &canvas->renderpass);
 
         if (overlay)
         {
-            canvas->framebuffers_overlay = dvz_framebuffers(gpu);
+            canvas->render.framebuffers_overlay = dvz_framebuffers(gpu);
             dvz_framebuffers_attachment(
-                &canvas->framebuffers_overlay, 0, canvas->swapchain.images);
-            dvz_framebuffers_create(&canvas->framebuffers_overlay, &canvas->renderpass_overlay);
+                &canvas->render.framebuffers_overlay, 0, canvas->render.swapchain.images);
+            dvz_framebuffers_create(
+                &canvas->render.framebuffers_overlay, &canvas->renderpass_overlay);
         }
     }
 
@@ -546,7 +551,7 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
 
         canvas->fences_render_finished = dvz_fences(gpu, frames_in_flight, true);
         canvas->fences_flight.gpu = gpu;
-        canvas->fences_flight.count = canvas->swapchain.img_count;
+        canvas->fences_flight.count = canvas->render.swapchain.img_count;
     }
 
     // Default transfer commands.
@@ -557,11 +562,11 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     // Default render commands.
     {
         canvas->cmds_render =
-            dvz_commands(gpu, DVZ_DEFAULT_QUEUE_RENDER, canvas->swapchain.img_count);
+            dvz_commands(gpu, DVZ_DEFAULT_QUEUE_RENDER, canvas->render.swapchain.img_count);
     }
 
     // Default submit instance.
-    canvas->submit = dvz_submit(gpu);
+    canvas->render.submit = dvz_submit(gpu);
 
     // Event system.
     {
@@ -640,10 +645,10 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
                 canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback_fps, NULL);
     }
 
-    ASSERT(canvas->swapchain.images != NULL);
+    ASSERT(canvas->render.swapchain.images != NULL);
     log_debug(
         "created canvas of size %dx%d", //
-        canvas->swapchain.images->width, canvas->swapchain.images->height);
+        canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
     return canvas;
 }
 
@@ -678,10 +683,10 @@ void dvz_canvas_recreate(DvzCanvas* canvas)
     DvzBackend backend = canvas->app->backend;
     DvzWindow* window = canvas->window;
     DvzGpu* gpu = canvas->gpu;
-    DvzSwapchain* swapchain = &canvas->swapchain;
-    DvzFramebuffers* framebuffers = &canvas->framebuffers;
+    DvzSwapchain* swapchain = &canvas->render.swapchain;
+    DvzFramebuffers* framebuffers = &canvas->render.framebuffers;
     DvzRenderpass* renderpass = &canvas->renderpass;
-    DvzFramebuffers* framebuffers_overlay = &canvas->framebuffers_overlay;
+    DvzFramebuffers* framebuffers_overlay = &canvas->render.framebuffers_overlay;
     DvzRenderpass* renderpass_overlay = &canvas->renderpass_overlay;
     bool support_pick = _support_pick(canvas);
 
@@ -705,13 +710,13 @@ void dvz_canvas_recreate(DvzCanvas* canvas)
     dvz_gpu_wait(gpu);
 
     // Destroy swapchain resources.
-    dvz_framebuffers_destroy(&canvas->framebuffers);
+    dvz_framebuffers_destroy(&canvas->render.framebuffers);
     if (canvas->overlay)
-        dvz_framebuffers_destroy(&canvas->framebuffers_overlay);
-    dvz_images_destroy(&canvas->depth_image);
+        dvz_framebuffers_destroy(&canvas->render.framebuffers_overlay);
+    dvz_images_destroy(&canvas->render.depth_image);
     if (support_pick)
-        dvz_images_destroy(&canvas->pick_image);
-    dvz_images_destroy(canvas->swapchain.images);
+        dvz_images_destroy(&canvas->render.pick_image);
+    dvz_images_destroy(canvas->render.swapchain.images);
 
     // Recreate the swapchain. This will automatically set the swapchain->images new size.
     dvz_swapchain_recreate(swapchain);
@@ -724,14 +729,14 @@ void dvz_canvas_recreate(DvzCanvas* canvas)
     ASSERT(swapchain->images == framebuffers->attachments[0]);
 
     // Need to recreate the depth image with the new size.
-    dvz_images_size(&canvas->depth_image, width, height, 1);
-    dvz_images_create(&canvas->depth_image);
+    dvz_images_size(&canvas->render.depth_image, width, height, 1);
+    dvz_images_create(&canvas->render.depth_image);
 
     if (support_pick)
     {
         // Need to recreate the pick image with the new size.
-        dvz_images_size(&canvas->pick_image, width, height, 1);
-        dvz_images_create(&canvas->pick_image);
+        dvz_images_size(&canvas->render.pick_image, width, height, 1);
+        dvz_images_create(&canvas->render.pick_image);
     }
 
     // Recreate the framebuffers with the new size.
@@ -810,14 +815,14 @@ void dvz_canvas_buffers(
     ASSERT(size > 0);
     ASSERT(data != NULL);
     ASSERT(br.buffer != NULL);
-    ASSERT(br.count == canvas->swapchain.img_count);
+    ASSERT(br.count == canvas->render.swapchain.img_count);
     if (br.buffer->type != DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE)
     {
         log_error("dvz_canvas_buffers() can only be used on mappable buffers.");
         return;
     }
     ASSERT(br.buffer->mmap != NULL);
-    uint32_t idx = canvas->swapchain.img_idx;
+    uint32_t idx = canvas->render.swapchain.img_idx;
     ASSERT(idx < br.count);
     dvz_buffer_upload(br.buffer, br.offsets[idx] + offset, size, data);
 }
@@ -856,8 +861,8 @@ void dvz_canvas_size(DvzCanvas* canvas, DvzCanvasSizeType type, uvec2 size)
         size[1] = canvas->window->height;
         break;
     case DVZ_CANVAS_SIZE_FRAMEBUFFER:
-        size[0] = canvas->framebuffers.attachments[0]->width;
-        size[1] = canvas->framebuffers.attachments[0]->height;
+        size[0] = canvas->render.framebuffers.attachments[0]->width;
+        size[1] = canvas->render.framebuffers.attachments[0]->height;
         break;
     default:
         log_warn("unknown size type %d", type);
@@ -870,9 +875,10 @@ void dvz_canvas_size(DvzCanvas* canvas, DvzCanvasSizeType type, uvec2 size)
 double dvz_canvas_aspect(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
-    ASSERT(canvas->swapchain.images->width > 0);
-    ASSERT(canvas->swapchain.images->height > 0);
-    return canvas->swapchain.images->width / (double)canvas->swapchain.images->height;
+    ASSERT(canvas->render.swapchain.images->width > 0);
+    ASSERT(canvas->render.swapchain.images->height > 0);
+    return canvas->render.swapchain.images->width /
+           (double)canvas->render.swapchain.images->height;
 }
 
 
@@ -925,11 +931,11 @@ DvzViewport dvz_viewport_full(DvzCanvas* canvas)
     viewport.viewport.minDepth = +0;
     viewport.viewport.maxDepth = +1;
 
-    ASSERT(canvas->swapchain.images != NULL);
+    ASSERT(canvas->render.swapchain.images != NULL);
     viewport.size_framebuffer[0] = viewport.viewport.width =
-        (float)canvas->swapchain.images->width;
+        (float)canvas->render.swapchain.images->width;
     viewport.size_framebuffer[1] = viewport.viewport.height =
-        (float)canvas->swapchain.images->height;
+        (float)canvas->render.swapchain.images->height;
 
     if (canvas->window != NULL)
     {
@@ -1563,7 +1569,7 @@ static void _screencast_cmds(DvzScreencast* screencast)
     ASSERT(screencast->canvas != NULL);
     ASSERT(screencast->canvas->gpu != NULL);
 
-    DvzImages* images = screencast->canvas->swapchain.images;
+    DvzImages* images = screencast->canvas->render.swapchain.images;
     uint32_t img_count = images->count;
 
     DvzBarrier barrier = dvz_barrier(screencast->canvas->gpu);
@@ -1642,7 +1648,7 @@ static void _screencast_post_send(DvzCanvas* canvas, DvzEvent ev)
     if (!screencast->is_active)
         return;
 
-    uint32_t img_idx = canvas->swapchain.img_idx;
+    uint32_t img_idx = canvas->render.swapchain.img_idx;
     // Always make sure the present semaphore is reset to its original value.
     canvas->present_semaphores = &canvas->sem_render_finished;
 
@@ -1720,8 +1726,8 @@ static void _screencast_resize(DvzCanvas* canvas, DvzEvent ev)
 
     screencast->status = DVZ_SCREENCAST_NONE;
     dvz_images_resize(
-        &screencast->staging, canvas->swapchain.images->width, canvas->swapchain.images->height,
-        canvas->swapchain.images->depth);
+        &screencast->staging, canvas->render.swapchain.images->width,
+        canvas->render.swapchain.images->height, canvas->render.swapchain.images->depth);
     dvz_images_transition(&screencast->staging);
 
     _screencast_cmds(screencast);
@@ -1743,7 +1749,7 @@ void dvz_screencast(DvzCanvas* canvas, double interval, bool has_alpha)
     ASSERT(canvas->gpu != NULL);
 
     DvzGpu* gpu = canvas->gpu;
-    DvzImages* images = canvas->swapchain.images;
+    DvzImages* images = canvas->render.swapchain.images;
 
     canvas->screencast = calloc(1, sizeof(DvzScreencast));
     DvzScreencast* sc = canvas->screencast;
@@ -1769,8 +1775,8 @@ void dvz_screencast(DvzCanvas* canvas, double interval, bool has_alpha)
     sc->semaphore = dvz_semaphores(gpu, 1);
 
     // NOTE: we predefine the transfer command buffers, one per swapchain image.
-    sc->cmds =
-        dvz_commands(canvas->gpu, DVZ_DEFAULT_QUEUE_TRANSFER, canvas->swapchain.images->count);
+    sc->cmds = dvz_commands(
+        canvas->gpu, DVZ_DEFAULT_QUEUE_TRANSFER, canvas->render.swapchain.images->count);
     _screencast_cmds(sc);
     sc->submit = dvz_submit(canvas->gpu);
 
@@ -1860,7 +1866,7 @@ uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha)
     // Hard GPU synchronization.
     dvz_gpu_wait(gpu);
 
-    DvzImages* images = canvas->swapchain.images;
+    DvzImages* images = canvas->render.swapchain.images;
     if (images == NULL)
     {
         log_error("empty swapchain images, aborting screenshot creation");
@@ -1907,7 +1913,7 @@ void dvz_screenshot_file(DvzCanvas* canvas, const char* png_path)
         log_error("screenshot failed");
         return;
     }
-    DvzImages* images = canvas->swapchain.images;
+    DvzImages* images = canvas->render.swapchain.images;
     dvz_write_png(png_path, images->width, images->height, rgb);
     FREE(rgb);
 }
@@ -1927,7 +1933,7 @@ void dvz_canvas_pick(DvzCanvas* canvas, uvec2 pos_screen, ivec4 picked)
     log_trace("pick at %u, %u", pos_screen[0], pos_screen[1]);
 
     // Source image : pick image if pick support, otherwise swapchain image.
-    DvzImages* images = has_pick ? &canvas->pick_image : canvas->swapchain.images;
+    DvzImages* images = has_pick ? &canvas->render.pick_image : canvas->render.swapchain.images;
     ASSERT(images != NULL);
 
     // Staging images.
@@ -1935,7 +1941,7 @@ void dvz_canvas_pick(DvzCanvas* canvas, uvec2 pos_screen, ivec4 picked)
     ASSERT(images->width >= staging_size);
     ASSERT(images->height >= staging_size);
     ASSERT(images->depth == 1);
-    DvzImages* staging = &canvas->pick_staging;
+    DvzImages* staging = &canvas->render.pick_staging;
     ASSERT(staging != NULL);
     ASSERT(staging->images[0] != NULL);
 
@@ -2126,9 +2132,9 @@ void dvz_canvas_frame_submit(DvzCanvas* canvas)
     DvzGpu* gpu = canvas->gpu;
     ASSERT(gpu != NULL);
 
-    DvzSubmit* s = &canvas->submit;
+    DvzSubmit* s = &canvas->render.submit;
     uint32_t f = canvas->cur_frame;
-    uint32_t img_idx = canvas->swapchain.img_idx;
+    uint32_t img_idx = canvas->render.swapchain.img_idx;
 
     // Keep track of the fence associated to the current swapchain image.
     dvz_fences_copy(
@@ -2188,7 +2194,7 @@ void dvz_canvas_frame_submit(DvzCanvas* canvas)
     // callbacks.
     if (!canvas->offscreen)
         dvz_swapchain_present(
-            &canvas->swapchain, 1, //
+            &canvas->render.swapchain, 1, //
             canvas->present_semaphores, CLIP(f, 0, canvas->present_semaphores->count - 1));
 
     canvas->cur_frame = (f + 1) % canvas->fences_render_finished.count;
@@ -2265,13 +2271,13 @@ int dvz_canvas_frame(DvzCanvas* canvas)
     // NOTE: this call modifies swapchain->img_idx
     if (!canvas->offscreen)
         dvz_swapchain_acquire(
-            &canvas->swapchain, &canvas->sem_img_available, canvas->cur_frame, NULL, 0);
+            &canvas->render.swapchain, &canvas->sem_img_available, canvas->cur_frame, NULL, 0);
 
     // Wait for fence.
-    dvz_fences_wait(&canvas->fences_flight, canvas->swapchain.img_idx);
+    dvz_fences_wait(&canvas->fences_flight, canvas->render.swapchain.img_idx);
 
     // If there is a problem with swapchain image acquisition, wait and try again later.
-    if (canvas->swapchain.obj.status == DVZ_OBJECT_STATUS_INVALID)
+    if (canvas->render.swapchain.obj.status == DVZ_OBJECT_STATUS_INVALID)
     {
         log_trace("swapchain image acquisition failed, waiting and skipping this frame");
         dvz_gpu_wait(canvas->gpu);
@@ -2282,7 +2288,7 @@ int dvz_canvas_frame(DvzCanvas* canvas)
     }
 
     // If the swapchain needs to be recreated (for example, after a resize), do it.
-    if (canvas->swapchain.obj.status == DVZ_OBJECT_STATUS_NEED_RECREATE)
+    if (canvas->render.swapchain.obj.status == DVZ_OBJECT_STATUS_NEED_RECREATE)
     {
         log_trace("swapchain image acquisition failed, recreating the canvas");
 
@@ -2525,9 +2531,9 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
     dvz_container_destroy(&canvas->graphics);
 
     // Destroy the depth and pick images.
-    dvz_images_destroy(&canvas->depth_image);
-    dvz_images_destroy(&canvas->pick_image);
-    dvz_images_destroy(&canvas->pick_staging);
+    dvz_images_destroy(&canvas->render.depth_image);
+    dvz_images_destroy(&canvas->render.pick_image);
+    dvz_images_destroy(&canvas->render.pick_staging);
 
     // Destroy the renderpasses.
     log_trace("canvas destroy renderpass");
@@ -2537,13 +2543,13 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
 
     // Destroy the swapchain.
     log_trace("canvas destroy swapchain");
-    dvz_swapchain_destroy(&canvas->swapchain);
+    dvz_swapchain_destroy(&canvas->render.swapchain);
 
     // Destroy the framebuffers.
     log_trace("canvas destroy framebuffers");
-    dvz_framebuffers_destroy(&canvas->framebuffers);
+    dvz_framebuffers_destroy(&canvas->render.framebuffers);
     if (canvas->overlay)
-        dvz_framebuffers_destroy(&canvas->framebuffers_overlay);
+        dvz_framebuffers_destroy(&canvas->render.framebuffers_overlay);
 
     // Destroy the Dear ImGui context if it was initialized.
 

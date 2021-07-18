@@ -353,7 +353,7 @@ static void _create_source_buffer(DvzCanvas* canvas, DvzSource* source, VkDevice
         return;
         break;
     }
-    uint32_t buf_count = source->source_type == mappable ? canvas->swapchain.img_count : 1;
+    uint32_t buf_count = source->source_type == mappable ? canvas->render.swapchain.img_count : 1;
     source->u.br = dvz_ctx_buffers(ctx, type, buf_count, size);
 }
 

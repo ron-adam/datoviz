@@ -50,7 +50,7 @@ static TestVisual triangle(DvzCanvas* canvas, const char* suffix)
     TestVisual visual = {0};
     visual.gpu = gpu;
     visual.renderpass = &canvas->renderpass;
-    visual.framebuffers = &canvas->framebuffers;
+    visual.framebuffers = &canvas->render.framebuffers;
 
     // Make the graphics.
     visual.graphics = triangle_graphics(gpu, visual.renderpass, suffix);
@@ -72,7 +72,7 @@ static void triangle_refill(DvzCanvas* canvas, DvzEvent ev)
     ASSERT(visual != NULL);
 
     triangle_commands(
-        cmds, idx, &canvas->renderpass, &canvas->framebuffers, //
+        cmds, idx, &canvas->renderpass, &canvas->render.framebuffers, //
         &visual->graphics, &visual->bindings, visual->br);
 }
 
@@ -743,11 +743,12 @@ int test_canvas_triangle_uniform(TestContext* tc)
     canvas->user_data = (void*)vec;
     dvz_graphics_slot(&visual.graphics, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     visual.br_u = dvz_ctx_buffers(
-        gpu->context, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, canvas->swapchain.img_count, sizeof(vec4));
+        gpu->context, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, canvas->render.swapchain.img_count,
+        sizeof(vec4));
     ASSERT(visual.br_u.aligned_size >= visual.br_u.size);
 
     // Bindings and graphics pipeline.
-    visual.bindings = dvz_bindings(&visual.graphics.slots, canvas->swapchain.img_count);
+    visual.bindings = dvz_bindings(&visual.graphics.slots, canvas->render.swapchain.img_count);
     dvz_bindings_buffer(&visual.bindings, 0, visual.br_u);
     dvz_bindings_update(&visual.bindings);
     dvz_graphics_create(&visual.graphics);
@@ -816,7 +817,7 @@ static void triangle_refill_compute(DvzCanvas* canvas, DvzEvent ev)
     dvz_cmd_compute(cmds, idx, visual->compute, (uvec3){3, 1, 1});
     _buffer_barrier(visual, cmds, idx, 1);
 
-    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->framebuffers);
+    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->render.framebuffers);
     dvz_cmd_viewport(cmds, idx, canvas->viewport.viewport);
     dvz_cmd_bind_vertex_buffer(cmds, idx, visual->br, 0);
     dvz_cmd_bind_graphics(cmds, idx, &visual->graphics, &visual->bindings, 0);
@@ -918,8 +919,8 @@ int test_canvas_triangle_pick(TestContext* tc)
 
     // Test picking.
     // ivec4 exp = {0};
-    float w = (float)canvas->swapchain.images[0].width;
-    float h = (float)canvas->swapchain.images[0].height;
+    float w = (float)canvas->render.swapchain.images[0].width;
+    float h = (float)canvas->render.swapchain.images[0].height;
     ASSERT(w > 0 && h > 0);
 
     // TODO: multiple clicks (doesn't work for now)

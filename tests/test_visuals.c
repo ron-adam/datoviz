@@ -148,7 +148,8 @@ static void _visual_mvp_buffer(DvzVisual* visual)
 
     // Binding data.
     scene->br_mvp = dvz_ctx_buffers(
-        context, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, canvas->swapchain.img_count, sizeof(DvzMVP));
+        context, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, canvas->render.swapchain.img_count,
+        sizeof(DvzMVP));
     glm_mat4_identity(scene->interact.mvp.model);
     glm_mat4_identity(scene->interact.mvp.view);
     glm_mat4_identity(scene->interact.mvp.proj);
@@ -651,7 +652,8 @@ int test_visuals_shared(TestContext* tc)
     // HACK: this buffer is not used by the visual, but we need here because the testing code here
     // updates this buffer at every frame. Therefore the interactivity will not work in this test.
     scene->br_mvp = dvz_ctx_buffers(
-        context, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, canvas->swapchain.img_count, sizeof(DvzMVP));
+        context, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, canvas->render.swapchain.img_count,
+        sizeof(DvzMVP));
     glm_mat4_identity(scene->interact.mvp.model);
     glm_mat4_identity(scene->interact.mvp.view);
     glm_mat4_identity(scene->interact.mvp.proj);

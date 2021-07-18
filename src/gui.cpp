@@ -57,11 +57,11 @@ static void _presend(DvzCanvas* canvas, DvzEvent ev)
         return;
     DvzCommands* cmds = (DvzCommands*)ev.user_data;
     ASSERT(cmds != NULL);
-    uint32_t idx = canvas->swapchain.img_idx;
+    uint32_t idx = canvas->render.swapchain.img_idx;
 
     dvz_cmd_begin(cmds, idx);
     dvz_cmd_begin_renderpass(
-        cmds, idx, &canvas->renderpass_overlay, &canvas->framebuffers_overlay);
+        cmds, idx, &canvas->renderpass_overlay, &canvas->render.framebuffers_overlay);
 
     // Begin new frame.
     if (has_imgui_context)
@@ -92,7 +92,7 @@ static void _presend(DvzCanvas* canvas, DvzEvent ev)
     dvz_cmd_end(cmds, idx);
 
     ASSERT(canvas != NULL);
-    dvz_submit_commands(&canvas->submit, cmds);
+    dvz_submit_commands(&canvas->render.submit, cmds);
 }
 
 
@@ -306,8 +306,8 @@ static void _imgui_canvas_enable(DvzCanvas* canvas)
         init_info.DescriptorPool = gpu->dset_pool;
         // init_info.PipelineCache = gpu->pipeline_cache;
         // init_info.Allocator = gpu->allocator;
-        init_info.MinImageCount = canvas->swapchain.img_count;
-        init_info.ImageCount = canvas->swapchain.img_count;
+        init_info.MinImageCount = canvas->render.swapchain.img_count;
+        init_info.ImageCount = canvas->render.swapchain.img_count;
         init_info.CheckVkResultFn = _imgui_check_vk_result;
         ImGui_ImplVulkan_Init(&init_info, canvas->renderpass_overlay.renderpass);
 
@@ -360,7 +360,7 @@ void dvz_imgui_enable(DvzCanvas* canvas)
 
     // PRE_SEND callback that will call the IMGUI callbacks.
     DvzCommands* cmds =
-        dvz_canvas_commands(canvas, DVZ_DEFAULT_QUEUE_RENDER, canvas->swapchain.img_count);
+        dvz_canvas_commands(canvas, DVZ_DEFAULT_QUEUE_RENDER, canvas->render.swapchain.img_count);
     dvz_event_callback(canvas, DVZ_EVENT_PRE_SEND, 0, DVZ_EVENT_MODE_SYNC, _presend, cmds);
 }
 

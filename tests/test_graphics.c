@@ -74,7 +74,7 @@ static void _graphics_refill(DvzCanvas* canvas, DvzEvent ev)
 
     // Commands.
     dvz_cmd_begin(cmds, idx);
-    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->framebuffers);
+    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->render.framebuffers);
     dvz_cmd_viewport(cmds, idx, canvas->viewport.viewport);
     dvz_cmd_bind_vertex_buffer(cmds, idx, *br, 0);
     if (br_index->buffer != NULL)
@@ -110,11 +110,12 @@ static void _graphics_bindings(TestGraphics* tg)
     ASSERT(context != NULL);
 
     // Create the bindings.
-    tg->bindings = dvz_bindings(&graphics->slots, canvas->swapchain.img_count);
+    tg->bindings = dvz_bindings(&graphics->slots, canvas->render.swapchain.img_count);
 
     // Binding resources.
     tg->br_mvp = dvz_ctx_buffers(
-        context, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, canvas->swapchain.img_count, sizeof(DvzMVP));
+        context, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, canvas->render.swapchain.img_count,
+        sizeof(DvzMVP));
     tg->br_viewport = dvz_ctx_buffers(context, DVZ_BUFFER_TYPE_UNIFORM, 1, sizeof(DvzViewport));
 
     // Viewport.

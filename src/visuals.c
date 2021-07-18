@@ -245,7 +245,7 @@ void dvz_visual_graphics(DvzVisual* visual, DvzGraphics* graphics)
 
     DvzBindings* bindings = dvz_container_alloc(&visual->bindings);
     ASSERT(visual->bindings.count == visual->graphics_count + 1);
-    *bindings = dvz_bindings(&graphics->slots, visual->canvas->swapchain.img_count);
+    *bindings = dvz_bindings(&graphics->slots, visual->canvas->render.swapchain.img_count);
     visual->graphics_count++;
 }
 
@@ -265,7 +265,7 @@ void dvz_visual_compute(DvzVisual* visual, DvzCompute* compute)
 
     DvzBindings* bindings = dvz_container_alloc(&visual->bindings);
     ASSERT(visual->bindings.count == visual->compute_count + 1);
-    *bindings = dvz_bindings(&compute->slots, visual->canvas->swapchain.img_count);
+    *bindings = dvz_bindings(&compute->slots, visual->canvas->render.swapchain.img_count);
     visual->compute_count++;
 }
 
@@ -546,7 +546,7 @@ void dvz_visual_fill_begin(DvzCanvas* canvas, DvzCommands* cmds, uint32_t idx)
 {
     ASSERT(canvas != NULL);
     dvz_cmd_begin(cmds, idx);
-    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->framebuffers);
+    dvz_cmd_begin_renderpass(cmds, idx, &canvas->renderpass, &canvas->render.framebuffers);
 }
 
 
@@ -828,7 +828,7 @@ void dvz_visual_update(
             if (br->buffer->type == DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE)
             {
                 // dvz_canvas_buffers(canvas, *br, 0, size, arr->data);
-                for (uint32_t i = 0; i < canvas->swapchain.img_count; i++)
+                for (uint32_t i = 0; i < canvas->render.swapchain.img_count; i++)
                     dvz_buffer_upload(br->buffer, br->offsets[i], size, arr->data);
             }
             else
