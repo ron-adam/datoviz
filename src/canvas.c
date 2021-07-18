@@ -2238,7 +2238,8 @@ static void _process_gpu_transfers(DvzApp* app)
         // Pending transfers.
         ASSERT(gpu->context != NULL);
         // NOTE: the function below uses hard GPU synchronization primitives
-        dvz_process_transfers(gpu->context);
+        // TODO
+        // dvz_process_transfers(gpu->context);
 
         // IMPORTANT: we need to wait for the present queue to be idle, otherwise the GPU hangs
         // when waiting for fences (not sure why). The problem only arises when using different

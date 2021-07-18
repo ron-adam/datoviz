@@ -4,7 +4,7 @@
 #include "../include/datoviz/common.h"
 #include "../include/datoviz/controls.h"
 #include "../include/datoviz/gui.h"
-#include "canvas_utils_old.h"
+// #include "canvas_utils_old.h"
 
 BEGIN_INCL_NO_WARN
 #include "../external/IconsFontAwesome.h"

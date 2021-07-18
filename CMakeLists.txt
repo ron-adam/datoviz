@@ -443,6 +443,7 @@ if (DATOVIZ_WITH_CLI)
         "tests/test_ticks.c"
         "tests/test_vklite.c"
         "tests/test_context.c"
+        "tests/test_transfers.c"
         "tests/test_input.c"
         "tests/test_canvas.c"
     )
