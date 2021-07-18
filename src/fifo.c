@@ -371,7 +371,7 @@ static int _proc_wait(DvzDeqProc* proc)
         // How many seconds after now?
         proc->wait.tv_sec = now.tv_sec + wait_s;
         // How many nanoseconds after the X seconds?
-        proc->wait.tv_nsec = (now.tv_usec + wait_us) * 1000; // from us to ns
+        proc->wait.tv_nsec = ((uint32_t)now.tv_usec + wait_us) * 1000; // from us to ns
 
         // NOTE: this call automatically releases the mutex while waiting, and reacquires it
         // afterwards

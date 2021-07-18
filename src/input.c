@@ -183,12 +183,12 @@ _input_proc_pre_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, vo
     // Update the mouse state after every mouse event.
     if (deq_idx == DVZ_INPUT_DEQ_MOUSE)
     {
-        dvz_input_mouse_update(input, type, (DvzInputEvent*)item);
+        dvz_input_mouse_update(input, (DvzInputType)type, (DvzInputEvent*)item);
     }
 
     else if (deq_idx == DVZ_INPUT_DEQ_KEYBOARD)
     {
-        dvz_input_keyboard_update(input, type, (DvzInputEvent*)item);
+        dvz_input_keyboard_update(input, (DvzInputType)type, (DvzInputEvent*)item);
     }
 }
 
@@ -888,9 +888,9 @@ static void _input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev, b
     DvzInputEvent* pev = calloc(1, sizeof(DvzInputEvent));
     *pev = ev;
     if (!enqueue_first)
-        dvz_deq_enqueue(&input->deq, deq_idx, type, pev);
+        dvz_deq_enqueue(&input->deq, deq_idx, (int)type, pev);
     else
-        dvz_deq_enqueue_first(&input->deq, deq_idx, type, pev);
+        dvz_deq_enqueue_first(&input->deq, deq_idx, (int)type, pev);
 }
 
 void dvz_input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev)
