@@ -539,53 +539,36 @@ struct DvzCanvas
     float dpi_scaling;
     int flags;
     void* user_data;
+    DvzWindow* window;
 
     // This thread-safe variable is used by the background thread to
     // safely communicate a status change of the canvas
     atomic(DvzObjectStatus, cur_status);
     atomic(bool, to_close);
 
-    DvzWindow* window;
-
-    DvzRender render;
-
-    // FPS.
+    // Frames.
     uint32_t cur_frame; // current frame within the images in flight
     uint64_t frame_idx;
     DvzClock clock;
     DvzFPS fps;
 
-    // Synchronization events.
+    // Rendering.
+    DvzRender render;
     DvzCanvasSync sync;
 
-    // Default command buffers.
+    // Command buffers.
     DvzCommands cmds_transfer;
     DvzCommands cmds_render;
-
-    // Other command buffers.
     DvzContainer commands;
 
     // Graphics pipelines.
     DvzContainer graphics;
 
-    // Event callbacks, running in the background thread, may be slow, for end-users.
-    uint32_t callbacks_count;
-    DvzEventCallbackRegister callbacks[DVZ_MAX_EVENT_CALLBACKS];
-
     // Deq
     DvzDeq deq;
-    DvzThread thread; // processes the async events
-
-    // Event queue.
-    DvzFifo event_queue;
-    // DvzEvent events[DVZ_MAX_FIFO_CAPACITY];
-    DvzThread event_thread;
-    bool enable_lock;
-    atomic(DvzEventType, event_processing);
-
     bool captured; // if true, mouse and keyboard should not be processed
-    DvzMouse mouse;
-    DvzKeyboard keyboard;
+
+    DvzInput input;
 
     // GUIs.
     DvzGuiContext* gui_context;
@@ -596,6 +579,21 @@ struct DvzCanvas
 
     DvzViewport viewport;
     DvzScene* scene;
+
+
+    // TO BE REMOVED:
+    // Event callbacks, running in the background thread, may be slow, for end-users.
+    uint32_t callbacks_count;
+    DvzEventCallbackRegister callbacks[DVZ_MAX_EVENT_CALLBACKS];
+    DvzThread thread; // processes the async events
+    // Event queue.
+    DvzFifo event_queue;
+    // DvzEvent events[DVZ_MAX_FIFO_CAPACITY];
+    DvzThread event_thread;
+    bool enable_lock;
+    atomic(DvzEventType, event_processing);
+    DvzMouse mouse;
+    DvzKeyboard keyboard;
 };
 
 

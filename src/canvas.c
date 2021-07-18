@@ -370,6 +370,120 @@ _staging_image(DvzCanvas* canvas, VkFormat format, uint32_t width, uint32_t heig
     return staging;
 }
 
+static void _swapchain_create(
+    DvzCanvas* canvas, uint32_t width, uint32_t height, bool offscreen, bool show_fps)
+{
+    ASSERT(canvas != NULL);
+
+    if (!offscreen)
+    {
+        dvz_swapchain_present_mode(
+            &canvas->render.swapchain,
+            show_fps ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR);
+        dvz_swapchain_create(&canvas->render.swapchain);
+    }
+    else
+    {
+        canvas->render.swapchain.images = calloc(1, sizeof(DvzImages));
+        ASSERT(canvas->render.swapchain.img_count == 1);
+        *canvas->render.swapchain.images =
+            dvz_images(canvas->render.swapchain.gpu, VK_IMAGE_TYPE_2D, 1);
+        DvzImages* images = canvas->render.swapchain.images;
+
+        // Color attachment
+        dvz_images_format(images, canvas->render.renderpass.attachments[0].format);
+        dvz_images_size(images, width, height, 1);
+        dvz_images_tiling(images, VK_IMAGE_TILING_OPTIMAL);
+        dvz_images_usage(
+            images, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+        dvz_images_memory(images, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        dvz_images_aspect(images, VK_IMAGE_ASPECT_COLOR_BIT);
+        dvz_images_layout(images, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        dvz_images_queue_access(images, DVZ_DEFAULT_QUEUE_RENDER);
+        dvz_images_create(images);
+
+        dvz_obj_created(&canvas->render.swapchain.obj);
+    }
+}
+
+static void _attachments_create(DvzCanvas* canvas, bool support_pick)
+{
+    ASSERT(canvas != NULL);
+    DvzGpu* gpu = canvas->gpu;
+
+    // Depth attachment.
+    canvas->render.depth_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
+    depth_image(
+        &canvas->render.depth_image, &canvas->render.renderpass, //
+        canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
+
+    // Pick attachment.
+    if (support_pick)
+    {
+        canvas->render.pick_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
+        pick_image(
+            &canvas->render.pick_image, &canvas->render.renderpass, //
+            canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
+        canvas->render.pick_staging = _staging_image(
+            canvas, canvas->render.pick_image.format, DVZ_PICK_STAGING_SIZE,
+            DVZ_PICK_STAGING_SIZE);
+    }
+}
+
+static void _framebuffers_create(DvzCanvas* canvas, bool overlay, bool support_pick)
+{
+    ASSERT(canvas != NULL);
+    DvzGpu* gpu = canvas->gpu;
+
+    canvas->render.framebuffers = dvz_framebuffers(gpu);
+    dvz_framebuffers_attachment(&canvas->render.framebuffers, 0, canvas->render.swapchain.images);
+    dvz_framebuffers_attachment(&canvas->render.framebuffers, 1, &canvas->render.depth_image);
+    if (support_pick)
+        dvz_framebuffers_attachment(&canvas->render.framebuffers, 2, &canvas->render.pick_image);
+    dvz_framebuffers_create(&canvas->render.framebuffers, &canvas->render.renderpass);
+
+    if (overlay)
+    {
+        canvas->render.framebuffers_overlay = dvz_framebuffers(gpu);
+        dvz_framebuffers_attachment(
+            &canvas->render.framebuffers_overlay, 0, canvas->render.swapchain.images);
+        dvz_framebuffers_create(
+            &canvas->render.framebuffers_overlay, &canvas->render.renderpass_overlay);
+    }
+}
+
+static void _sync_create(DvzCanvas* canvas, bool offscreen)
+{
+    ASSERT(canvas != NULL);
+    DvzGpu* gpu = canvas->gpu;
+
+    uint32_t frames_in_flight = offscreen ? 1 : DVZ_MAX_FRAMES_IN_FLIGHT;
+
+    canvas->sync.sem_img_available = dvz_semaphores(gpu, frames_in_flight);
+    canvas->sync.sem_render_finished = dvz_semaphores(gpu, frames_in_flight);
+    canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
+
+    canvas->sync.fences_render_finished = dvz_fences(gpu, frames_in_flight, true);
+    canvas->sync.fences_flight.gpu = gpu;
+    canvas->sync.fences_flight.count = canvas->render.swapchain.img_count;
+}
+
+static void _fps_init(DvzCanvas* canvas, bool show_fps)
+{
+    ASSERT(canvas != NULL);
+
+    // Initial values.
+    canvas->fps.fps = 100;
+    canvas->fps.efps = 100;
+    // Compute FPS every 100 ms, even if FPS is not shown (so that the value remains accessible
+    // in callbacks if needed).
+    dvz_event_callback(canvas, DVZ_EVENT_TIMER, .1, DVZ_EVENT_MODE_SYNC, _fps_callback, NULL);
+
+    if (show_fps)
+        dvz_event_callback(
+            canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback_fps, NULL);
+}
+
 static DvzCanvas*
 _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overlay, int flags)
 {
@@ -466,54 +580,8 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
         uint32_t min_img_count = offscreen ? 1 : DVZ_MIN_SWAPCHAIN_IMAGE_COUNT;
         canvas->render.swapchain = dvz_swapchain(gpu, window, min_img_count);
         dvz_swapchain_format(&canvas->render.swapchain, DVZ_DEFAULT_IMAGE_FORMAT);
-
-        if (!offscreen)
-        {
-            dvz_swapchain_present_mode(
-                &canvas->render.swapchain,
-                show_fps ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR);
-            dvz_swapchain_create(&canvas->render.swapchain);
-        }
-        else
-        {
-            canvas->render.swapchain.images = calloc(1, sizeof(DvzImages));
-            ASSERT(canvas->render.swapchain.img_count == 1);
-            *canvas->render.swapchain.images =
-                dvz_images(canvas->render.swapchain.gpu, VK_IMAGE_TYPE_2D, 1);
-            DvzImages* images = canvas->render.swapchain.images;
-
-            // Color attachment
-            dvz_images_format(images, canvas->render.renderpass.attachments[0].format);
-            dvz_images_size(images, width, height, 1);
-            dvz_images_tiling(images, VK_IMAGE_TILING_OPTIMAL);
-            dvz_images_usage(
-                images, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-            dvz_images_memory(images, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            dvz_images_aspect(images, VK_IMAGE_ASPECT_COLOR_BIT);
-            dvz_images_layout(images, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-            dvz_images_queue_access(images, DVZ_DEFAULT_QUEUE_RENDER);
-            dvz_images_create(images);
-
-            dvz_obj_created(&canvas->render.swapchain.obj);
-        }
-
-        // Depth attachment.
-        canvas->render.depth_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
-        depth_image(
-            &canvas->render.depth_image, &canvas->render.renderpass, //
-            canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
-
-        // Pick attachment.
-        if (support_pick)
-        {
-            canvas->render.pick_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
-            pick_image(
-                &canvas->render.pick_image, &canvas->render.renderpass, //
-                canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
-            canvas->render.pick_staging = _staging_image(
-                canvas, canvas->render.pick_image.format, DVZ_PICK_STAGING_SIZE,
-                DVZ_PICK_STAGING_SIZE);
-        }
+        _swapchain_create(canvas, width, height, offscreen, show_fps);
+        _attachments_create(canvas, support_pick);
     }
 
     // Create renderpass.
@@ -522,49 +590,17 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
         dvz_renderpass_create(&canvas->render.renderpass_overlay);
 
     // Create framebuffers.
-    {
-        canvas->render.framebuffers = dvz_framebuffers(gpu);
-        dvz_framebuffers_attachment(
-            &canvas->render.framebuffers, 0, canvas->render.swapchain.images);
-        dvz_framebuffers_attachment(&canvas->render.framebuffers, 1, &canvas->render.depth_image);
-        if (support_pick)
-            dvz_framebuffers_attachment(
-                &canvas->render.framebuffers, 2, &canvas->render.pick_image);
-        dvz_framebuffers_create(&canvas->render.framebuffers, &canvas->render.renderpass);
-
-        if (overlay)
-        {
-            canvas->render.framebuffers_overlay = dvz_framebuffers(gpu);
-            dvz_framebuffers_attachment(
-                &canvas->render.framebuffers_overlay, 0, canvas->render.swapchain.images);
-            dvz_framebuffers_create(
-                &canvas->render.framebuffers_overlay, &canvas->render.renderpass_overlay);
-        }
-    }
+    _framebuffers_create(canvas, overlay, support_pick);
 
     // Create synchronization objects.
-    {
-        uint32_t frames_in_flight = offscreen ? 1 : DVZ_MAX_FRAMES_IN_FLIGHT;
-
-        canvas->sync.sem_img_available = dvz_semaphores(gpu, frames_in_flight);
-        canvas->sync.sem_render_finished = dvz_semaphores(gpu, frames_in_flight);
-        canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
-
-        canvas->sync.fences_render_finished = dvz_fences(gpu, frames_in_flight, true);
-        canvas->sync.fences_flight.gpu = gpu;
-        canvas->sync.fences_flight.count = canvas->render.swapchain.img_count;
-    }
+    _sync_create(canvas, offscreen);
 
     // Default transfer commands.
-    {
-        canvas->cmds_transfer = dvz_commands(gpu, DVZ_DEFAULT_QUEUE_TRANSFER, 1);
-    }
+    canvas->cmds_transfer = dvz_commands(gpu, DVZ_DEFAULT_QUEUE_TRANSFER, 1);
 
     // Default render commands.
-    {
-        canvas->cmds_render =
-            dvz_commands(gpu, DVZ_DEFAULT_QUEUE_RENDER, canvas->render.swapchain.img_count);
-    }
+    canvas->cmds_render =
+        dvz_commands(gpu, DVZ_DEFAULT_QUEUE_RENDER, canvas->render.swapchain.img_count);
 
     // Default submit instance.
     canvas->render.submit = dvz_submit(gpu);
@@ -633,18 +669,7 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     }
 
     // FPS callback.
-    {
-        // Initial values.
-        canvas->fps.fps = 100;
-        canvas->fps.efps = 100;
-        // Compute FPS every 100 ms, even if FPS is not shown (so that the value remains accessible
-        // in callbacks if needed).
-        dvz_event_callback(canvas, DVZ_EVENT_TIMER, .1, DVZ_EVENT_MODE_SYNC, _fps_callback, NULL);
-
-        if (show_fps)
-            dvz_event_callback(
-                canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback_fps, NULL);
-    }
+    _fps_init(canvas, show_fps);
 
     ASSERT(canvas->render.swapchain.images != NULL);
     log_debug(
