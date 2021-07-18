@@ -50,10 +50,10 @@ int test_utils_colormap_scale(TestContext*);
 int test_utils_colormap_packuv(TestContext*);
 int test_utils_colormap_array(TestContext*);
 
-// int test_utils_ticks_1(TestContext*);
-// int test_utils_ticks_2(TestContext*);
-// int test_utils_ticks_duplicate(TestContext*);
-// int test_utils_ticks_extend(TestContext*);
+int test_utils_ticks_1(TestContext*);
+int test_utils_ticks_2(TestContext*);
+int test_utils_ticks_duplicate(TestContext*);
+int test_utils_ticks_extend(TestContext*);
 
 // Test vklite.
 int test_vklite_app(TestContext*);
@@ -221,10 +221,10 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(NONE, test_utils_colormap_scale),   //
     CASE_FIXTURE(NONE, test_utils_colormap_packuv),  //
     CASE_FIXTURE(NONE, test_utils_colormap_array),   //
-    // CASE_FIXTURE(NONE, test_utils_ticks_1),          //
-    // CASE_FIXTURE(NONE, test_utils_ticks_2),          //
-    // CASE_FIXTURE(NONE, test_utils_ticks_duplicate),  //
-    // CASE_FIXTURE(NONE, test_utils_ticks_extend),     //
+    CASE_FIXTURE(NONE, test_utils_ticks_1),          //
+    CASE_FIXTURE(NONE, test_utils_ticks_2),          //
+    CASE_FIXTURE(NONE, test_utils_ticks_duplicate),  //
+    CASE_FIXTURE(NONE, test_utils_ticks_extend),     //
 
     // Input.
     CASE_FIXTURE(NONE, test_input_mouse_raw),   //
