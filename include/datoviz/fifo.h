@@ -433,19 +433,36 @@ DVZ_EXPORT DvzDeqItem dvz_deq_peek_last(DvzDeq* deq, uint32_t deq_idx);
 DVZ_EXPORT void dvz_deq_strategy(DvzDeq* deq, uint32_t proc_idx, DvzDeqStrategy strategy);
 
 /**
- * Dequeue a non-empty item from one of the queues of a given proc.
+ * Dequeue a single item from one of the queues of a given proc.
  *
  * @param deq the Deq
  * @param proc_idx the Proc index
  * @param wait whether this call should be blocking
+ * @returns the dequeue-ed item if a queue was non-empty, or an empty item
  */
 DVZ_EXPORT DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait);
+
+/**
+ * Start a blocking dequeue loop that will only stop if another thread enqueues an empty item.
+ *
+ * !!! warning
+ *     When using this dequeue loop, all enqueued items must be alloc-ed on the heap because they
+ *     will be FREE-ed automatically!
+ *
+ * @param deq the Deq
+ * @param proc_idx the Proc index
+ */
+DVZ_EXPORT void dvz_deq_dequeue_loop(DvzDeq* deq, uint32_t proc_idx);
 
 /**
  * Immediately dequeue the existing items in batch from all queues in a proc.
  *
  * The registered callbacks will be called as usual for every dequeued item. But in addition to
  * that, batch BEGIN or END callbacks will be also called before and after the dequeues.
+ *
+ * !!! warning
+ *     When using this dequeue loop, all enqueued items must be alloc-ed on the heap because they
+ *     will be FREE-ed automatically!
  *
  * @param deq the Deq
  * @param proc_idx the Proc index
@@ -466,38 +483,6 @@ DVZ_EXPORT void dvz_deq_wait(DvzDeq* deq, uint32_t proc_idx);
  * @param deq the Deq
  */
 DVZ_EXPORT void dvz_deq_destroy(DvzDeq* deq);
-
-
-
-// WARNING: when using this function, the items that are enqueued will be FREE-ed automatically!
-static void* _deq_loop(DvzDeq* deq, uint32_t proc_idx)
-{
-    ASSERT(deq != NULL);
-    ASSERT(proc_idx < deq->proc_count);
-    DvzDeqItem item = {0};
-
-    while (true)
-    {
-        log_trace("waiting for proc #%d", proc_idx);
-        // This call dequeues an item and also calls all registered callbacks if the item is not
-        // null.
-        item = dvz_deq_dequeue(deq, proc_idx, true);
-        if (item.item == NULL)
-        {
-            log_debug("stop the deq loop for proc #%d", proc_idx);
-            break;
-        }
-        else
-        {
-            // WARNING: the pointer MUST be alloc-ed on the heap, because it is always
-            // freed here after dequeue and callbacks.
-            log_trace("free item");
-            FREE(item.item);
-        }
-        log_trace("got a deq item on proc #%d", proc_idx);
-    }
-    return NULL;
-}
 
 
 

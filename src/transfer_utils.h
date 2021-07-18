@@ -20,7 +20,8 @@ static void* _thread_transfers(void* user_data)
 {
     DvzContext* ctx = (DvzContext*)user_data;
     ASSERT(ctx != NULL);
-    return _deq_loop(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+    dvz_deq_dequeue_loop(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+    return NULL;
 }
 
 

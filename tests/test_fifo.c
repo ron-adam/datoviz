@@ -370,7 +370,7 @@ static void* _proc_thread(void* user_data)
 {
     DvzDeq* deq = (DvzDeq*)user_data;
     ASSERT(deq != NULL);
-    _deq_loop(deq, 0);
+    dvz_deq_dequeue_loop(deq, 0);
     return NULL;
 }
 
@@ -398,7 +398,8 @@ int test_utils_deq_wait(TestContext* tc)
 
     int* item = calloc(1, sizeof(int));
     *item = 1;
-    dvz_deq_enqueue(&deq, 0, 0, item); // will be FREEd by the dequeue proc in _deq_loop()
+    dvz_deq_enqueue(
+        &deq, 0, 0, item); // will be FREEd by the dequeue proc in dvz_deq_dequeue_loop()
 
     dvz_sleep(20);
     AT(count >= 4);

@@ -708,7 +708,38 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
 
 
 
-// WARNING: this function FREEs every enqueue item, like _deq_loop().
+// WARNING: when using this function, the items that are enqueued will be FREE-ed automatically!
+void dvz_deq_dequeue_loop(DvzDeq* deq, uint32_t proc_idx)
+{
+    ASSERT(deq != NULL);
+    ASSERT(proc_idx < deq->proc_count);
+    DvzDeqItem item = {0};
+
+    while (true)
+    {
+        log_trace("waiting for proc #%d", proc_idx);
+        // This call dequeues an item and also calls all registered callbacks if the item is not
+        // null.
+        item = dvz_deq_dequeue(deq, proc_idx, true);
+        if (item.item == NULL)
+        {
+            log_debug("stop the deq loop for proc #%d", proc_idx);
+            break;
+        }
+        else
+        {
+            // WARNING: the pointer MUST be alloc-ed on the heap, because it is always
+            // freed here after dequeue and callbacks.
+            log_trace("free item");
+            FREE(item.item);
+        }
+        log_trace("got a deq item on proc #%d", proc_idx);
+    }
+}
+
+
+
+// WARNING: this function FREEs every enqueue item, like dvz_deq_dequeue_loop().
 void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
 {
     ASSERT(deq != NULL);
