@@ -383,9 +383,24 @@ int test_utils_deq_circular(TestContext* tc)
     dvz_deq_enqueue(&deq, 0, 0, (int[]){(int)2});
     dvz_deq_enqueue(&deq, 1, 0, (int[]){42});
 
+    // Default is breadth-first dequeue strategy.
     // Item 42 in queue #1 should be obtained at the second dequeue() call thanks to the circular
     // dequeueing logic.
     int expected[4] = {0, 42, 1, 2};
+    for (uint32_t i = 0; i < 4; i++)
+        AT(*(int*)(dvz_deq_dequeue(&deq, 0, false).item) == expected[i]);
+
+    // Now, switch to depth-first dequeue strategy.
+    dvz_deq_strategy(&deq, 0, DVZ_DEQ_STRATEGY_DEPTH_FIRST);
+
+    dvz_deq_enqueue(&deq, 0, 0, (int[]){(int)0});
+    dvz_deq_enqueue(&deq, 1, 0, (int[]){42});
+    dvz_deq_enqueue(&deq, 0, 0, (int[]){(int)1});
+    dvz_deq_enqueue(&deq, 0, 0, (int[]){(int)2});
+    expected[0] = 0;
+    expected[1] = 1;
+    expected[2] = 2;
+    expected[3] = 42;
     for (uint32_t i = 0; i < 4; i++)
         AT(*(int*)(dvz_deq_dequeue(&deq, 0, false).item) == expected[i]);
 

@@ -559,6 +559,17 @@ DvzDeqItem dvz_deq_peek_last(DvzDeq* deq, uint32_t deq_idx)
 
 
 
+void dvz_deq_strategy(DvzDeq* deq, uint32_t proc_idx, DvzDeqStrategy strategy)
+{
+    ASSERT(deq != NULL);
+    ASSERT(proc_idx < deq->proc_count);
+    DvzDeqProc* proc = &deq->procs[proc_idx];
+    ASSERT(proc != NULL);
+    proc->strategy = strategy;
+}
+
+
+
 DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
 {
     ASSERT(deq != NULL);
@@ -643,7 +654,13 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
     _proc_callbacks(deq, proc_idx, DVZ_DEQ_PROC_CALLBACK_POST, &item_s);
 
     atomic_store(&proc->is_processing, false);
-    proc->queue_offset = (proc->queue_offset + 1) % proc->queue_count;
+
+    // Implement the dequeue strategy here. If queue_offset remains at 0, the dequeue will first
+    // empty the first queue, then move to the second queue, etc. Otherwise, all queues will be
+    // handled one after the other.
+    if (proc->strategy == DVZ_DEQ_STRATEGY_BREADTH_FIRST)
+        proc->queue_offset = (proc->queue_offset + 1) % proc->queue_count;
+
     return item_s;
 }
 

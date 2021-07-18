@@ -29,11 +29,21 @@ extern "C" {
 /*  Enums                                                                                        */
 /*************************************************************************************************/
 
+// Proc callback position: pre or post.
 typedef enum
 {
     DVZ_DEQ_PROC_CALLBACK_PRE,
     DVZ_DEQ_PROC_CALLBACK_POST
 } DvzDeqProcCallbackPosition;
+
+
+
+// Dequeue strategy: breadth-first (default) or depth-first.
+typedef enum
+{
+    DVZ_DEQ_STRATEGY_BREADTH_FIRST,
+    DVZ_DEQ_STRATEGY_DEPTH_FIRST,
+} DvzDeqStrategy;
 
 
 
@@ -88,13 +98,6 @@ struct DvzDeqCallbackRegister
     void* user_data;
 };
 
-struct DvzDeqItem
-{
-    uint32_t deq_idx;
-    int type;
-    void* item;
-};
-
 struct DvzDeqProcWaitCallbackRegister
 {
     DvzDeqProcWaitCallback callback;
@@ -108,10 +111,21 @@ struct DvzDeqProcCallbackRegister
     void* user_data;
 };
 
+
+
+struct DvzDeqItem
+{
+    uint32_t deq_idx;
+    int type;
+    void* item;
+};
+
 // A Proc represents a pair consumer/producer, where typically one thread enqueues items in a
 // subset of the queues, and another thread dequeues items from that subset.
 struct DvzDeqProc
 {
+    DvzDeqStrategy strategy; // dequeue strategy: breadth-first (default) or depth-first
+
     // Which queues constitute this process.
     uint32_t queue_count;
     uint32_t queue_indices[DVZ_DEQ_MAX_PROC_SIZE];
@@ -368,6 +382,15 @@ DVZ_EXPORT DvzDeqItem dvz_deq_peek_first(DvzDeq* deq, uint32_t deq_idx);
  * @returns the item
  */
 DVZ_EXPORT DvzDeqItem dvz_deq_peek_last(DvzDeq* deq, uint32_t deq_idx);
+
+/**
+ * Specify the dequeue strategy: breadth-first or depth-first.
+ *
+ * @param deq the Deq
+ * @param proc_idx the Proc index
+ * @param strategy the dequeue strategy
+ */
+DVZ_EXPORT void dvz_deq_strategy(DvzDeq* deq, uint32_t proc_idx, DvzDeqStrategy strategy);
 
 /**
  * Dequeue a non-empty item from one of the queues of a given proc.
