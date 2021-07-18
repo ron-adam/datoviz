@@ -3221,12 +3221,18 @@ void dvz_cmd_barrier(DvzCommands* cmds, uint32_t idx, DvzBarrier* barrier)
 
 
 
-void dvz_cmd_copy_buffer_to_image(
-    DvzCommands* cmds, uint32_t idx,            //
-    DvzBuffer* buffer, VkDeviceSize buf_offset, //
-    DvzImages* images, uvec3 tex_offset, uvec3 shape)
+static VkBufferImageCopy
+_image_buffer_copy(DvzImages* images, VkDeviceSize buf_offset, uvec3 tex_offset, uvec3 shape)
 {
-    CMD_START_CLIP(images->count)
+    ASSERT(images != NULL);
+
+    ASSERT(shape[0] > 0);
+    ASSERT(shape[1] > 0);
+    ASSERT(shape[2] > 0);
+
+    ASSERT(tex_offset[0] + shape[0] <= images->width);
+    ASSERT(tex_offset[1] + shape[1] <= images->height);
+    ASSERT(tex_offset[2] + shape[2] <= images->depth);
 
     VkBufferImageCopy region = {0};
     region.bufferOffset = buf_offset;
@@ -3246,14 +3252,24 @@ void dvz_cmd_copy_buffer_to_image(
     region.imageExtent.height = shape[1];
     region.imageExtent.depth = shape[2];
 
+    return region;
+}
+
+void dvz_cmd_copy_buffer_to_image(
+    DvzCommands* cmds, uint32_t idx,            //
+    DvzBuffer* buffer, VkDeviceSize buf_offset, //
+    DvzImages* images, uvec3 tex_offset, uvec3 shape)
+{
+    ASSERT(cmds != NULL);
+    ASSERT(buffer != NULL);
+
+    CMD_START_CLIP(images->count)
+    VkBufferImageCopy region = _image_buffer_copy(images, buf_offset, tex_offset, shape);
     vkCmdCopyBufferToImage(
         cb, buffer->buffer, images->images[iclip], //
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
     CMD_END
 }
-
-
 
 void dvz_cmd_copy_image_to_buffer(
     DvzCommands* cmds, uint32_t idx,                  //
@@ -3261,30 +3277,14 @@ void dvz_cmd_copy_image_to_buffer(
     DvzBuffer* buffer, VkDeviceSize buf_offset        //
 )
 {
+    ASSERT(cmds != NULL);
+    ASSERT(buffer != NULL);
+
     CMD_START_CLIP(images->count)
-
-    VkBufferImageCopy region = {0};
-    region.bufferOffset = buf_offset;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-
-    region.imageOffset.x = (int32_t)tex_offset[0];
-    region.imageOffset.y = (int32_t)tex_offset[1];
-    region.imageOffset.z = (int32_t)tex_offset[2];
-
-    region.imageExtent.width = shape[0];
-    region.imageExtent.height = shape[1];
-    region.imageExtent.depth = shape[2];
-
+    VkBufferImageCopy region = _image_buffer_copy(images, buf_offset, tex_offset, shape);
     vkCmdCopyImageToBuffer(
         cb, images->images[iclip], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, //
         buffer->buffer, 1, &region);
-
     CMD_END
 }
 
