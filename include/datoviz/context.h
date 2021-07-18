@@ -254,6 +254,9 @@ DVZ_EXPORT void dvz_texture_filter(DvzTexture* texture, DvzFilterType type, VkFi
 DVZ_EXPORT void dvz_texture_address_mode(
     DvzTexture* texture, DvzTextureAxis axis, VkSamplerAddressMode address_mode);
 
+// NOTE: the functions below assume a mappable texture, for other textures one should use the
+// functions in transfers.c
+
 /**
  * Upload data to a GPU texture.
  *

@@ -658,6 +658,7 @@ void dvz_texture_address_mode(
 
 
 
+// TODO: this function should be discarded and integrated into upload_texture() in multiple steps
 void dvz_texture_upload(
     DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, const void* data)
 {
@@ -683,6 +684,7 @@ void dvz_texture_upload(
 
 
 
+// TODO: this function should be discarded and integrated into upload_texture() in multiple steps
 void dvz_texture_download(
     DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
 {
@@ -708,6 +710,7 @@ void dvz_texture_download(
 
 
 
+// TODO: this function should be discarded and integrated into upload_texture() in multiple steps
 void dvz_texture_copy(
     DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset, uvec3 shape)
 {

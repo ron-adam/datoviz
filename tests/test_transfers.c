@@ -164,7 +164,7 @@ int test_transfers_texture(TestContext* tc)
 
     // Texture.
     DvzTexture* tex = dvz_ctx_texture(ctx, 2, shape_full, format);
-    DvzTexture* stg = dvz_ctx_texture(ctx, 2, shape, format);
+    // DvzTexture* stg = dvz_ctx_texture(ctx, 2, shape, format);
 
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().
@@ -172,14 +172,14 @@ int test_transfers_texture(TestContext* tc)
         &ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE, _dl_done, &res);
 
     // Enqueue an upload transfer task.
-    _enqueue_texture_upload(&ctx->deq, tex, offset, stg, (uvec3){0}, shape, size, data);
+    _enqueue_texture_upload(&ctx->deq, tex, offset, shape, size, data);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Enqueue a download transfer task.
     uint8_t data2[256] = {0};
-    _enqueue_texture_download(&ctx->deq, tex, offset, stg, (uvec3){0}, shape, size, data2);
+    _enqueue_texture_download(&ctx->deq, tex, offset, shape, size, data2);
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Wait until the download_done event has been raised, dequeue it, and finish the test.

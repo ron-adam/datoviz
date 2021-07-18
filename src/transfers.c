@@ -8,6 +8,7 @@
 
 
 // NOTE WARNING: PUBLIC FUNCTIONS HERE NOT TESTED YET
+// These convenient functions use the Dequeue interface. They are not efficient.
 
 
 
@@ -298,33 +299,35 @@ void dvz_download_buffer(
 
 
 
-// void dvz_copy_buffer(
-//     DvzContext* ctx, DvzBufferRegions src, VkDeviceSize src_offset, //
-//     DvzBufferRegions dst, VkDeviceSize dst_offset, VkDeviceSize size)
-// {
-//     ASSERT(context != NULL);
-//     ASSERT(context->gpu != NULL);
-//     ASSERT(context->gpu->app != NULL);
-//     ASSERT(context->transfers.capacity > 0);
+void dvz_copy_buffer(
+    DvzContext* ctx, DvzBufferRegions src, VkDeviceSize src_offset, //
+    DvzBufferRegions dst, VkDeviceSize dst_offset, VkDeviceSize size)
+{
+    // TODO
 
-//     ASSERT(size > 0);
-//     ASSERT(src.buffer != NULL);
-//     ASSERT(dst.buffer != NULL);
+    // ASSERT(context != NULL);
+    // ASSERT(context->gpu != NULL);
+    // ASSERT(context->gpu->app != NULL);
+    // ASSERT(context->transfers.capacity > 0);
 
-//     // Create the transfer object.
-//     DvzTransfer tr = {0};
-//     tr.type = DVZ_TRANSFER_BUFFER_COPY;
-//     tr.u.buf_copy.src = src;
-//     tr.u.buf_copy.dst = dst;
-//     tr.u.buf_copy.src_offset = src_offset;
-//     tr.u.buf_copy.dst_offset = dst_offset;
-//     tr.u.buf_copy.size = size;
+    // ASSERT(size > 0);
+    // ASSERT(src.buffer != NULL);
+    // ASSERT(dst.buffer != NULL);
 
-//     _transfer_enqueue(&context->transfers, tr);
+    // // Create the transfer object.
+    // DvzTransfer tr = {0};
+    // tr.type = DVZ_TRANSFER_BUFFER_COPY;
+    // tr.u.buf_copy.src = src;
+    // tr.u.buf_copy.dst = dst;
+    // tr.u.buf_copy.src_offset = src_offset;
+    // tr.u.buf_copy.dst_offset = dst_offset;
+    // tr.u.buf_copy.size = size;
 
-//     if (!context->gpu->app->is_running)
-//         dvz_process_transfers(context);
-// }
+    // _transfer_enqueue(&context->transfers, tr);
+
+    // if (!context->gpu->app->is_running)
+    //     dvz_process_transfers(context);
+}
 
 
 
@@ -390,13 +393,13 @@ void dvz_upload_texture(
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
-    DvzTexture* stg = dvz_ctx_texture(ctx, _get_texture_ndims(tex), shape, tex->image->format);
-    _enqueue_texture_upload(&ctx->deq, tex, offset, stg, (uvec3){0}, shape, size, data);
+    // DvzTexture* stg = dvz_ctx_texture(ctx, _get_texture_ndims(tex), shape, tex->image->format);
+    _enqueue_texture_upload(&ctx->deq, tex, offset, shape, size, data);
 
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
     dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
 
-    dvz_texture_destroy(stg);
+    // dvz_texture_destroy(stg);
 }
 
 
@@ -409,42 +412,43 @@ void dvz_download_texture(
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
-    DvzTexture* stg = dvz_ctx_texture(ctx, _get_texture_ndims(tex), shape, tex->image->format);
-    _enqueue_texture_download(&ctx->deq, tex, offset, stg, (uvec3){0}, shape, size, data);
+    // DvzTexture* stg = dvz_ctx_texture(ctx, _get_texture_ndims(tex), shape, tex->image->format);
+    _enqueue_texture_download(&ctx->deq, tex, offset, shape, size, data);
 
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
     dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
 
-    dvz_texture_destroy(stg);
+    // dvz_texture_destroy(stg);
 }
 
 
 
-// void dvz_copy_texture(
-//     DvzContext* ctx, DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset,
-//     uvec3 shape, VkDeviceSize size)
-// {
-//     ASSERT(context != NULL);
-//     ASSERT(context->gpu != NULL);
-//     ASSERT(context->transfers.capacity > 0);
+void dvz_copy_texture(
+    DvzContext* ctx, DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset,
+    uvec3 shape, VkDeviceSize size)
+{
+    // TODO
+    // ASSERT(context != NULL);
+    // ASSERT(context->gpu != NULL);
+    // ASSERT(context->transfers.capacity > 0);
 
-//     ASSERT(src != NULL);
-//     ASSERT(dvz_obj_is_created(&src->obj));
-//     ASSERT(dst != NULL);
-//     ASSERT(dvz_obj_is_created(&dst->obj));
-//     ASSERT(size > 0);
+    // ASSERT(src != NULL);
+    // ASSERT(dvz_obj_is_created(&src->obj));
+    // ASSERT(dst != NULL);
+    // ASSERT(dvz_obj_is_created(&dst->obj));
+    // ASSERT(size > 0);
 
-//     // Create the transfer object.
-//     DvzTransfer tr = {0};
-//     tr.type = DVZ_TRANSFER_TEXTURE_COPY;
-//     tr.u.tex_copy.src = src;
-//     tr.u.tex_copy.dst = dst;
-//     memcpy(tr.u.tex_copy.src_offset, src_offset, sizeof(uvec3));
-//     memcpy(tr.u.tex_copy.dst_offset, dst_offset, sizeof(uvec3));
-//     memcpy(tr.u.tex_copy.shape, shape, sizeof(uvec3));
+    // // Create the transfer object.
+    // DvzTransfer tr = {0};
+    // tr.type = DVZ_TRANSFER_TEXTURE_COPY;
+    // tr.u.tex_copy.src = src;
+    // tr.u.tex_copy.dst = dst;
+    // memcpy(tr.u.tex_copy.src_offset, src_offset, sizeof(uvec3));
+    // memcpy(tr.u.tex_copy.dst_offset, dst_offset, sizeof(uvec3));
+    // memcpy(tr.u.tex_copy.shape, shape, sizeof(uvec3));
 
-//     _transfer_enqueue(&context->transfers, tr);
+    // _transfer_enqueue(&context->transfers, tr);
 
-//     if (!context->gpu->app->is_running)
-//         dvz_process_transfers(context);
-// }
+    // if (!context->gpu->app->is_running)
+    //     dvz_process_transfers(context);
+}

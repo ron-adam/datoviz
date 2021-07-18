@@ -85,8 +85,8 @@ struct DvzTransferBufferCopy
 
 struct DvzTransferTexture
 {
-    DvzTexture *stg, *tex;
-    uvec3 stg_offset, tex_offset, shape;
+    DvzTexture* tex;
+    uvec3 offset, shape;
     VkDeviceSize size;
     void* data;
 };
@@ -98,7 +98,7 @@ struct DvzTransferTextureCopy
     DvzTexture *src, *dst;
     uvec3 src_offset, dst_offset, shape;
     VkDeviceSize size;
-    void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
+    // void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
 };
 
 
@@ -158,21 +158,21 @@ DVZ_EXPORT void dvz_upload_buffer(
 DVZ_EXPORT void dvz_download_buffer(
     DvzContext* ctx, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size, void* data);
 
-// /**
-//  * Copy data between two GPU buffer regions.
-//  *
-//  * This function does not involve GPU-CPU data transfers.
-//  *
-//  * @param canvas the canvas
-//  * @param src the buffer region to copy from
-//  * @param src_offset the offset within the source buffer region
-//  * @param dst the buffer region to copy to
-//  * @param dst_offset the offset within the target buffer region
-//  * @param size the size of the data to copy
-//  */
-// DVZ_EXPORT void dvz_copy_buffer(
-//     DvzContext* ctx, DvzBufferRegions src, VkDeviceSize src_offset, //
-//     DvzBufferRegions dst, VkDeviceSize dst_offset, VkDeviceSize size);
+/**
+ * Copy data between two GPU buffer regions.
+ *
+ * This function does not involve GPU-CPU data transfers.
+ *
+ * @param canvas the canvas
+ * @param src the buffer region to copy from
+ * @param src_offset the offset within the source buffer region
+ * @param dst the buffer region to copy to
+ * @param dst_offset the offset within the target buffer region
+ * @param size the size of the data to copy
+ */
+DVZ_EXPORT void dvz_copy_buffer(
+    DvzContext* ctx, DvzBufferRegions src, VkDeviceSize src_offset, //
+    DvzBufferRegions dst, VkDeviceSize dst_offset, VkDeviceSize size);
 
 /**
  * Upload data to a texture.
@@ -200,40 +200,40 @@ DVZ_EXPORT void dvz_upload_texture(
 DVZ_EXPORT void dvz_download_texture(
     DvzContext* ctx, DvzTexture* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
 
-// /**
-//  * Copy part of a texture to another.
-//  *
-//  * This function does not involve GPU-CPU data transfers.
-//  *
-//  * @param canvas the canvas
-//  * @param src the source texture
-//  * @param src_offset the offset within the source texture
-//  * @param dst the target texture
-//  * @param dst_offset the offset within the target texture
-//  * @param shape the shape of the part of the texture to copy
-//  * @param size the corresponding size of that part, in bytes
-//  */
-// DVZ_EXPORT void dvz_copy_texture(
-//     DvzContext* ctx, DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset,
-//     uvec3 shape, VkDeviceSize size);
+/**
+ * Copy part of a texture to another.
+ *
+ * This function does not involve GPU-CPU data transfers.
+ *
+ * @param canvas the canvas
+ * @param src the source texture
+ * @param src_offset the offset within the source texture
+ * @param dst the target texture
+ * @param dst_offset the offset within the target texture
+ * @param shape the shape of the part of the texture to copy
+ * @param size the corresponding size of that part, in bytes
+ */
+DVZ_EXPORT void dvz_copy_texture(
+    DvzContext* ctx, DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset,
+    uvec3 shape, VkDeviceSize size);
 
-// /**
-//  * Process the pending transfers.
-//  *
-//  * When the event loop is running, all transfers are enqueued in a queue rather than executed
-//  * directly. The reason is that proper synchronization is required in order to avoid modifying
-//  GPU
-//  * objects while they are being used for rendering. The transfer processing function is called
-//  at a
-//  * deterministic time within the main event loop.
-//  *
-//  * @param canvas the canvas
-//  * @param br the buffer regions to update
-//  * @param offset the offset within the buffer regions, in bytes
-//  * @param size the size of the data to upload, in bytes
-//  * @param data pointer to the data to upload to the GPU
-//  */
-// DVZ_EXPORT void dvz_process_transfers(DvzContext* context);
+/**
+ * Process the pending transfers.
+ *
+ * When the event loop is running, all transfers are enqueued in a queue rather than executed
+ * directly. The reason is that proper synchronization is required in order to avoid modifying
+ GPU
+ * objects while they are being used for rendering. The transfer processing function is called
+ at a
+ * deterministic time within the main event loop.
+ *
+ * @param canvas the canvas
+ * @param br the buffer regions to update
+ * @param offset the offset within the buffer regions, in bytes
+ * @param size the size of the data to upload, in bytes
+ * @param data pointer to the data to upload to the GPU
+ */
+DVZ_EXPORT void dvz_process_transfers(DvzContext* context);
 
 
 
