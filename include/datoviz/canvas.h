@@ -567,8 +567,8 @@ struct DvzCanvas
 
     // This thread-safe variable is used by the background thread to
     // safely communicate a status change of the canvas
-    atomic(DvzObjectStatus, cur_status);
-    atomic(bool, to_close);
+    // atomic(DvzObjectStatus, cur_status);
+    // atomic(bool, to_close);
 
     // Frames.
     uint32_t cur_frame; // current frame within the images in flight

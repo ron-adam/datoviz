@@ -525,7 +525,7 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
 
     // Initialize the atomic variables used to communicate state changes from a background thread
     // to the main thread (REFILL or CLOSE events).
-    atomic_init(&canvas->to_close, false);
+    // atomic_init(&canvas->to_close, false);
     // atomic_init(&canvas->refills.status, DVZ_REFILL_NONE);
 
     // Allocate memory for canvas objects.
@@ -786,7 +786,7 @@ void dvz_canvas_reset(DvzCanvas* canvas)
     dvz_context_reset(canvas->gpu->context);
 
     _clock_init(&canvas->clock);
-    atomic_store(&canvas->to_close, false);
+    // atomic_store(&canvas->to_close, false);
     // atomic_store(&canvas->refills.status, DVZ_REFILL_NONE);
     // canvas->callbacks_count = 0;
     canvas->cur_frame = 0;
@@ -2335,18 +2335,18 @@ int dvz_canvas_frame(DvzCanvas* canvas)
         return 0;
     }
 
-    // Destroy the canvas if needed.
-    // Check canvas.to_close, and whether the user as requested to close the window.
-    if (atomic_load(&canvas->to_close) ||
-        (canvas->window != NULL &&
-         backend_window_should_close(app->backend, canvas->window->backend_window)))
-    {
-        canvas->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
-        if (canvas->window != NULL)
-            canvas->window->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
-    }
-    if (canvas->window != NULL && canvas->window->obj.status == DVZ_OBJECT_STATUS_NEED_DESTROY)
-        canvas->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
+    // // Destroy the canvas if needed.
+    // // Check canvas.to_close, and whether the user as requested to close the window.
+    // if (atomic_load(&canvas->to_close) ||
+    //     (canvas->window != NULL &&
+    //      backend_window_should_close(app->backend, canvas->window->backend_window)))
+    // {
+    //     canvas->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
+    //     if (canvas->window != NULL)
+    //         canvas->window->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
+    // }
+    // if (canvas->window != NULL && canvas->window->obj.status == DVZ_OBJECT_STATUS_NEED_DESTROY)
+    //     canvas->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
 
     if (canvas->obj.status == DVZ_OBJECT_STATUS_NEED_DESTROY)
     {
