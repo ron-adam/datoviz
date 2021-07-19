@@ -52,7 +52,7 @@ static void _autorun_launch(DvzRun* run)
 
 
 /*************************************************************************************************/
-/*  Runner                                                                                       */
+/*  Run creation                                                                                 */
 /*************************************************************************************************/
 
 DvzRun* dvz_run(DvzApp* app)
@@ -76,23 +76,83 @@ DvzRun* dvz_run(DvzApp* app)
 
 
 
+/*************************************************************************************************/
+/*  Run event loop                                                                               */
+/*************************************************************************************************/
+
+static void _enqueue_frame(DvzRun* run, DvzCanvas* canvas)
+{
+    ASSERT(run != NULL);
+    ASSERT(canvas != NULL);
+
+    DvzRunCanvasFrame* ev = calloc(1, sizeof(DvzRunCanvasFrame));
+    ev->canvas = canvas;
+    ev->frame_idx = ev->canvas->frame_idx;
+    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_FRAME, DVZ_RUN_CANVAS_FRAME, ev);
+}
+
+
+
 int dvz_run_frame(DvzRun* run)
 {
     ASSERT(run != NULL);
 
-    // TODO
+    DvzApp* app = run->app;
+    ASSERT(app != NULL);
+
+    // Go through all canvases.
+    DvzCanvas* canvas = NULL;
+    DvzContainerIterator iter = dvz_container_iterator(&app->canvases);
+    while (iter.item != NULL)
+    {
+        canvas = (DvzCanvas*)iter.item;
+        ASSERT(canvas != NULL);
+        ASSERT(canvas->obj.type == DVZ_OBJECT_TYPE_CANVAS);
+
+        // If the canvas is active, enqueue a FRAME event for that canvas.
+        if (canvas->running)
+            _enqueue_frame(run, canvas);
+
+        dvz_container_iter(&iter);
+    }
+
+    // to decide: one Deq per canvas, or one for the Run?
+    // dequeue all items until all queues are empty (depth first dequeue)
+    //     first, it may dequeue a FRAME item, for which the callbacks will be called immediately
+    //         the FRAME callbacks may enqueue REFILL items (third queue) or
+    //         ADD/REMOVE/VISIBLE/ACTIVE items (second queue) they may also enqueue TRANSFER items,
+    //         to be processed directly in the background transfer thread, but COPY transfers may
+    //         be enqueued, to be handled separately later in the run_frame()
+    //     then, it may dequeue MAIN items
+    //         the ADD/VISIBLE/ACTIVE/RESIZE callbacks may be called
+    //     finally, it may dequeue a REFILL item, which will call the REFILL callbacks
+    //         it is up to the REFILL callback to either update the current swapchain cmd buf, or
+    //         to queue_wait on the RENDER GPU queue, and update all cmd bufs
+    // dequeue the pending COPY transfers in the GPU's context associated to the canvas
+    //     the COPY callback
+    // swapchain presentation if not offscreen
+    // to do : need to create another context queue LIFECYCLE for new/delete/modify of
+    // buffer/texture
 
     return 0;
 }
 
 
 
+/*************************************************************************************************/
+/*  Run functions                                                                                */
+/*************************************************************************************************/
+
 int dvz_run_loop(DvzRun* run, uint64_t frame_count)
 {
     ASSERT(run != NULL);
 
     int ret = 0;
-    for (uint64_t frame_idx = 0; frame_idx < frame_count || UINT64_MAX; frame_idx++)
+    uint64_t n = frame_count > 0 ? frame_count : UINT64_MAX;
+
+    // NOTE: there is the global frame index for the event loop, but every frame has its own local
+    // frame index too.
+    for (uint64_t global_frame_idx = 0; global_frame_idx < n; global_frame_idx++)
     {
         ret = dvz_run_frame(run);
 

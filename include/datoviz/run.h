@@ -27,6 +27,7 @@ typedef enum
 
 
 
+// Run canvas events.
 typedef enum
 {
     DVZ_RUN_CANVAS_NONE,        //
@@ -51,6 +52,21 @@ typedef enum
 
 typedef struct DvzAutorun DvzAutorun;
 typedef struct DvzRun DvzRun;
+
+// Event structs.
+typedef struct DvzRunCanvasFrame DvzRunCanvasFrame;
+
+
+
+/*************************************************************************************************/
+/*  Event structs                                                                                */
+/*************************************************************************************************/
+
+struct DvzRunCanvasFrame
+{
+    DvzCanvas* canvas;
+    uint64_t frame_idx;
+};
 
 
 

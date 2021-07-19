@@ -36,9 +36,11 @@
 int test_run_1(TestContext* tc)
 {
     DvzApp* app = tc->app;
-    DvzGpu* gpu = dvz_gpu_best(app);
+    // DvzGpu* gpu = dvz_gpu_best(app);
 
     DvzRun* run = dvz_run(app);
+
+    dvz_run_loop(run, 10);
 
     dvz_run_destroy(run);
     return 0;
