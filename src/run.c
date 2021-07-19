@@ -104,6 +104,28 @@ static void _enqueue_frame(DvzRun* run, DvzCanvas* canvas)
 
 
 
+static void _dequeue_copies(DvzApp* app)
+{
+    ASSERT(app != NULL);
+    DvzGpu* gpu = NULL;
+    DvzContainerIterator iter = dvz_container_iterator(&app->gpus);
+    while (iter.item != NULL)
+    {
+        gpu = (DvzGpu*)iter.item;
+        ASSERT(gpu != NULL);
+        ASSERT(gpu->obj.type == DVZ_OBJECT_TYPE_GPU);
+
+        // Process all copies with hard GPU synchronization before and after, as this is a sensible
+        // operation (we write to GPU data that is likely to be used when rendering).
+        if (gpu->context != NULL)
+            dvz_deq_dequeue(&gpu->context->deq, DVZ_TRANSFER_PROC_CPY, false);
+
+        dvz_container_iter(&iter);
+    }
+}
+
+
+
 // Run one frame for all active canvases, process all MAIN events, and perform all pending data
 // copies. However, this function does not handle swapchain presentation;
 int dvz_run_frame(DvzRun* run)
@@ -134,6 +156,8 @@ int dvz_run_frame(DvzRun* run)
         dvz_container_iter(&iter);
     }
 
+    // TODO: the next two calls should be in a loop, until both deqs are empty.
+
     // Dequeue all items until all queues are empty (depth first dequeue)
     //
     // NOTES:
@@ -151,21 +175,7 @@ int dvz_run_frame(DvzRun* run)
     dvz_deq_dequeue_batch(&run->deq, 0);
 
     // Dequeue the pending COPY transfers in the GPU contexts.
-    DvzGpu* gpu = NULL;
-    iter = dvz_container_iterator(&app->gpus);
-    while (iter.item != NULL)
-    {
-        gpu = (DvzGpu*)iter.item;
-        ASSERT(gpu != NULL);
-        ASSERT(gpu->obj.type == DVZ_OBJECT_TYPE_GPU);
-
-        // Process all copies with hard GPU synchronization before and after, as this is a sensible
-        // operation (we write to GPU data that is likely to be used when rendering).
-        if (gpu->context != NULL)
-            dvz_deq_dequeue(&gpu->context->deq, DVZ_TRANSFER_PROC_CPY, false);
-
-        dvz_container_iter(&iter);
-    }
+    _dequeue_copies(app);
 
     // If no canvas is running, stop the event loop.
     if (n_canvas_running == 0)
@@ -187,6 +197,8 @@ int dvz_run_loop(DvzRun* run, uint64_t frame_count)
     int ret = 0;
     uint64_t n = frame_count > 0 ? frame_count : UINT64_MAX;
 
+    run->state = DVZ_RUN_STATE_RUNNING;
+
     // NOTE: there is the global frame index for the event loop, but every frame has its own local
     // frame index too.
     for (uint64_t global_frame_idx = 0; global_frame_idx < n; global_frame_idx++)
@@ -201,6 +213,8 @@ int dvz_run_loop(DvzRun* run, uint64_t frame_count)
             break;
         }
     }
+
+    run->state = DVZ_RUN_STATE_PAUSED;
 
     return 0;
 }

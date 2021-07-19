@@ -20,9 +20,9 @@ extern "C" {
 // Run state.
 typedef enum
 {
-    DVZ_RUN_STATE_STOP,
-    DVZ_RUN_STATE_RUNNING,
+    // DVZ_RUN_STATE_STOP,
     DVZ_RUN_STATE_PAUSED,
+    DVZ_RUN_STATE_RUNNING,
 } DvzRunState;
 
 
@@ -30,18 +30,28 @@ typedef enum
 // Run canvas events.
 typedef enum
 {
-    DVZ_RUN_CANVAS_NONE,        //
+    DVZ_RUN_CANVAS_NONE, //
+
+    // FRAME queue
+    DVZ_RUN_CANVAS_FRAME, // new frame for a canvas
+
+    // MAIN queue
     DVZ_RUN_CANVAS_NEW,         //
-    DVZ_RUN_CANVAS_DELETE,      //
-    DVZ_RUN_CANVAS_VISIBLE,     // to hide or show a canvas
+    DVZ_RUN_CANVAS_RECREATE,    // need to recreate the canvas
     DVZ_RUN_CANVAS_RUNNING,     // whether to run frames or not
+    DVZ_RUN_CANVAS_VISIBLE,     // to hide or show a canvas
     DVZ_RUN_CANVAS_RESIZE,      // the canvas has been resized, need to enqueue first a REFILL
     DVZ_RUN_CANVAS_CLEAR_COLOR, // to change the clear color, will enqueue first a REFILL
     DVZ_RUN_CANVAS_DPI,         // change the DPI scaling of the canvas
     DVZ_RUN_CANVAS_FPS,         // whether to show or hide FPS
-    DVZ_RUN_CANVAS_REFILL,      // need to refill the canvas, the user should have registered a
-                                // callback which takes the cmd buf with idx in event struct)
-    DVZ_RUN_CANVAS_FRAME,       // new frame for a canvas
+    DVZ_RUN_CANVAS_DELETE,      //
+
+    // REFILL queue
+    DVZ_RUN_CANVAS_REFILL, // need to refill the canvas, the user should have registered a callback
+
+    // PRESENT queue
+    DVZ_RUN_CANVAS_PRESENT, // need to present the frame to the swapchain
+
 } DvzRunCanvasEvent;
 
 
