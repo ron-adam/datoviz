@@ -72,8 +72,7 @@ _enqueue_canvas_event(DvzRun* run, DvzCanvas* canvas, uint32_t deq_idx, DvzCanva
     ASSERT(canvas != NULL);
 
     // Will be FREE-ed by the dequeue batch function in the main loop.
-    DvzRunCanvasDefaultEvent* ev =
-        (DvzRunCanvasDefaultEvent*)calloc(1, sizeof(DvzRunCanvasDefaultEvent));
+    DvzCanvasEvent* ev = (DvzCanvasEvent*)calloc(1, sizeof(DvzCanvasEvent));
     ev->canvas = canvas;
     dvz_deq_enqueue(&run->deq, deq_idx, type, ev);
 }
@@ -84,9 +83,9 @@ static void _enqueue_canvas_frame(DvzRun* run, DvzCanvas* canvas)
 {
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
-    log_info("enqueue frame");
+    // log_info("enqueue frame");
 
-    DvzRunCanvasFrame* ev = calloc(1, sizeof(DvzRunCanvasFrame));
+    DvzCanvasEventFrame* ev = calloc(1, sizeof(DvzCanvasEventFrame));
     ev->canvas = canvas;
     ev->frame_idx = ev->canvas->frame_idx;
     dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_FRAME, DVZ_RUN_CANVAS_FRAME, ev);
@@ -98,9 +97,9 @@ static void _enqueue_refill(DvzRun* run, DvzCanvas* canvas)
 {
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
-    log_info("enqueue refill");
+    // log_info("enqueue refill");
 
-    DvzRunCanvasDefaultEvent* ev = calloc(1, sizeof(DvzRunCanvasDefaultEvent));
+    DvzCanvasEvent* ev = calloc(1, sizeof(DvzCanvasEvent));
     ev->canvas = canvas;
     dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_REFILL, DVZ_RUN_CANVAS_REFILL, ev);
 }
@@ -151,23 +150,32 @@ static uint32_t _enqueue_frames(DvzRun* run)
 /*  Canvas callbacks                                                                             */
 /*************************************************************************************************/
 
+static bool _canvas_check(DvzCanvas* canvas)
+{
+    if (!dvz_obj_is_created(&canvas->obj))
+    {
+        log_debug("skip canvas frame because canvas is invalid");
+        return false;
+    }
+    return true;
+}
+
+
+
 // backend-specific
 static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
 {
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
 
-    log_info("canvas frame #%d", canvas->frame_idx);
+    // log_trace("canvas frame #%d", canvas->frame_idx);
 
     DvzApp* app = canvas->app;
     ASSERT(app != NULL);
 
     // Process only created canvas.
-    if (!dvz_obj_is_created(&canvas->obj))
-    {
-        log_debug("skip canvas frame because canvas is invalid");
+    if (!_canvas_check(canvas))
         return;
-    }
 
     // Poll events.
     if (canvas->window != NULL)
@@ -186,8 +194,8 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
     // NOTE: this call modifies swapchain->img_idx
     if (!canvas->offscreen)
         dvz_swapchain_acquire(
-            &canvas->render.swapchain, &canvas->sync.sem_img_available, canvas->cur_frame, NULL,
-            0);
+            &canvas->render.swapchain, &canvas->sync.sem_img_available, //
+            canvas->cur_frame, NULL, 0);
 
     // Wait for fence.
     dvz_fences_wait(&canvas->sync.fences_flight, canvas->render.swapchain.img_idx);
@@ -209,7 +217,7 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
     }
 
     // If all good, enqueue a PRESENT task for that canvas.
-    log_info("enqueue present");
+    // log_info("enqueue present");
     _enqueue_canvas_event(run, canvas, DVZ_RUN_DEQ_PRESENT, DVZ_RUN_CANVAS_PRESENT);
 
     canvas->frame_idx++;
@@ -219,22 +227,14 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
 
 static void _canvas_refill(DvzRun* run, DvzCanvas* canvas)
 {
-    log_info("canvas refill");
-
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
 
-    // Process only created canvas.
-    if (!dvz_obj_is_created(&canvas->obj))
-    {
-        log_debug("skip canvas frame because canvas is invalid");
+    if (!_canvas_check(canvas))
         return;
-    }
+    log_debug("canvas refill");
 
     // TODO: more than 1 DvzCommands (the default, render cmd)
-
-    // Stop the rendering so as to make sure
-
     // TODO OPTIM: this is slow: blocking the GPU for recording the command buffers.
     // Might be better to create new command buffers from the pool??
     dvz_queue_wait(canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
@@ -252,14 +252,14 @@ static void _canvas_refill(DvzRun* run, DvzCanvas* canvas)
 static void _callback_new(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
-    log_warn("canvas new");
+    log_debug("create new canvas");
 
     ASSERT(deq != NULL);
 
     DvzApp* app = (DvzApp*)user_data;
     ASSERT(app != NULL);
 
-    DvzRunCanvasNewEvent* ev = (DvzRunCanvasNewEvent*)item;
+    DvzCanvasEventNew* ev = (DvzCanvasEventNew*)item;
     ASSERT(ev != NULL);
 
     // Create the canvas.
@@ -281,7 +281,7 @@ static void _callback_frame(
     DvzRun* run = app->run;
     ASSERT(run != NULL);
 
-    DvzRunCanvasFrame* ev = NULL;
+    DvzCanvasEventFrame* ev = NULL;
     for (uint32_t i = 0; i < item_count; i++)
     {
         ASSERT(items[i].type == DVZ_RUN_CANVAS_FRAME);
@@ -299,7 +299,7 @@ static void _callback_frame(
 static void _callback_recreate(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
-    log_info("canvas recreate");
+    log_debug("canvas recreate");
 
     ASSERT(deq != NULL);
 
@@ -309,7 +309,7 @@ static void _callback_recreate(DvzDeq* deq, void* item, void* user_data)
     DvzRun* run = app->run;
     ASSERT(run != NULL);
 
-    DvzRunCanvasDefaultEvent* ev = (DvzRunCanvasDefaultEvent*)item;
+    DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
     ASSERT(item != NULL);
     DvzCanvas* canvas = ev->canvas;
 
@@ -325,16 +325,17 @@ static void _callback_recreate(DvzDeq* deq, void* item, void* user_data)
 static void _callback_delete(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
-    log_info("canvas delete");
-
-    ASSERT(deq != NULL);
 
     DvzApp* app = (DvzApp*)user_data;
     ASSERT(app != NULL);
 
-    DvzRunCanvasDefaultEvent* ev = (DvzRunCanvasDefaultEvent*)item;
+    DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
     ASSERT(ev != NULL);
     DvzCanvas* canvas = ev->canvas;
+
+    if (!_canvas_check(canvas))
+        return;
+    log_debug("delete canvas");
 
     // Wait for all GPUs to be idle.
     dvz_app_wait(app);
@@ -350,9 +351,10 @@ static void _callback_refill(
     void* user_data)
 {
     ASSERT(deq != NULL);
-    //     gathers the cmd buf idx of all dequeued REFILL tasks and, for each of these cmd buf idx,
-    //     fills the cmd buf for each canvas, check if a cmd buf has been filled, and if not, fill
-    //     it with blank cmd buf
+
+    // gathers the cmd buf idx of all dequeued REFILL tasks and, for each of these cmd buf idx,
+    // fills the cmd buf for each canvas, check if a cmd buf has been filled, and if not, fill
+    // it with blank cmd buf
 
     DvzApp* app = (DvzApp*)user_data;
     ASSERT(app != NULL);
@@ -360,7 +362,7 @@ static void _callback_refill(
     DvzRun* run = app->run;
     ASSERT(run != NULL);
 
-    DvzRunCanvasDefaultEvent* ev = NULL;
+    DvzCanvasEvent* ev = NULL;
     for (uint32_t i = 0; i < item_count; i++)
     {
         ASSERT(items[i].type == DVZ_RUN_CANVAS_REFILL);
@@ -379,7 +381,6 @@ static void _callback_refill(
 static void _callback_present(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
-    log_info("canvas present");
 
     // frame submission for that canvas: submit cmd bufs, present swapchain
 
@@ -391,16 +392,14 @@ static void _callback_present(DvzDeq* deq, void* item, void* user_data)
     DvzRun* run = app->run;
     ASSERT(run != NULL);
 
-    DvzRunCanvasDefaultEvent* ev = (DvzRunCanvasDefaultEvent*)item;
+    DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
     ASSERT(item != NULL);
     DvzCanvas* canvas = ev->canvas;
 
     // Process only created canvas.
-    if (!dvz_obj_is_created(&canvas->obj))
-    {
-        log_debug("skip canvas frame because canvas is invalid");
+    if (!_canvas_check(canvas))
         return;
-    }
+    // log_debug("present canvas");
 
     DvzSubmit* s = &canvas->render.submit;
     uint32_t f = canvas->cur_frame;
@@ -661,7 +660,7 @@ int dvz_run_loop(DvzRun* run, uint64_t frame_count)
     // frame index too.
     for (run->global_frame_idx = 0; run->global_frame_idx < n; run->global_frame_idx++)
     {
-        log_info("event loop, global frame #%d", run->global_frame_idx);
+        log_trace("event loop, global frame #%d", run->global_frame_idx);
         ret = dvz_run_frame(run);
 
         // Stop the event loop if the return code of dvz_run_frame() requires it.

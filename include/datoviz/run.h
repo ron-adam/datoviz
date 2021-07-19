@@ -76,9 +76,9 @@ typedef struct DvzAutorun DvzAutorun;
 typedef struct DvzRun DvzRun;
 
 // Event structs.
-typedef struct DvzRunCanvasFrame DvzRunCanvasFrame;
-typedef struct DvzRunCanvasNewEvent DvzRunCanvasNewEvent;
-typedef struct DvzRunCanvasDefaultEvent DvzRunCanvasDefaultEvent;
+typedef struct DvzCanvasEventFrame DvzCanvasEventFrame;
+typedef struct DvzCanvasEventNew DvzCanvasEventNew;
+typedef struct DvzCanvasEvent DvzCanvasEvent;
 
 
 
@@ -86,7 +86,14 @@ typedef struct DvzRunCanvasDefaultEvent DvzRunCanvasDefaultEvent;
 /*  Event structs                                                                                */
 /*************************************************************************************************/
 
-struct DvzRunCanvasFrame
+struct DvzCanvasEvent
+{
+    DvzCanvas* canvas;
+};
+
+
+
+struct DvzCanvasEventFrame
 {
     DvzCanvas* canvas;
     uint64_t frame_idx;
@@ -94,14 +101,7 @@ struct DvzRunCanvasFrame
 
 
 
-struct DvzRunCanvasDefaultEvent
-{
-    DvzCanvas* canvas;
-};
-
-
-
-struct DvzRunCanvasNewEvent
+struct DvzCanvasEventNew
 {
     DvzGpu* gpu;
     uint32_t width, height;

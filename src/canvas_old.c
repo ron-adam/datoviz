@@ -309,438 +309,445 @@ static void blank_commands(DvzCanvas* canvas, DvzCommands* cmds, uint32_t cmd_id
 /*  Canvas creation                                                                              */
 /*************************************************************************************************/
 
-static bool _show_fps(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-    return ((canvas->flags >> 1) & 1) != 0;
-}
-
-static bool _support_pick(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-    return ((canvas->flags >> 2) & 1) != 0;
-}
-
-static DvzImages
-_staging_image(DvzCanvas* canvas, VkFormat format, uint32_t width, uint32_t height)
-{
-    ASSERT(canvas != NULL);
-    ASSERT(width > 0);
-    ASSERT(height > 0);
-
-    DvzImages staging = dvz_images(canvas->gpu, VK_IMAGE_TYPE_2D, 1);
-    dvz_images_format(&staging, format);
-    dvz_images_size(&staging, width, height, 1);
-    dvz_images_tiling(&staging, VK_IMAGE_TILING_LINEAR);
-    dvz_images_usage(&staging, VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-    dvz_images_layout(&staging, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    dvz_images_memory(
-        &staging, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    dvz_images_create(&staging);
-    dvz_images_transition(&staging);
-    return staging;
-}
-
-static void _swapchain_create(
-    DvzCanvas* canvas, uint32_t width, uint32_t height, bool offscreen, bool show_fps)
-{
-    ASSERT(canvas != NULL);
-
-    if (!offscreen)
-    {
-        dvz_swapchain_present_mode(
-            &canvas->render.swapchain,
-            show_fps ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR);
-        dvz_swapchain_create(&canvas->render.swapchain);
-    }
-    else
-    {
-        canvas->render.swapchain.images = calloc(1, sizeof(DvzImages));
-        ASSERT(canvas->render.swapchain.img_count == 1);
-        *canvas->render.swapchain.images =
-            dvz_images(canvas->render.swapchain.gpu, VK_IMAGE_TYPE_2D, 1);
-        DvzImages* images = canvas->render.swapchain.images;
-
-        // Color attachment
-        dvz_images_format(images, canvas->render.renderpass.attachments[0].format);
-        dvz_images_size(images, width, height, 1);
-        dvz_images_tiling(images, VK_IMAGE_TILING_OPTIMAL);
-        dvz_images_usage(
-            images, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-        dvz_images_memory(images, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        dvz_images_aspect(images, VK_IMAGE_ASPECT_COLOR_BIT);
-        dvz_images_layout(images, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-        dvz_images_queue_access(images, DVZ_DEFAULT_QUEUE_RENDER);
-        dvz_images_create(images);
-
-        dvz_obj_created(&canvas->render.swapchain.obj);
-    }
-}
-
-static void _attachments_create(DvzCanvas* canvas, bool support_pick)
-{
-    ASSERT(canvas != NULL);
-    DvzGpu* gpu = canvas->gpu;
-
-    // Depth attachment.
-    canvas->render.depth_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
-    depth_image(
-        &canvas->render.depth_image, &canvas->render.renderpass, //
-        canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
-
-    // Pick attachment.
-    if (support_pick)
-    {
-        canvas->render.pick_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
-        pick_image(
-            &canvas->render.pick_image, &canvas->render.renderpass, //
-            canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
-        canvas->render.pick_staging = _staging_image(
-            canvas, canvas->render.pick_image.format, DVZ_PICK_STAGING_SIZE,
-            DVZ_PICK_STAGING_SIZE);
-    }
-}
-
-static void _framebuffers_create(DvzCanvas* canvas, bool overlay, bool support_pick)
-{
-    ASSERT(canvas != NULL);
-    DvzGpu* gpu = canvas->gpu;
-
-    canvas->render.framebuffers = dvz_framebuffers(gpu);
-    dvz_framebuffers_attachment(&canvas->render.framebuffers, 0, canvas->render.swapchain.images);
-    dvz_framebuffers_attachment(&canvas->render.framebuffers, 1, &canvas->render.depth_image);
-    if (support_pick)
-        dvz_framebuffers_attachment(&canvas->render.framebuffers, 2, &canvas->render.pick_image);
-    dvz_framebuffers_create(&canvas->render.framebuffers, &canvas->render.renderpass);
-
-    if (overlay)
-    {
-        canvas->render.framebuffers_overlay = dvz_framebuffers(gpu);
-        dvz_framebuffers_attachment(
-            &canvas->render.framebuffers_overlay, 0, canvas->render.swapchain.images);
-        dvz_framebuffers_create(
-            &canvas->render.framebuffers_overlay, &canvas->render.renderpass_overlay);
-    }
-}
-
-static void _sync_create(DvzCanvas* canvas, bool offscreen)
-{
-    ASSERT(canvas != NULL);
-    DvzGpu* gpu = canvas->gpu;
-
-    uint32_t frames_in_flight = offscreen ? 1 : DVZ_MAX_FRAMES_IN_FLIGHT;
-
-    canvas->sync.sem_img_available = dvz_semaphores(gpu, frames_in_flight);
-    canvas->sync.sem_render_finished = dvz_semaphores(gpu, frames_in_flight);
-    canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
-
-    canvas->sync.fences_render_finished = dvz_fences(gpu, frames_in_flight, true);
-    canvas->sync.fences_flight.gpu = gpu;
-    canvas->sync.fences_flight.count = canvas->render.swapchain.img_count;
-}
-
-static void _fps_init(DvzCanvas* canvas, bool show_fps)
-{
-    ASSERT(canvas != NULL);
-
-    // Initial values.
-    canvas->fps.fps = 100;
-    canvas->fps.efps = 100;
-    // Compute FPS every 100 ms, even if FPS is not shown (so that the value remains accessible
-    // in callbacks if needed).
-    // dvz_event_callback(canvas, DVZ_EVENT_TIMER, .1, DVZ_EVENT_MODE_SYNC, _fps_callback, NULL);
-
-    // if (show_fps)
-    //     dvz_event_callback(
-    //         canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback_fps, NULL);
-}
-
-
-
-static DvzCanvas*
-_canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overlay, int flags)
-{
-    ASSERT(gpu != NULL);
-    DvzApp* app = gpu->app;
-
-    ASSERT(app != NULL);
-    // HACK: create the canvas container here because vklite.c does not know the size of DvzCanvas.
-    if (app->canvases.capacity == 0)
-    {
-        log_trace("create canvases container");
-        app->canvases =
-            dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzCanvas), DVZ_OBJECT_TYPE_CANVAS);
-    }
-
-    DvzCanvas* canvas = dvz_container_alloc(&app->canvases);
-    canvas->app = app;
-    canvas->gpu = gpu;
-    canvas->offscreen = offscreen;
-
-    canvas->dpi_scaling = DVZ_DEFAULT_DPI_SCALING;
-    int flag_dpi = flags >> 12;
-    if (flag_dpi > 0)
-        canvas->dpi_scaling *= (.5 * flag_dpi);
-
-    canvas->overlay = overlay;
-    canvas->flags = flags;
-
-    bool show_fps = _show_fps(canvas);
-    bool support_pick = _support_pick(canvas);
-    log_trace("creating canvas with show_fps=%d, support_pick=%d", show_fps, support_pick);
-
-    // Initialize the canvas local clock.
-    _clock_init(&canvas->clock);
-
-    // Initialize the atomic variables used to communicate state changes from a background thread
-    // to the main thread (REFILL or CLOSE events).
-    // atomic_init(&canvas->to_close, false);
-    // atomic_init(&canvas->refills.status, DVZ_REFILL_NONE);
-
-    // Allocate memory for canvas objects.
-    canvas->commands =
-        dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzCommands), DVZ_OBJECT_TYPE_COMMANDS);
-    canvas->graphics =
-        dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzGraphics), DVZ_OBJECT_TYPE_GRAPHICS);
-
-    // Create the window.
-    DvzWindow* window = NULL;
-    if (!offscreen)
-    {
-        window = dvz_window(app, width, height);
-
-        if (window == NULL)
-        {
-            log_error("window creation failed, switching to offscreen backend");
-            offscreen = true;
-            canvas->offscreen = true;
-            app->backend = DVZ_BACKEND_OFFSCREEN;
-        }
-        else
-        {
-            ASSERT(window->app == app);
-            ASSERT(window->app != NULL);
-            canvas->window = window;
-            uint32_t framebuffer_width, framebuffer_height;
-            dvz_window_get_size(window, &framebuffer_width, &framebuffer_height);
-            ASSERT(framebuffer_width > 0);
-            ASSERT(framebuffer_height > 0);
-        }
-    }
-
-    // Automatic creation of GPU with default queues and features.
-    if (!dvz_obj_is_created(&gpu->obj))
-    {
-        dvz_gpu_default(gpu, window);
-    }
-
-    // Automatic creation of GPU context.
-    if (gpu->context == NULL || !dvz_obj_is_created(&gpu->context->obj))
-    {
-        log_trace("canvas automatically create the GPU context");
-        gpu->context = dvz_context(gpu);
-    }
-
-    // Create default renderpass.
-    canvas->render.renderpass = default_renderpass(
-        gpu, DVZ_DEFAULT_BACKGROUND, DVZ_DEFAULT_IMAGE_FORMAT, overlay, support_pick);
-    if (overlay)
-        canvas->render.renderpass_overlay = default_renderpass_overlay(
-            gpu, DVZ_DEFAULT_IMAGE_FORMAT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-
-    // Create swapchain
-    {
-        uint32_t min_img_count = offscreen ? 1 : DVZ_MIN_SWAPCHAIN_IMAGE_COUNT;
-        canvas->render.swapchain = dvz_swapchain(gpu, window, min_img_count);
-        dvz_swapchain_format(&canvas->render.swapchain, DVZ_DEFAULT_IMAGE_FORMAT);
-        _swapchain_create(canvas, width, height, offscreen, show_fps);
-        _attachments_create(canvas, support_pick);
-    }
-
-    // Create renderpass.
-    {
-        dvz_renderpass_create(&canvas->render.renderpass);
-        if (overlay)
-            dvz_renderpass_create(&canvas->render.renderpass_overlay);
-    }
-
-    // Create framebuffers.
-    _framebuffers_create(canvas, overlay, support_pick);
-
-    // Create synchronization objects.
-    _sync_create(canvas, offscreen);
-
-    // Default transfer commands.
-    canvas->cmds_transfer = dvz_commands(gpu, DVZ_DEFAULT_QUEUE_TRANSFER, 1);
-
-    // Default render commands.
-    canvas->cmds_render =
-        dvz_commands(gpu, DVZ_DEFAULT_QUEUE_RENDER, canvas->render.swapchain.img_count);
-
-    // Default submit instance.
-    canvas->render.submit = dvz_submit(gpu);
-
-    // Input.
-    {
-        canvas->input = dvz_input();
-        dvz_input_backend(&canvas->input, canvas->app->backend, canvas->window->backend_window);
-    }
-
-    // // Event system. TO REMOVE
-    // {
-    //     canvas->event_queue = dvz_fifo(DVZ_MAX_FIFO_CAPACITY);
-    //     canvas->event_thread = dvz_thread(_event_thread, canvas);
-
-    //     canvas->mouse = dvz_mouse();
-    //     canvas->keyboard = dvz_keyboard();
-
-    //     backend_event_callbacks(canvas);
-    // }
-
-    // Canvas Deq.
-    {
-        canvas->deq = dvz_deq(1);
-
-        // Procs
-        dvz_deq_proc(&canvas->deq, 0, 1, (uint32_t[]){0});
-
-        // Deq callbacks: canvas updates.
-        dvz_deq_callback(&canvas->deq, 0, DVZ_CANVAS_UPDATE_TO_REFILL, _canvas_to_refill, canvas);
-        dvz_deq_callback(&canvas->deq, 0, DVZ_CANVAS_UPDATE_TO_CLOSE, _canvas_to_close, canvas);
-    }
-
-    dvz_obj_created(&canvas->obj);
-
-    // Update the viewport field.
-    canvas->viewport = dvz_viewport_full(canvas);
-
-    // GUI.
-    // canvas->guis = dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzGui),
-    // DVZ_OBJECT_TYPE_GUI); if (overlay)
-    // {
-    //     dvz_imgui_enable(canvas);
-
-    //     dvz_event_callback(
-    //         canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback, NULL);
-
-    //     // GUI playback control when recording screencast
-    //     dvz_event_callback(
-    //         canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback_player, NULL);
-    // }
-
-    // FPS callback.
-    _fps_init(canvas, show_fps);
-
-    ASSERT(canvas->render.swapchain.images != NULL);
-    log_debug(
-        "created canvas of size %dx%d", //
-        canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
-    return canvas;
-}
-
-
-
-DvzCanvas* dvz_canvas(DvzGpu* gpu, uint32_t width, uint32_t height, int flags)
-{
-    ASSERT(gpu != NULL);
-    bool offscreen = ((flags & DVZ_CANVAS_FLAGS_OFFSCREEN) != 0) ||
-                     (gpu->app->backend == DVZ_BACKEND_GLFW ? false : true);
-    bool overlay = (flags & DVZ_CANVAS_FLAGS_IMGUI) != 0;
-    if (offscreen && overlay)
-    {
-        log_warn("overlay is not supported in offscreen mode, disabling it");
-        overlay = false;
-    }
-
-#if SWIFTSHADER
-    log_warn("swiftshader mode is active, forcing offscreen rendering");
-    offscreen = true;
-    overlay = false;
-#endif
-
-    return _canvas(gpu, width, height, offscreen, overlay, flags);
-}
-
-
-
-void dvz_canvas_recreate(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-    DvzBackend backend = canvas->app->backend;
-    DvzWindow* window = canvas->window;
-    DvzGpu* gpu = canvas->gpu;
-    DvzSwapchain* swapchain = &canvas->render.swapchain;
-    DvzFramebuffers* framebuffers = &canvas->render.framebuffers;
-    DvzRenderpass* renderpass = &canvas->render.renderpass;
-    DvzFramebuffers* framebuffers_overlay = &canvas->render.framebuffers_overlay;
-    DvzRenderpass* renderpass_overlay = &canvas->render.renderpass_overlay;
-    bool support_pick = _support_pick(canvas);
-
-    ASSERT(window != NULL);
-    ASSERT(gpu != NULL);
-    ASSERT(swapchain != NULL);
-    ASSERT(framebuffers != NULL);
-    ASSERT(framebuffers_overlay != NULL);
-    ASSERT(renderpass != NULL);
-    ASSERT(renderpass_overlay != NULL);
-
-    log_trace("recreate canvas after resize");
-
-    // Wait until the device is ready and the window fully resized.
-    // Framebuffer new size.
-    uint32_t width, height;
-    backend_window_get_size(
-        backend, window->backend_window, //
-        &window->width, &window->height, //
-        &width, &height);
-    dvz_gpu_wait(gpu);
-
-    // Destroy swapchain resources.
-    dvz_framebuffers_destroy(&canvas->render.framebuffers);
-    if (canvas->overlay)
-        dvz_framebuffers_destroy(&canvas->render.framebuffers_overlay);
-    dvz_images_destroy(&canvas->render.depth_image);
-    if (support_pick)
-        dvz_images_destroy(&canvas->render.pick_image);
-    dvz_images_destroy(canvas->render.swapchain.images);
-
-    // Recreate the swapchain. This will automatically set the swapchain->images new size.
-    dvz_swapchain_recreate(swapchain);
-
-    // Find the new framebuffer size as determined by the swapchain recreation.
-    width = swapchain->images->width;
-    height = swapchain->images->height;
-
-    // Check that we use the same DvzImages struct here.
-    ASSERT(swapchain->images == framebuffers->attachments[0]);
-
-    // Need to recreate the depth image with the new size.
-    dvz_images_size(&canvas->render.depth_image, width, height, 1);
-    dvz_images_create(&canvas->render.depth_image);
-
-    if (support_pick)
-    {
-        // Need to recreate the pick image with the new size.
-        dvz_images_size(&canvas->render.pick_image, width, height, 1);
-        dvz_images_create(&canvas->render.pick_image);
-    }
-
-    // Recreate the framebuffers with the new size.
-    for (uint32_t i = 0; i < framebuffers->attachment_count; i++)
-    {
-        ASSERT(framebuffers->attachments[i]->width == width);
-        ASSERT(framebuffers->attachments[i]->height == height);
-    }
-    dvz_framebuffers_create(framebuffers, renderpass);
-    if (canvas->overlay)
-        dvz_framebuffers_create(framebuffers_overlay, renderpass_overlay);
-
-    // Recreate the semaphores.
-    dvz_app_wait(canvas->app);
-    dvz_semaphores_recreate(&canvas->sync.sem_img_available);
-    dvz_semaphores_recreate(&canvas->sync.sem_render_finished);
-    canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
-}
+// static bool _show_fps(DvzCanvas* canvas)
+// {
+//     ASSERT(canvas != NULL);
+//     return ((canvas->flags >> 1) & 1) != 0;
+// }
+
+// static bool _support_pick(DvzCanvas* canvas)
+// {
+//     ASSERT(canvas != NULL);
+//     return ((canvas->flags >> 2) & 1) != 0;
+// }
+
+// static DvzImages
+// _staging_image(DvzCanvas* canvas, VkFormat format, uint32_t width, uint32_t height)
+// {
+//     ASSERT(canvas != NULL);
+//     ASSERT(width > 0);
+//     ASSERT(height > 0);
+
+//     DvzImages staging = dvz_images(canvas->gpu, VK_IMAGE_TYPE_2D, 1);
+//     dvz_images_format(&staging, format);
+//     dvz_images_size(&staging, width, height, 1);
+//     dvz_images_tiling(&staging, VK_IMAGE_TILING_LINEAR);
+//     dvz_images_usage(&staging, VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+//     dvz_images_layout(&staging, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+//     dvz_images_memory(
+//         &staging, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+//     dvz_images_create(&staging);
+//     dvz_images_transition(&staging);
+//     return staging;
+// }
+
+// static void _swapchain_create(
+//     DvzCanvas* canvas, uint32_t width, uint32_t height, bool offscreen, bool show_fps)
+// {
+//     ASSERT(canvas != NULL);
+
+//     if (!offscreen)
+//     {
+//         dvz_swapchain_present_mode(
+//             &canvas->render.swapchain,
+//             show_fps ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR);
+//         dvz_swapchain_create(&canvas->render.swapchain);
+//     }
+//     else
+//     {
+//         canvas->render.swapchain.images = calloc(1, sizeof(DvzImages));
+//         ASSERT(canvas->render.swapchain.img_count == 1);
+//         *canvas->render.swapchain.images =
+//             dvz_images(canvas->render.swapchain.gpu, VK_IMAGE_TYPE_2D, 1);
+//         DvzImages* images = canvas->render.swapchain.images;
+
+//         // Color attachment
+//         dvz_images_format(images, canvas->render.renderpass.attachments[0].format);
+//         dvz_images_size(images, width, height, 1);
+//         dvz_images_tiling(images, VK_IMAGE_TILING_OPTIMAL);
+//         dvz_images_usage(
+//             images, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+//         dvz_images_memory(images, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+//         dvz_images_aspect(images, VK_IMAGE_ASPECT_COLOR_BIT);
+//         dvz_images_layout(images, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+//         dvz_images_queue_access(images, DVZ_DEFAULT_QUEUE_RENDER);
+//         dvz_images_create(images);
+
+//         dvz_obj_created(&canvas->render.swapchain.obj);
+//     }
+// }
+
+// static void _attachments_create(DvzCanvas* canvas, bool support_pick)
+// {
+//     ASSERT(canvas != NULL);
+//     DvzGpu* gpu = canvas->gpu;
+
+//     // Depth attachment.
+//     canvas->render.depth_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
+//     depth_image(
+//         &canvas->render.depth_image, &canvas->render.renderpass, //
+//         canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
+
+//     // Pick attachment.
+//     if (support_pick)
+//     {
+//         canvas->render.pick_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
+//         pick_image(
+//             &canvas->render.pick_image, &canvas->render.renderpass, //
+//             canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
+//         canvas->render.pick_staging = _staging_image(
+//             canvas, canvas->render.pick_image.format, DVZ_PICK_STAGING_SIZE,
+//             DVZ_PICK_STAGING_SIZE);
+//     }
+// }
+
+// static void _framebuffers_create(DvzCanvas* canvas, bool overlay, bool support_pick)
+// {
+//     ASSERT(canvas != NULL);
+//     DvzGpu* gpu = canvas->gpu;
+
+//     canvas->render.framebuffers = dvz_framebuffers(gpu);
+//     dvz_framebuffers_attachment(&canvas->render.framebuffers, 0,
+//     canvas->render.swapchain.images); dvz_framebuffers_attachment(&canvas->render.framebuffers,
+//     1, &canvas->render.depth_image); if (support_pick)
+//         dvz_framebuffers_attachment(&canvas->render.framebuffers, 2,
+//         &canvas->render.pick_image);
+//     dvz_framebuffers_create(&canvas->render.framebuffers, &canvas->render.renderpass);
+
+//     if (overlay)
+//     {
+//         canvas->render.framebuffers_overlay = dvz_framebuffers(gpu);
+//         dvz_framebuffers_attachment(
+//             &canvas->render.framebuffers_overlay, 0, canvas->render.swapchain.images);
+//         dvz_framebuffers_create(
+//             &canvas->render.framebuffers_overlay, &canvas->render.renderpass_overlay);
+//     }
+// }
+
+// static void _sync_create(DvzCanvas* canvas, bool offscreen)
+// {
+//     ASSERT(canvas != NULL);
+//     DvzGpu* gpu = canvas->gpu;
+
+//     uint32_t frames_in_flight = offscreen ? 1 : DVZ_MAX_FRAMES_IN_FLIGHT;
+
+//     canvas->sync.sem_img_available = dvz_semaphores(gpu, frames_in_flight);
+//     canvas->sync.sem_render_finished = dvz_semaphores(gpu, frames_in_flight);
+//     canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
+
+//     canvas->sync.fences_render_finished = dvz_fences(gpu, frames_in_flight, true);
+//     canvas->sync.fences_flight.gpu = gpu;
+//     canvas->sync.fences_flight.count = canvas->render.swapchain.img_count;
+// }
+
+// static void _fps_init(DvzCanvas* canvas, bool show_fps)
+// {
+//     ASSERT(canvas != NULL);
+
+//     // Initial values.
+//     canvas->fps.fps = 100;
+//     canvas->fps.efps = 100;
+//     // Compute FPS every 100 ms, even if FPS is not shown (so that the value remains accessible
+//     // in callbacks if needed).
+//     // dvz_event_callback(canvas, DVZ_EVENT_TIMER, .1, DVZ_EVENT_MODE_SYNC, _fps_callback,
+//     NULL);
+
+//     // if (show_fps)
+//     //     dvz_event_callback(
+//     //         canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback_fps, NULL);
+// }
+
+
+
+// static DvzCanvas*
+// _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overlay, int flags)
+// {
+//     ASSERT(gpu != NULL);
+//     DvzApp* app = gpu->app;
+
+//     ASSERT(app != NULL);
+//     // HACK: create the canvas container here because vklite.c does not know the size of
+//     DvzCanvas. if (app->canvases.capacity == 0)
+//     {
+//         log_trace("create canvases container");
+//         app->canvases =
+//             dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzCanvas),
+//             DVZ_OBJECT_TYPE_CANVAS);
+//     }
+
+//     DvzCanvas* canvas = dvz_container_alloc(&app->canvases);
+//     canvas->app = app;
+//     canvas->gpu = gpu;
+//     canvas->offscreen = offscreen;
+
+//     canvas->dpi_scaling = DVZ_DEFAULT_DPI_SCALING;
+//     int flag_dpi = flags >> 12;
+//     if (flag_dpi > 0)
+//         canvas->dpi_scaling *= (.5 * flag_dpi);
+
+//     canvas->overlay = overlay;
+//     canvas->flags = flags;
+
+//     bool show_fps = _show_fps(canvas);
+//     bool support_pick = _support_pick(canvas);
+//     log_trace("creating canvas with show_fps=%d, support_pick=%d", show_fps, support_pick);
+
+//     // Initialize the canvas local clock.
+//     _clock_init(&canvas->clock);
+
+//     // Initialize the atomic variables used to communicate state changes from a background
+//     thread
+//     // to the main thread (REFILL or CLOSE events).
+//     // atomic_init(&canvas->to_close, false);
+//     // atomic_init(&canvas->refills.status, DVZ_REFILL_NONE);
+
+//     // Allocate memory for canvas objects.
+//     canvas->commands =
+//         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzCommands),
+//         DVZ_OBJECT_TYPE_COMMANDS);
+//     canvas->graphics =
+//         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzGraphics),
+//         DVZ_OBJECT_TYPE_GRAPHICS);
+
+//     // Create the window.
+//     DvzWindow* window = NULL;
+//     if (!offscreen)
+//     {
+//         window = dvz_window(app, width, height);
+
+//         if (window == NULL)
+//         {
+//             log_error("window creation failed, switching to offscreen backend");
+//             offscreen = true;
+//             canvas->offscreen = true;
+//             app->backend = DVZ_BACKEND_OFFSCREEN;
+//         }
+//         else
+//         {
+//             ASSERT(window->app == app);
+//             ASSERT(window->app != NULL);
+//             canvas->window = window;
+//             uint32_t framebuffer_width, framebuffer_height;
+//             dvz_window_get_size(window, &framebuffer_width, &framebuffer_height);
+//             ASSERT(framebuffer_width > 0);
+//             ASSERT(framebuffer_height > 0);
+//         }
+//     }
+
+//     // Automatic creation of GPU with default queues and features.
+//     if (!dvz_obj_is_created(&gpu->obj))
+//     {
+//         dvz_gpu_default(gpu, window);
+//     }
+
+//     // Automatic creation of GPU context.
+//     if (gpu->context == NULL || !dvz_obj_is_created(&gpu->context->obj))
+//     {
+//         log_trace("canvas automatically create the GPU context");
+//         gpu->context = dvz_context(gpu);
+//     }
+
+//     // Create default renderpass.
+//     canvas->render.renderpass = default_renderpass(
+//         gpu, DVZ_DEFAULT_BACKGROUND, DVZ_DEFAULT_IMAGE_FORMAT, overlay, support_pick);
+//     if (overlay)
+//         canvas->render.renderpass_overlay = default_renderpass_overlay(
+//             gpu, DVZ_DEFAULT_IMAGE_FORMAT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+//     // Create swapchain
+//     {
+//         uint32_t min_img_count = offscreen ? 1 : DVZ_MIN_SWAPCHAIN_IMAGE_COUNT;
+//         canvas->render.swapchain = dvz_swapchain(gpu, window, min_img_count);
+//         dvz_swapchain_format(&canvas->render.swapchain, DVZ_DEFAULT_IMAGE_FORMAT);
+//         _swapchain_create(canvas, width, height, offscreen, show_fps);
+//         _attachments_create(canvas, support_pick);
+//     }
+
+//     // Create renderpass.
+//     {
+//         dvz_renderpass_create(&canvas->render.renderpass);
+//         if (overlay)
+//             dvz_renderpass_create(&canvas->render.renderpass_overlay);
+//     }
+
+//     // Create framebuffers.
+//     _framebuffers_create(canvas, overlay, support_pick);
+
+//     // Create synchronization objects.
+//     _sync_create(canvas, offscreen);
+
+//     // Default transfer commands.
+//     canvas->cmds_transfer = dvz_commands(gpu, DVZ_DEFAULT_QUEUE_TRANSFER, 1);
+
+//     // Default render commands.
+//     canvas->cmds_render =
+//         dvz_commands(gpu, DVZ_DEFAULT_QUEUE_RENDER, canvas->render.swapchain.img_count);
+
+//     // Default submit instance.
+//     canvas->render.submit = dvz_submit(gpu);
+
+//     // Input.
+//     {
+//         canvas->input = dvz_input();
+//         dvz_input_backend(&canvas->input, canvas->app->backend, canvas->window->backend_window);
+//     }
+
+//     // // Event system. TO REMOVE
+//     // {
+//     //     canvas->event_queue = dvz_fifo(DVZ_MAX_FIFO_CAPACITY);
+//     //     canvas->event_thread = dvz_thread(_event_thread, canvas);
+
+//     //     canvas->mouse = dvz_mouse();
+//     //     canvas->keyboard = dvz_keyboard();
+
+//     //     backend_event_callbacks(canvas);
+//     // }
+
+//     // Canvas Deq.
+//     {
+//         canvas->deq = dvz_deq(1);
+
+//         // Procs
+//         dvz_deq_proc(&canvas->deq, 0, 1, (uint32_t[]){0});
+
+//         // Deq callbacks: canvas updates.
+//         dvz_deq_callback(&canvas->deq, 0, DVZ_CANVAS_UPDATE_TO_REFILL, _canvas_to_refill,
+//         canvas); dvz_deq_callback(&canvas->deq, 0, DVZ_CANVAS_UPDATE_TO_CLOSE, _canvas_to_close,
+//         canvas);
+//     }
+
+//     dvz_obj_created(&canvas->obj);
+
+//     // Update the viewport field.
+//     canvas->viewport = dvz_viewport_full(canvas);
+
+//     // GUI.
+//     // canvas->guis = dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzGui),
+//     // DVZ_OBJECT_TYPE_GUI); if (overlay)
+//     // {
+//     //     dvz_imgui_enable(canvas);
+
+//     //     dvz_event_callback(
+//     //         canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback, NULL);
+
+//     //     // GUI playback control when recording screencast
+//     //     dvz_event_callback(
+//     //         canvas, DVZ_EVENT_IMGUI, 0, DVZ_EVENT_MODE_SYNC, dvz_gui_callback_player, NULL);
+//     // }
+
+//     // FPS callback.
+//     _fps_init(canvas, show_fps);
+
+//     ASSERT(canvas->render.swapchain.images != NULL);
+//     log_debug(
+//         "created canvas of size %dx%d", //
+//         canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
+//     return canvas;
+// }
+
+
+
+// DvzCanvas* dvz_canvas(DvzGpu* gpu, uint32_t width, uint32_t height, int flags)
+// {
+//     ASSERT(gpu != NULL);
+//     bool offscreen = ((flags & DVZ_CANVAS_FLAGS_OFFSCREEN) != 0) ||
+//                      (gpu->app->backend == DVZ_BACKEND_GLFW ? false : true);
+//     bool overlay = (flags & DVZ_CANVAS_FLAGS_IMGUI) != 0;
+//     if (offscreen && overlay)
+//     {
+//         log_warn("overlay is not supported in offscreen mode, disabling it");
+//         overlay = false;
+//     }
+
+// #if SWIFTSHADER
+//     log_warn("swiftshader mode is active, forcing offscreen rendering");
+//     offscreen = true;
+//     overlay = false;
+// #endif
+
+//     return _canvas(gpu, width, height, offscreen, overlay, flags);
+// }
+
+
+
+// void dvz_canvas_recreate(DvzCanvas* canvas)
+// {
+//     ASSERT(canvas != NULL);
+//     DvzBackend backend = canvas->app->backend;
+//     DvzWindow* window = canvas->window;
+//     DvzGpu* gpu = canvas->gpu;
+//     DvzSwapchain* swapchain = &canvas->render.swapchain;
+//     DvzFramebuffers* framebuffers = &canvas->render.framebuffers;
+//     DvzRenderpass* renderpass = &canvas->render.renderpass;
+//     DvzFramebuffers* framebuffers_overlay = &canvas->render.framebuffers_overlay;
+//     DvzRenderpass* renderpass_overlay = &canvas->render.renderpass_overlay;
+//     bool support_pick = _support_pick(canvas);
+
+//     ASSERT(window != NULL);
+//     ASSERT(gpu != NULL);
+//     ASSERT(swapchain != NULL);
+//     ASSERT(framebuffers != NULL);
+//     ASSERT(framebuffers_overlay != NULL);
+//     ASSERT(renderpass != NULL);
+//     ASSERT(renderpass_overlay != NULL);
+
+//     log_trace("recreate canvas after resize");
+
+//     // Wait until the device is ready and the window fully resized.
+//     // Framebuffer new size.
+//     uint32_t width, height;
+//     backend_window_get_size(
+//         backend, window->backend_window, //
+//         &window->width, &window->height, //
+//         &width, &height);
+//     dvz_gpu_wait(gpu);
+
+//     // Destroy swapchain resources.
+//     dvz_framebuffers_destroy(&canvas->render.framebuffers);
+//     if (canvas->overlay)
+//         dvz_framebuffers_destroy(&canvas->render.framebuffers_overlay);
+//     dvz_images_destroy(&canvas->render.depth_image);
+//     if (support_pick)
+//         dvz_images_destroy(&canvas->render.pick_image);
+//     dvz_images_destroy(canvas->render.swapchain.images);
+
+//     // Recreate the swapchain. This will automatically set the swapchain->images new size.
+//     dvz_swapchain_recreate(swapchain);
+
+//     // Find the new framebuffer size as determined by the swapchain recreation.
+//     width = swapchain->images->width;
+//     height = swapchain->images->height;
+
+//     // Check that we use the same DvzImages struct here.
+//     ASSERT(swapchain->images == framebuffers->attachments[0]);
+
+//     // Need to recreate the depth image with the new size.
+//     dvz_images_size(&canvas->render.depth_image, width, height, 1);
+//     dvz_images_create(&canvas->render.depth_image);
+
+//     if (support_pick)
+//     {
+//         // Need to recreate the pick image with the new size.
+//         dvz_images_size(&canvas->render.pick_image, width, height, 1);
+//         dvz_images_create(&canvas->render.pick_image);
+//     }
+
+//     // Recreate the framebuffers with the new size.
+//     for (uint32_t i = 0; i < framebuffers->attachment_count; i++)
+//     {
+//         ASSERT(framebuffers->attachments[i]->width == width);
+//         ASSERT(framebuffers->attachments[i]->height == height);
+//     }
+//     dvz_framebuffers_create(framebuffers, renderpass);
+//     if (canvas->overlay)
+//         dvz_framebuffers_create(framebuffers_overlay, renderpass_overlay);
+
+//     // Recreate the semaphores.
+//     dvz_app_wait(canvas->app);
+//     dvz_semaphores_recreate(&canvas->sync.sem_img_available);
+//     dvz_semaphores_recreate(&canvas->sync.sem_render_finished);
+//     canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
+// }
 
 
 
@@ -1809,103 +1816,102 @@ DvzViewport dvz_viewport_full(DvzCanvas* canvas)
 /*  Screenshot                                                                                   */
 /*************************************************************************************************/
 
-static void _copy_image_to_staging(
-    DvzCanvas* canvas, DvzImages* images, DvzImages* staging, ivec3 offset, uvec3 shape)
-{
-    ASSERT(canvas != NULL);
-    ASSERT(images != NULL);
-    ASSERT(staging != NULL);
-    ASSERT(shape[0] > 0);
-    ASSERT(shape[1] > 0);
-    ASSERT(shape[2] > 0);
+// static void _copy_image_to_staging(
+//     DvzCanvas* canvas, DvzImages* images, DvzImages* staging, ivec3 offset, uvec3 shape)
+// {
+//     ASSERT(canvas != NULL);
+//     ASSERT(images != NULL);
+//     ASSERT(staging != NULL);
+//     ASSERT(shape[0] > 0);
+//     ASSERT(shape[1] > 0);
+//     ASSERT(shape[2] > 0);
 
-    DvzBarrier barrier = dvz_barrier(canvas->gpu);
-    dvz_barrier_stages(&barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-    dvz_barrier_images(&barrier, images);
+//     DvzBarrier barrier = dvz_barrier(canvas->gpu);
+//     dvz_barrier_stages(&barrier, VK_PIPELINE_STAGE_TRANSFER_BIT,
+//     VK_PIPELINE_STAGE_TRANSFER_BIT); dvz_barrier_images(&barrier, images);
 
-    DvzCommands* cmds = &canvas->cmds_transfer;
-    dvz_cmd_reset(cmds, 0);
-    dvz_cmd_begin(cmds, 0);
-    dvz_barrier_images_layout(
-        &barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-    dvz_barrier_images_access(&barrier, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-    dvz_cmd_barrier(cmds, 0, &barrier);
-    dvz_cmd_copy_image_region(cmds, 0, images, offset, staging, (ivec3){0, 0, 0}, shape);
-    dvz_barrier_images_layout(
-        &barrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-    dvz_barrier_images_access(&barrier, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
-    dvz_cmd_barrier(cmds, 0, &barrier);
-    dvz_cmd_end(cmds, 0);
-    dvz_cmd_submit_sync(cmds, 0);
-}
-
-
-
-uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha)
-{
-    // WARNING: this function is SLOW because it recreates a staging buffer at every call.
-    // Also because it forces a hard synchronization on the whole GPU.
-    // TODO: more efficient screenshot saving with screencast
-
-    ASSERT(canvas != NULL);
-
-    DvzGpu* gpu = canvas->gpu;
-    ASSERT(gpu != NULL);
-
-    // Hard GPU synchronization.
-    dvz_gpu_wait(gpu);
-
-    DvzImages* images = canvas->render.swapchain.images;
-    if (images == NULL)
-    {
-        log_error("empty swapchain images, aborting screenshot creation");
-        return NULL;
-    }
-
-    // Staging images.
-    DvzImages staging = _staging_image(canvas, images->format, images->width, images->height);
-
-    // Copy from the swapchain image to the staging image.
-    uvec3 shape = {images->width, images->height, images->depth};
-    _copy_image_to_staging(canvas, images, &staging, (ivec3){0, 0, 0}, shape);
-
-    // Make the screenshot.
-    VkDeviceSize size = staging.width * staging.height * (has_alpha ? 4 : 3) * sizeof(uint8_t);
-    uint8_t* rgba = calloc(size, 1);
-    dvz_images_download(&staging, 0, sizeof(uint8_t), true, has_alpha, rgba);
-    dvz_gpu_wait(gpu);
-    dvz_images_destroy(&staging);
-
-    {
-        uint8_t* null = calloc(size, 1);
-        if (memcmp(rgba, null, size) == 0)
-            log_warn("screenshot was blank");
-        FREE(null);
-    }
-
-    // NOTE: the caller MUST free the returned pointer.
-    return rgba;
-}
+//     DvzCommands* cmds = &canvas->cmds_transfer;
+//     dvz_cmd_reset(cmds, 0);
+//     dvz_cmd_begin(cmds, 0);
+//     dvz_barrier_images_layout(
+//         &barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+//     dvz_barrier_images_access(&barrier, VK_ACCESS_TRANSFER_WRITE_BIT,
+//     VK_ACCESS_TRANSFER_READ_BIT); dvz_cmd_barrier(cmds, 0, &barrier);
+//     dvz_cmd_copy_image_region(cmds, 0, images, offset, staging, (ivec3){0, 0, 0}, shape);
+//     dvz_barrier_images_layout(
+//         &barrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+//     dvz_barrier_images_access(&barrier, VK_ACCESS_TRANSFER_READ_BIT,
+//     VK_ACCESS_TRANSFER_WRITE_BIT); dvz_cmd_barrier(cmds, 0, &barrier); dvz_cmd_end(cmds, 0);
+//     dvz_cmd_submit_sync(cmds, 0);
+// }
 
 
 
-void dvz_screenshot_file(DvzCanvas* canvas, const char* png_path)
-{
-    ASSERT(canvas != NULL);
-    ASSERT(png_path != NULL);
-    ASSERT(strlen(png_path) > 0);
+// uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha)
+// {
+//     // WARNING: this function is SLOW because it recreates a staging buffer at every call.
+//     // Also because it forces a hard synchronization on the whole GPU.
+//     // TODO: more efficient screenshot saving with screencast
 
-    log_info("saving screenshot of canvas to %s with full synchronization (slow)", png_path);
-    uint8_t* rgb = dvz_screenshot(canvas, false);
-    if (rgb == NULL)
-    {
-        log_error("screenshot failed");
-        return;
-    }
-    DvzImages* images = canvas->render.swapchain.images;
-    dvz_write_png(png_path, images->width, images->height, rgb);
-    FREE(rgb);
-}
+//     ASSERT(canvas != NULL);
+
+//     DvzGpu* gpu = canvas->gpu;
+//     ASSERT(gpu != NULL);
+
+//     // Hard GPU synchronization.
+//     dvz_gpu_wait(gpu);
+
+//     DvzImages* images = canvas->render.swapchain.images;
+//     if (images == NULL)
+//     {
+//         log_error("empty swapchain images, aborting screenshot creation");
+//         return NULL;
+//     }
+
+//     // Staging images.
+//     DvzImages staging = _staging_image(canvas, images->format, images->width, images->height);
+
+//     // Copy from the swapchain image to the staging image.
+//     uvec3 shape = {images->width, images->height, images->depth};
+//     _copy_image_to_staging(canvas, images, &staging, (ivec3){0, 0, 0}, shape);
+
+//     // Make the screenshot.
+//     VkDeviceSize size = staging.width * staging.height * (has_alpha ? 4 : 3) * sizeof(uint8_t);
+//     uint8_t* rgba = calloc(size, 1);
+//     dvz_images_download(&staging, 0, sizeof(uint8_t), true, has_alpha, rgba);
+//     dvz_gpu_wait(gpu);
+//     dvz_images_destroy(&staging);
+
+//     {
+//         uint8_t* null = calloc(size, 1);
+//         if (memcmp(rgba, null, size) == 0)
+//             log_warn("screenshot was blank");
+//         FREE(null);
+//     }
+
+//     // NOTE: the caller MUST free the returned pointer.
+//     return rgba;
+// }
+
+
+
+// void dvz_screenshot_file(DvzCanvas* canvas, const char* png_path)
+// {
+//     ASSERT(canvas != NULL);
+//     ASSERT(png_path != NULL);
+//     ASSERT(strlen(png_path) > 0);
+
+//     log_info("saving screenshot of canvas to %s with full synchronization (slow)", png_path);
+//     uint8_t* rgb = dvz_screenshot(canvas, false);
+//     if (rgb == NULL)
+//     {
+//         log_error("screenshot failed");
+//         return;
+//     }
+//     DvzImages* images = canvas->render.swapchain.images;
+//     dvz_write_png(png_path, images->width, images->height, rgb);
+//     FREE(rgb);
+// }
 
 
 
@@ -2079,357 +2085,359 @@ void dvz_screenshot_file(DvzCanvas* canvas, const char* png_path)
 /*  Event loop                                                                                   */
 /*************************************************************************************************/
 
-static void _canvas_frame_logic(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-    ASSERT(canvas->app != NULL);
-    ASSERT(canvas->gpu != NULL);
-    // log_trace("start frame %u", canvas->frame_idx);
-
-    // Update the global and local clocks.
-    // These calls update canvas->clock.elapsed and canvas->clock.interval, the latter is
-    // the delay since the last frame.
-    _clock_tick(&canvas->app->clock); // global clock
-    // Compute the maximum delay between two successive frames.
-    canvas->fps.max_delay = fmax(canvas->fps.max_delay, _clock_interval(&canvas->clock));
-    _clock_tick(&canvas->clock); // canvas-local clock
-
-    // Call INTERACT callbacks (for backends only), which may enqueue some events.
-    // _event_interact(canvas);
-
-    // Call FRAME callbacks.
-    // _event_frame(canvas);
-
-    // Give a chance to update event structures in the main loop, for example reset wheel.
-    // _backend_next_frame(canvas);
-
-    // Call TIMER callbacks, in the main thread.
-    // _event_timer(canvas);
-
-    // Refill all command buffers at the first iteration.
-    // if (canvas->frame_idx == 0)
-    //     dvz_canvas_to_refill(canvas);
-
-    // Refill if needed, only 1 swapchain command buffer per frame to avoid waiting on the device.
-    // _refill_frame(canvas);
-}
-
-
-
-void dvz_canvas_frame_submit(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-    DvzGpu* gpu = canvas->gpu;
-    ASSERT(gpu != NULL);
-
-    DvzSubmit* s = &canvas->render.submit;
-    uint32_t f = canvas->cur_frame;
-    uint32_t img_idx = canvas->render.swapchain.img_idx;
-
-    // Keep track of the fence associated to the current swapchain image.
-    dvz_fences_copy(
-        &canvas->sync.fences_render_finished, f, //
-        &canvas->sync.fences_flight, img_idx);
-
-    // Reset the Submit instance before adding the command buffers.
-    dvz_submit_reset(s);
-
-    // Add the command buffers to the submit instance.
-    // Default render commands.
-    if (canvas->cmds_render.obj.status == DVZ_OBJECT_STATUS_CREATED)
-        dvz_submit_commands(s, &canvas->cmds_render);
-
-    // // Extra render commands.
-    // DvzCommands* cmds = dvz_container_iter(&canvas->commands);
-    // while (cmds != NULL)
-    // {
-    //     if (cmds->obj.status == DVZ_OBJECT_STATUS_NONE)
-    //         break;
-    //     if (cmds->obj.status == DVZ_OBJECT_STATUS_INACTIVE)
-    //         continue;
-    //     if (cmds->queue_idx == DVZ_DEFAULT_QUEUE_RENDER)
-    //         dvz_submit_commands(s, cmds);
-    //     cmds = dvz_container_iter(&canvas->commands);
-    // }
-    if (s->commands_count == 0)
-    {
-        log_error("no recorded command buffers");
-        return;
-    }
-
-    if (!canvas->offscreen)
-    {
-        dvz_submit_wait_semaphores(
-            s, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, //
-            &canvas->sync.sem_img_available, f);
-
-        // Once the render is finished, we signal another semaphore.
-        dvz_submit_signal_semaphores(s, &canvas->sync.sem_render_finished, f);
-    }
-
-    // SEND callbacks and send the Submit instance.
-    {
-        // Call PRE_SEND callbacks
-        // _event_presend(canvas);
-
-        // Send the Submit instance.
-        dvz_submit_send(s, img_idx, &canvas->sync.fences_render_finished, f);
-
-        // Call POST_SEND callbacks
-        // _event_postsend(canvas);
-    }
-
-    // Once the image is rendered, we present the swapchain image.
-    // The semaphore used for waiting during presentation may be changed by the canvas
-    // callbacks.
-    if (!canvas->offscreen)
-        dvz_swapchain_present(
-            &canvas->render.swapchain, 1, //
-            canvas->sync.present_semaphores,
-            CLIP(f, 0, canvas->sync.present_semaphores->count - 1));
-
-    canvas->cur_frame = (f + 1) % canvas->sync.fences_render_finished.count;
-}
-
-
-
-static void _process_gpu_transfers(DvzApp* app)
-{
-    // NOTE: this has never been tested with multiple GPUs yet.
-    DvzContainerIterator iterator = dvz_container_iterator(&app->gpus);
-    DvzGpu* gpu = NULL;
-    while (iterator.item != NULL)
-    {
-        gpu = iterator.item;
-        if (!dvz_obj_is_created(&gpu->obj))
-            break;
-
-        // Pending transfers.
-        ASSERT(gpu->context != NULL);
-        // NOTE: the function below uses hard GPU synchronization primitives
-        // TODO
-        // dvz_process_transfers(gpu->context);
-
-        // IMPORTANT: we need to wait for the present queue to be idle, otherwise the GPU hangs
-        // when waiting for fences (not sure why). The problem only arises when using different
-        // queues for command buffer submission and swapchain present. There has be a better
-        // way to fix this.
-        if (gpu->queues.queues[DVZ_DEFAULT_QUEUE_PRESENT] != VK_NULL_HANDLE &&
-            gpu->queues.queues[DVZ_DEFAULT_QUEUE_PRESENT] !=
-                gpu->queues.queues[DVZ_DEFAULT_QUEUE_RENDER])
-        // && iter % DVZ_MAX_SWAPCHAIN_IMAGES == 0)
-        {
-            dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_PRESENT);
-        }
-
-        dvz_container_iter(&iterator);
-    }
-}
-
-
-
-int dvz_canvas_frame(DvzCanvas* canvas)
-{
-    // Return 0? all good, the canvas is still active.
-    // Return 1? the frame was not successfully displayed, should try again.
-
-    ASSERT(canvas != NULL);
-    DvzApp* app = canvas->app;
-    ASSERT(app != NULL);
-
-    // Check that the canvas is valid.
-    if (canvas->obj.status < DVZ_OBJECT_STATUS_CREATED)
-        return 1;
-    ASSERT(canvas->obj.status >= DVZ_OBJECT_STATUS_CREATED);
-
-    // INIT event at the first frame
-    if (canvas->frame_idx == 0)
-    {
-        // Call RESIZE callbacks at initialization.
-        // _event_resize(canvas);
-
-        // DvzEvent ev = {0};
-        // ev.type = DVZ_EVENT_INIT;
-        // _event_produce(canvas, ev);
-    }
-
-    // Poll events.
-    if (canvas->window != NULL)
-        dvz_window_poll_events(canvas->window);
-
-    // NOTE: swapchain image acquisition happens here
-
-    // We acquire the next swapchain image.
-    // NOTE: this call modifies swapchain->img_idx
-    if (!canvas->offscreen)
-        dvz_swapchain_acquire(
-            &canvas->render.swapchain, &canvas->sync.sem_img_available, canvas->cur_frame, NULL,
-            0);
-
-    // Wait for fence.
-    dvz_fences_wait(&canvas->sync.fences_flight, canvas->render.swapchain.img_idx);
-
-    // If there is a problem with swapchain image acquisition, wait and try again later.
-    if (canvas->render.swapchain.obj.status == DVZ_OBJECT_STATUS_INVALID)
-    {
-        log_trace("swapchain image acquisition failed, waiting and skipping this frame");
-        dvz_gpu_wait(canvas->gpu);
-
-        // dvz_container_iter(&iterator);
-        // continue;
-        return 1;
-    }
-
-    // If the swapchain needs to be recreated (for example, after a resize), do it.
-    if (canvas->render.swapchain.obj.status == DVZ_OBJECT_STATUS_NEED_RECREATE)
-    {
-        log_trace("swapchain image acquisition failed, recreating the canvas");
-
-        // Recreate the canvas.
-        dvz_canvas_recreate(canvas);
-
-        // Update the DvzViewport struct and call RESIZE callbacks.
-        // _event_resize(canvas);
-        canvas->resized = true;
-        // if (canvas->screencast != NULL)
-        //     log_error("resizing is not supported during a screencast");
-
-        // Refill the canvas after the DvzViewport has been updated.
-        // _refill_canvas(canvas, UINT32_MAX);
-        // dvz_canvas_to_refill(canvas);
-
-        // n_canvas_active++;
-        // dvz_container_iter(&iterator);
-        // continue;
-        return 0;
-    }
-
-    // // Destroy the canvas if needed.
-    // // Check canvas.to_close, and whether the user as requested to close the window.
-    // if (atomic_load(&canvas->to_close) ||
-    //     (canvas->window != NULL &&
-    //      backend_window_should_close(app->backend, canvas->window->backend_window)))
-    // {
-    //     canvas->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
-    //     if (canvas->window != NULL)
-    //         canvas->window->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
-    // }
-    // if (canvas->window != NULL && canvas->window->obj.status == DVZ_OBJECT_STATUS_NEED_DESTROY)
-    //     canvas->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
-
-    if (canvas->obj.status == DVZ_OBJECT_STATUS_NEED_DESTROY)
-    {
-        log_trace("destroying canvas");
-
-        // Stop the transfer queue.
-        // dvz_event_stop(canvas);
-
-        // Wait for all GPUs to be idle.
-        dvz_app_wait(app);
-
-        // Destroy the canvas.
-        dvz_canvas_destroy(canvas);
-
-        return 1;
-    }
-
-    // Frame logic.
-    _canvas_frame_logic(canvas);
-    canvas->resized = false;
-
-    // Submit the command buffers and swapchain logic.
-    // log_trace("submitting frame for canvas #%d", canvas_idx);
-    dvz_canvas_frame_submit(canvas);
-
-    canvas->frame_idx++;
-
-    return 0;
-}
-
-
-
-int dvz_app_run(DvzApp* app, uint64_t frame_count)
-{
-    ASSERT(app != NULL);
-
-    // // Single run of this function at a given time.
-    // if (app->is_running && frame_count != 1)
-    // {
-    //     log_debug("discard dvz_app_run() as the app seems to be already running");
-    //     return -1;
-    // }
-    // app->is_running = true;
-
-    // if (frame_count == 0 && app->autorun.n_frames > 0)
-    //     frame_count = app->autorun.n_frames;
-
-    // // Check if autorun is enabled.
-    // // HACK: disable dvz_app_run(app, 0) in autorun mode.
-    // if (_app_autorun(app) == 0 && frame_count == 0)
-    //     return 0;
-
-    // HACK: prevent infinite loop with offscreen rendering.
-    if (app->backend == DVZ_BACKEND_OFFSCREEN && frame_count == 0)
-    {
-        log_warn(
-            "infinite rendering loop detected with the offscreen backend, this might block the "
-            "application");
-        // frame_count = 10;
-    }
-
-    // Number of frames.
-    if (frame_count > 1)
-        log_debug("start main loop with %d frames (0=infinite)", frame_count);
-    // if (frame_count == 0)
-    //     frame_count = UINT64_MAX;
-    // ASSERT(frame_count > 0);
-
-    // Main loop.
-    DvzContainerIterator iterator;
-    DvzCanvas* canvas = NULL;
-    uint32_t n_canvas_active = 0;
-    uint64_t iter = 0;
-    for (iter = 0; iter < frame_count; iter++)
-    {
-        n_canvas_active = 0;
-
-        // Loop over all canvases.
-        iterator = dvz_container_iterator(&app->canvases);
-        canvas = NULL;
-        while (iterator.item != NULL)
-        {
-            canvas = (DvzCanvas*)iterator.item;
-            ASSERT(canvas != NULL);
-
-            // Run and present the next canvas frame, and count the canvas as active if the
-            // presentation was successfull.
-            if (dvz_canvas_frame(canvas) == 0)
-                n_canvas_active++;
-
-            // Go to the next canvas.
-            dvz_container_iter(&iterator);
-        }
-
-        // Process the pending GPU transfers after all canvases have executed their frame.
-        _process_gpu_transfers(app);
-
-        // Close the application if all canvases have been closed.
-        if (n_canvas_active == 0 && frame_count != 1)
-        {
-            log_trace("no more active canvas, closing the app");
-            break;
-        }
-    }
-
-    if (frame_count != 1)
-    {
-        log_trace("end main loop");
-        dvz_app_wait(app);
-        app->is_running = false;
-    }
-
-    return (int)n_canvas_active;
-}
+// static void _canvas_frame_logic(DvzCanvas* canvas)
+// {
+//     ASSERT(canvas != NULL);
+//     ASSERT(canvas->app != NULL);
+//     ASSERT(canvas->gpu != NULL);
+//     // log_trace("start frame %u", canvas->frame_idx);
+
+//     // Update the global and local clocks.
+//     // These calls update canvas->clock.elapsed and canvas->clock.interval, the latter is
+//     // the delay since the last frame.
+//     _clock_tick(&canvas->app->clock); // global clock
+//     // Compute the maximum delay between two successive frames.
+//     canvas->fps.max_delay = fmax(canvas->fps.max_delay, _clock_interval(&canvas->clock));
+//     _clock_tick(&canvas->clock); // canvas-local clock
+
+//     // Call INTERACT callbacks (for backends only), which may enqueue some events.
+//     // _event_interact(canvas);
+
+//     // Call FRAME callbacks.
+//     // _event_frame(canvas);
+
+//     // Give a chance to update event structures in the main loop, for example reset wheel.
+//     // _backend_next_frame(canvas);
+
+//     // Call TIMER callbacks, in the main thread.
+//     // _event_timer(canvas);
+
+//     // Refill all command buffers at the first iteration.
+//     // if (canvas->frame_idx == 0)
+//     //     dvz_canvas_to_refill(canvas);
+
+//     // Refill if needed, only 1 swapchain command buffer per frame to avoid waiting on the
+//     device.
+//     // _refill_frame(canvas);
+// }
+
+
+
+// void dvz_canvas_frame_submit(DvzCanvas* canvas)
+// {
+//     ASSERT(canvas != NULL);
+//     DvzGpu* gpu = canvas->gpu;
+//     ASSERT(gpu != NULL);
+
+//     DvzSubmit* s = &canvas->render.submit;
+//     uint32_t f = canvas->cur_frame;
+//     uint32_t img_idx = canvas->render.swapchain.img_idx;
+
+//     // Keep track of the fence associated to the current swapchain image.
+//     dvz_fences_copy(
+//         &canvas->sync.fences_render_finished, f, //
+//         &canvas->sync.fences_flight, img_idx);
+
+//     // Reset the Submit instance before adding the command buffers.
+//     dvz_submit_reset(s);
+
+//     // Add the command buffers to the submit instance.
+//     // Default render commands.
+//     if (canvas->cmds_render.obj.status == DVZ_OBJECT_STATUS_CREATED)
+//         dvz_submit_commands(s, &canvas->cmds_render);
+
+//     // // Extra render commands.
+//     // DvzCommands* cmds = dvz_container_iter(&canvas->commands);
+//     // while (cmds != NULL)
+//     // {
+//     //     if (cmds->obj.status == DVZ_OBJECT_STATUS_NONE)
+//     //         break;
+//     //     if (cmds->obj.status == DVZ_OBJECT_STATUS_INACTIVE)
+//     //         continue;
+//     //     if (cmds->queue_idx == DVZ_DEFAULT_QUEUE_RENDER)
+//     //         dvz_submit_commands(s, cmds);
+//     //     cmds = dvz_container_iter(&canvas->commands);
+//     // }
+//     if (s->commands_count == 0)
+//     {
+//         log_error("no recorded command buffers");
+//         return;
+//     }
+
+//     if (!canvas->offscreen)
+//     {
+//         dvz_submit_wait_semaphores(
+//             s, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, //
+//             &canvas->sync.sem_img_available, f);
+
+//         // Once the render is finished, we signal another semaphore.
+//         dvz_submit_signal_semaphores(s, &canvas->sync.sem_render_finished, f);
+//     }
+
+//     // SEND callbacks and send the Submit instance.
+//     {
+//         // Call PRE_SEND callbacks
+//         // _event_presend(canvas);
+
+//         // Send the Submit instance.
+//         dvz_submit_send(s, img_idx, &canvas->sync.fences_render_finished, f);
+
+//         // Call POST_SEND callbacks
+//         // _event_postsend(canvas);
+//     }
+
+//     // Once the image is rendered, we present the swapchain image.
+//     // The semaphore used for waiting during presentation may be changed by the canvas
+//     // callbacks.
+//     if (!canvas->offscreen)
+//         dvz_swapchain_present(
+//             &canvas->render.swapchain, 1, //
+//             canvas->sync.present_semaphores,
+//             CLIP(f, 0, canvas->sync.present_semaphores->count - 1));
+
+//     canvas->cur_frame = (f + 1) % canvas->sync.fences_render_finished.count;
+// }
+
+
+
+// static void _process_gpu_transfers(DvzApp* app)
+// {
+//     // NOTE: this has never been tested with multiple GPUs yet.
+//     DvzContainerIterator iterator = dvz_container_iterator(&app->gpus);
+//     DvzGpu* gpu = NULL;
+//     while (iterator.item != NULL)
+//     {
+//         gpu = iterator.item;
+//         if (!dvz_obj_is_created(&gpu->obj))
+//             break;
+
+//         // Pending transfers.
+//         ASSERT(gpu->context != NULL);
+//         // NOTE: the function below uses hard GPU synchronization primitives
+//         // TODO
+//         // dvz_process_transfers(gpu->context);
+
+//         // IMPORTANT: we need to wait for the present queue to be idle, otherwise the GPU hangs
+//         // when waiting for fences (not sure why). The problem only arises when using different
+//         // queues for command buffer submission and swapchain present. There has be a better
+//         // way to fix this.
+//         if (gpu->queues.queues[DVZ_DEFAULT_QUEUE_PRESENT] != VK_NULL_HANDLE &&
+//             gpu->queues.queues[DVZ_DEFAULT_QUEUE_PRESENT] !=
+//                 gpu->queues.queues[DVZ_DEFAULT_QUEUE_RENDER])
+//         // && iter % DVZ_MAX_SWAPCHAIN_IMAGES == 0)
+//         {
+//             dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_PRESENT);
+//         }
+
+//         dvz_container_iter(&iterator);
+//     }
+// }
+
+
+
+// int dvz_canvas_frame(DvzCanvas* canvas)
+// {
+//     // Return 0? all good, the canvas is still active.
+//     // Return 1? the frame was not successfully displayed, should try again.
+
+//     ASSERT(canvas != NULL);
+//     DvzApp* app = canvas->app;
+//     ASSERT(app != NULL);
+
+//     // Check that the canvas is valid.
+//     if (canvas->obj.status < DVZ_OBJECT_STATUS_CREATED)
+//         return 1;
+//     ASSERT(canvas->obj.status >= DVZ_OBJECT_STATUS_CREATED);
+
+//     // INIT event at the first frame
+//     if (canvas->frame_idx == 0)
+//     {
+//         // Call RESIZE callbacks at initialization.
+//         // _event_resize(canvas);
+
+//         // DvzEvent ev = {0};
+//         // ev.type = DVZ_EVENT_INIT;
+//         // _event_produce(canvas, ev);
+//     }
+
+//     // Poll events.
+//     if (canvas->window != NULL)
+//         dvz_window_poll_events(canvas->window);
+
+//     // NOTE: swapchain image acquisition happens here
+
+//     // We acquire the next swapchain image.
+//     // NOTE: this call modifies swapchain->img_idx
+//     if (!canvas->offscreen)
+//         dvz_swapchain_acquire(
+//             &canvas->render.swapchain, &canvas->sync.sem_img_available, canvas->cur_frame, NULL,
+//             0);
+
+//     // Wait for fence.
+//     dvz_fences_wait(&canvas->sync.fences_flight, canvas->render.swapchain.img_idx);
+
+//     // If there is a problem with swapchain image acquisition, wait and try again later.
+//     if (canvas->render.swapchain.obj.status == DVZ_OBJECT_STATUS_INVALID)
+//     {
+//         log_trace("swapchain image acquisition failed, waiting and skipping this frame");
+//         dvz_gpu_wait(canvas->gpu);
+
+//         // dvz_container_iter(&iterator);
+//         // continue;
+//         return 1;
+//     }
+
+//     // If the swapchain needs to be recreated (for example, after a resize), do it.
+//     if (canvas->render.swapchain.obj.status == DVZ_OBJECT_STATUS_NEED_RECREATE)
+//     {
+//         log_trace("swapchain image acquisition failed, recreating the canvas");
+
+//         // Recreate the canvas.
+//         dvz_canvas_recreate(canvas);
+
+//         // Update the DvzViewport struct and call RESIZE callbacks.
+//         // _event_resize(canvas);
+//         canvas->resized = true;
+//         // if (canvas->screencast != NULL)
+//         //     log_error("resizing is not supported during a screencast");
+
+//         // Refill the canvas after the DvzViewport has been updated.
+//         // _refill_canvas(canvas, UINT32_MAX);
+//         // dvz_canvas_to_refill(canvas);
+
+//         // n_canvas_active++;
+//         // dvz_container_iter(&iterator);
+//         // continue;
+//         return 0;
+//     }
+
+//     // // Destroy the canvas if needed.
+//     // // Check canvas.to_close, and whether the user as requested to close the window.
+//     // if (atomic_load(&canvas->to_close) ||
+//     //     (canvas->window != NULL &&
+//     //      backend_window_should_close(app->backend, canvas->window->backend_window)))
+//     // {
+//     //     canvas->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
+//     //     if (canvas->window != NULL)
+//     //         canvas->window->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
+//     // }
+//     // if (canvas->window != NULL && canvas->window->obj.status ==
+//     DVZ_OBJECT_STATUS_NEED_DESTROY)
+//     //     canvas->obj.status = DVZ_OBJECT_STATUS_NEED_DESTROY;
+
+//     if (canvas->obj.status == DVZ_OBJECT_STATUS_NEED_DESTROY)
+//     {
+//         log_trace("destroying canvas");
+
+//         // Stop the transfer queue.
+//         // dvz_event_stop(canvas);
+
+//         // Wait for all GPUs to be idle.
+//         dvz_app_wait(app);
+
+//         // Destroy the canvas.
+//         dvz_canvas_destroy(canvas);
+
+//         return 1;
+//     }
+
+//     // Frame logic.
+//     _canvas_frame_logic(canvas);
+//     canvas->resized = false;
+
+//     // Submit the command buffers and swapchain logic.
+//     // log_trace("submitting frame for canvas #%d", canvas_idx);
+//     dvz_canvas_frame_submit(canvas);
+
+//     canvas->frame_idx++;
+
+//     return 0;
+// }
+
+
+
+// int dvz_app_run(DvzApp* app, uint64_t frame_count)
+// {
+//     ASSERT(app != NULL);
+
+//     // // Single run of this function at a given time.
+//     // if (app->is_running && frame_count != 1)
+//     // {
+//     //     log_debug("discard dvz_app_run() as the app seems to be already running");
+//     //     return -1;
+//     // }
+//     // app->is_running = true;
+
+//     // if (frame_count == 0 && app->autorun.n_frames > 0)
+//     //     frame_count = app->autorun.n_frames;
+
+//     // // Check if autorun is enabled.
+//     // // HACK: disable dvz_app_run(app, 0) in autorun mode.
+//     // if (_app_autorun(app) == 0 && frame_count == 0)
+//     //     return 0;
+
+//     // HACK: prevent infinite loop with offscreen rendering.
+//     if (app->backend == DVZ_BACKEND_OFFSCREEN && frame_count == 0)
+//     {
+//         log_warn(
+//             "infinite rendering loop detected with the offscreen backend, this might block the "
+//             "application");
+//         // frame_count = 10;
+//     }
+
+//     // Number of frames.
+//     if (frame_count > 1)
+//         log_debug("start main loop with %d frames (0=infinite)", frame_count);
+//     // if (frame_count == 0)
+//     //     frame_count = UINT64_MAX;
+//     // ASSERT(frame_count > 0);
+
+//     // Main loop.
+//     DvzContainerIterator iterator;
+//     DvzCanvas* canvas = NULL;
+//     uint32_t n_canvas_active = 0;
+//     uint64_t iter = 0;
+//     for (iter = 0; iter < frame_count; iter++)
+//     {
+//         n_canvas_active = 0;
+
+//         // Loop over all canvases.
+//         iterator = dvz_container_iterator(&app->canvases);
+//         canvas = NULL;
+//         while (iterator.item != NULL)
+//         {
+//             canvas = (DvzCanvas*)iterator.item;
+//             ASSERT(canvas != NULL);
+
+//             // Run and present the next canvas frame, and count the canvas as active if the
+//             // presentation was successfull.
+//             if (dvz_canvas_frame(canvas) == 0)
+//                 n_canvas_active++;
+
+//             // Go to the next canvas.
+//             dvz_container_iter(&iterator);
+//         }
+
+//         // Process the pending GPU transfers after all canvases have executed their frame.
+//         _process_gpu_transfers(app);
+
+//         // Close the application if all canvases have been closed.
+//         if (n_canvas_active == 0 && frame_count != 1)
+//         {
+//             log_trace("no more active canvas, closing the app");
+//             break;
+//         }
+//     }
+
+//     if (frame_count != 1)
+//     {
+//         log_trace("end main loop");
+//         dvz_app_wait(app);
+//         app->is_running = false;
+//     }
+
+//     return (int)n_canvas_active;
+// }
 
 
 
@@ -2516,121 +2524,122 @@ int dvz_app_run(DvzApp* app, uint64_t frame_count)
 
 
 
-/*************************************************************************************************/
-/*  Canvas destruction                                                                           */
-/*************************************************************************************************/
+// /*************************************************************************************************/
+// /*  Canvas destruction */
+// /*************************************************************************************************/
 
-void dvz_canvas_destroy(DvzCanvas* canvas)
-{
-    if (canvas == NULL || canvas->obj.status == DVZ_OBJECT_STATUS_DESTROYED)
-    {
-        log_trace("skip destruction of already-destroyed canvas");
-        return;
-    }
-    log_debug("destroying canvas");
+// void dvz_canvas_destroy(DvzCanvas* canvas)
+// {
+//     if (canvas == NULL || canvas->obj.status == DVZ_OBJECT_STATUS_DESTROYED)
+//     {
+//         log_trace("skip destruction of already-destroyed canvas");
+//         return;
+//     }
+//     log_debug("destroying canvas");
 
-    // DEBUG: only in non offscreen mode
-    if (!canvas->offscreen)
-    {
-        ASSERT(canvas->window != NULL);
-        ASSERT(canvas->window->app != NULL);
-    }
+//     // DEBUG: only in non offscreen mode
+//     if (!canvas->offscreen)
+//     {
+//         ASSERT(canvas->window != NULL);
+//         ASSERT(canvas->window->app != NULL);
+//     }
 
-    ASSERT(canvas != NULL);
-    ASSERT(canvas->app != NULL);
-    ASSERT(canvas->gpu != NULL);
+//     ASSERT(canvas != NULL);
+//     ASSERT(canvas->app != NULL);
+//     ASSERT(canvas->gpu != NULL);
 
-    // Stop the event thread.
-    dvz_gpu_wait(canvas->gpu);
+//     // Stop the event thread.
+//     dvz_gpu_wait(canvas->gpu);
 
-    // // OLD: to remove
-    // dvz_event_stop(canvas);
-    // dvz_thread_join(&canvas->event_thread);
-    // dvz_fifo_destroy(&canvas->event_queue);
-
-
-    // Destroy the canvas deq.
-    {
-        dvz_input_destroy(&canvas->input);
-        dvz_deq_destroy(&canvas->deq);
-    }
+//     // // OLD: to remove
+//     // dvz_event_stop(canvas);
+//     // dvz_thread_join(&canvas->event_thread);
+//     // dvz_fifo_destroy(&canvas->event_queue);
 
 
-    // Destroy callbacks.
-    // _destroy_callbacks(canvas);
-
-    // Destroy the graphics.
-    log_trace("canvas destroy graphics pipelines");
-    CONTAINER_DESTROY_ITEMS(DvzGraphics, canvas->graphics, dvz_graphics_destroy)
-    dvz_container_destroy(&canvas->graphics);
-
-    // Destroy the depth and pick images.
-    dvz_images_destroy(&canvas->render.depth_image);
-    dvz_images_destroy(&canvas->render.pick_image);
-    dvz_images_destroy(&canvas->render.pick_staging);
-
-    // Destroy the renderpasses.
-    log_trace("canvas destroy renderpass");
-    dvz_renderpass_destroy(&canvas->render.renderpass);
-    if (canvas->overlay)
-        dvz_renderpass_destroy(&canvas->render.renderpass_overlay);
-
-    // Destroy the swapchain.
-    log_trace("canvas destroy swapchain");
-    dvz_swapchain_destroy(&canvas->render.swapchain);
-
-    // Destroy the framebuffers.
-    log_trace("canvas destroy framebuffers");
-    dvz_framebuffers_destroy(&canvas->render.framebuffers);
-    if (canvas->overlay)
-        dvz_framebuffers_destroy(&canvas->render.framebuffers_overlay);
-
-    // Destroy the Dear ImGui context if it was initialized.
-
-    // HACK: we should NOT destroy imgui when using multiple DvzApp, since Dear ImGui uses
-    // global context shared by all DvzApps. In practice, this is for now equivalent to using the
-    // offscreen backend (which does not support Dear ImGui at the moment anyway).
-    // if (canvas->app->backend != DVZ_BACKEND_OFFSCREEN)
-    //     dvz_imgui_destroy();
-
-    // Destroy the window.
-    log_trace("canvas destroy window");
-    if (canvas->window != NULL)
-    {
-        ASSERT(canvas->window->app != NULL);
-        dvz_window_destroy(canvas->window);
-    }
-
-    log_trace("canvas destroy commands");
-    CONTAINER_DESTROY_ITEMS(DvzCommands, canvas->commands, dvz_commands_destroy)
-    dvz_container_destroy(&canvas->commands);
-
-    // Destroy the semaphores.
-    log_trace("canvas destroy semaphores");
-    dvz_semaphores_destroy(&canvas->sync.sem_img_available);
-    dvz_semaphores_destroy(&canvas->sync.sem_render_finished);
-
-    // Destroy the fences.
-    log_trace("canvas destroy fences");
-    dvz_fences_destroy(&canvas->sync.fences_render_finished);
-
-    // Free the GUI context if it has been set.
-    // FREE(canvas->gui_context);
-
-    // CONTAINER_DESTROY_ITEMS(DvzGui, canvas->guis, dvz_gui_destroy)
-    // dvz_container_destroy(&canvas->guis);
+//     // Destroy the canvas deq.
+//     {
+//         dvz_input_destroy(&canvas->input);
+//         dvz_deq_destroy(&canvas->deq);
+//     }
 
 
-    dvz_obj_destroyed(&canvas->obj);
-}
+//     // Destroy callbacks.
+//     // _destroy_callbacks(canvas);
+
+//     // Destroy the graphics.
+//     log_trace("canvas destroy graphics pipelines");
+//     CONTAINER_DESTROY_ITEMS(DvzGraphics, canvas->graphics, dvz_graphics_destroy)
+//     dvz_container_destroy(&canvas->graphics);
+
+//     // Destroy the depth and pick images.
+//     dvz_images_destroy(&canvas->render.depth_image);
+//     dvz_images_destroy(&canvas->render.pick_image);
+//     dvz_images_destroy(&canvas->render.pick_staging);
+
+//     // Destroy the renderpasses.
+//     log_trace("canvas destroy renderpass");
+//     dvz_renderpass_destroy(&canvas->render.renderpass);
+//     if (canvas->overlay)
+//         dvz_renderpass_destroy(&canvas->render.renderpass_overlay);
+
+//     // Destroy the swapchain.
+//     log_trace("canvas destroy swapchain");
+//     dvz_swapchain_destroy(&canvas->render.swapchain);
+
+//     // Destroy the framebuffers.
+//     log_trace("canvas destroy framebuffers");
+//     dvz_framebuffers_destroy(&canvas->render.framebuffers);
+//     if (canvas->overlay)
+//         dvz_framebuffers_destroy(&canvas->render.framebuffers_overlay);
+
+//     // Destroy the Dear ImGui context if it was initialized.
+
+//     // HACK: we should NOT destroy imgui when using multiple DvzApp, since Dear ImGui uses
+//     // global context shared by all DvzApps. In practice, this is for now equivalent to using
+//     the
+//     // offscreen backend (which does not support Dear ImGui at the moment anyway).
+//     // if (canvas->app->backend != DVZ_BACKEND_OFFSCREEN)
+//     //     dvz_imgui_destroy();
+
+//     // Destroy the window.
+//     log_trace("canvas destroy window");
+//     if (canvas->window != NULL)
+//     {
+//         ASSERT(canvas->window->app != NULL);
+//         dvz_window_destroy(canvas->window);
+//     }
+
+//     log_trace("canvas destroy commands");
+//     CONTAINER_DESTROY_ITEMS(DvzCommands, canvas->commands, dvz_commands_destroy)
+//     dvz_container_destroy(&canvas->commands);
+
+//     // Destroy the semaphores.
+//     log_trace("canvas destroy semaphores");
+//     dvz_semaphores_destroy(&canvas->sync.sem_img_available);
+//     dvz_semaphores_destroy(&canvas->sync.sem_render_finished);
+
+//     // Destroy the fences.
+//     log_trace("canvas destroy fences");
+//     dvz_fences_destroy(&canvas->sync.fences_render_finished);
+
+//     // Free the GUI context if it has been set.
+//     // FREE(canvas->gui_context);
+
+//     // CONTAINER_DESTROY_ITEMS(DvzGui, canvas->guis, dvz_gui_destroy)
+//     // dvz_container_destroy(&canvas->guis);
+
+
+//     dvz_obj_destroyed(&canvas->obj);
+// }
 
 
 
-void dvz_canvases_destroy(DvzContainer* canvases)
-{
-    if (canvases == NULL || canvases->capacity == 0)
-        return;
-    log_trace("destroy all canvases");
-    CONTAINER_DESTROY_ITEMS(DvzCanvas, (*canvases), dvz_canvas_destroy)
-    dvz_container_destroy(canvases);
-}
+// void dvz_canvases_destroy(DvzContainer* canvases)
+// {
+//     if (canvases == NULL || canvases->capacity == 0)
+//         return;
+//     log_trace("destroy all canvases");
+//     CONTAINER_DESTROY_ITEMS(DvzCanvas, (*canvases), dvz_canvas_destroy)
+//     dvz_container_destroy(canvases);
+// }

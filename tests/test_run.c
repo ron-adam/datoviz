@@ -86,7 +86,7 @@ int test_run_2(TestContext* tc)
 
     // Add a canvas.
     {
-        DvzRunCanvasNewEvent* ev = calloc(1, sizeof(DvzRunCanvasNewEvent));
+        DvzCanvasEventNew* ev = calloc(1, sizeof(DvzCanvasEventNew));
         ev->gpu = gpu;
         ev->width = WIDTH;
         ev->height = HEIGHT;
@@ -98,7 +98,7 @@ int test_run_2(TestContext* tc)
 
     // Delete a canvas.
     {
-        DvzRunCanvasDefaultEvent* ev = calloc(1, sizeof(DvzRunCanvasDefaultEvent));
+        DvzCanvasEvent* ev = calloc(1, sizeof(DvzCanvasEvent));
         ev->canvas = canvas;
         dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_DELETE, ev);
     }
