@@ -1,0 +1,135 @@
+/*************************************************************************************************/
+/*  Event loop                                                                                   */
+/*************************************************************************************************/
+
+#ifndef DVZ_RUN_HEADER
+#define DVZ_RUN_HEADER
+
+#include "canvas.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
+/*************************************************************************************************/
+/*  Enums                                                                                        */
+/*************************************************************************************************/
+
+// Run state.
+typedef enum
+{
+    DVZ_RUN_STATE_STOP,
+    DVZ_RUN_STATE_RUNNING,
+    DVZ_RUN_STATE_PAUSED,
+} DvzRunState;
+
+
+
+typedef enum
+{
+    DVZ_RUN_CANVAS_NONE,        //
+    DVZ_RUN_CANVAS_NEW,         //
+    DVZ_RUN_CANVAS_DELETE,      //
+    DVZ_RUN_CANVAS_VISIBLE,     // to hide or show a canvas
+    DVZ_RUN_CANVAS_RUNNING,     // whether to run frames or not
+    DVZ_RUN_CANVAS_RESIZE,      // the canvas has been resized, need to enqueue first a REFILL
+    DVZ_RUN_CANVAS_CLEAR_COLOR, // to change the clear color, will enqueue first a REFILL
+    DVZ_RUN_CANVAS_DPI,         // change the DPI scaling of the canvas
+    DVZ_RUN_CANVAS_FPS,         // whether to show or hide FPS
+    DVZ_RUN_CANVAS_REFILL,      // need to refill the canvas, the user should have registered a
+                                // callback which takes the cmd buf with idx in event struct)
+    DVZ_RUN_CANVAS_FRAME,       // new frame for a canvas
+} DvzRunCanvasEvent;
+
+
+
+/*************************************************************************************************/
+/*  Typedefs                                                                                     */
+/*************************************************************************************************/
+
+typedef struct DvzRun DvzRun;
+
+
+
+/*************************************************************************************************/
+/*  Structs                                                                                      */
+/*************************************************************************************************/
+
+struct DvzRun
+{
+    DvzApp* app;
+    DvzRunState state;
+
+    DvzDeq deq;
+};
+
+
+
+/*************************************************************************************************/
+/*  Functions                                                                                    */
+/*************************************************************************************************/
+
+/**
+ * Create a run instance to run the event loop and manage the lifecycle of the canvases.
+ *
+ * @param app the app
+ * @returns a Run struct
+ */
+DVZ_EXPORT DvzRun dvz_run(DvzApp* app);
+
+/**
+ * Run one frame for all active canvases.
+ *
+ * @param run the run instance
+ */
+DVZ_EXPORT int dvz_run_frame(DvzRun* run);
+
+/**
+ * Run the event loop.
+ *
+ * @param run the run instance
+ * @param frame_count the maximum number of frames, or 0 for an infinite loop
+ */
+DVZ_EXPORT int dvz_run_loop(DvzRun* run, uint64_t frame_count);
+
+/**
+ * Setup the autorun.
+ *
+ * @param run the run instance
+ * @param frame_count the maximum number of frames
+ * @param offscreen whether the canvases should run offscreen
+ * @param filepath save a screenshot or a video
+ */
+DVZ_EXPORT void
+dvz_run_setup(DvzRun* run, uint64_t frame_count, bool offscreen, const char* filepath);
+
+/**
+ * Setup the autorun using environment variables.
+ *
+ * @param the run instance
+ */
+DVZ_EXPORT void dvz_run_setupenv(DvzRun* run);
+
+/**
+ * Start the run, using the autorun if it was set, or an infinite loop by default.
+ *
+ * @param the run instance
+ */
+DVZ_EXPORT int dvz_run_auto(DvzRun* run);
+
+/**
+ * Destroy the run.
+ *
+ * @param the run instance
+ */
+DVZ_EXPORT void dvz_run_destroy(DvzRun* run);
+
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

@@ -366,6 +366,7 @@ file(GLOB sources
     "src/transfers.c"
     "src/vklite.c"
     "src/input.c"
+    "src/run.c"
 
     # "external/*.h*"
     "external/*.c*"
@@ -446,6 +447,7 @@ if (DATOVIZ_WITH_CLI)
         "tests/test_transfers.c"
         "tests/test_input.c"
         "tests/test_canvas.c"
+        "tests/test_run.c"
     )
 
     add_executable(datovizcli ${cli})
