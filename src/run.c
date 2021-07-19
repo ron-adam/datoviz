@@ -1,4 +1,7 @@
 #include "../include/datoviz/run.h"
+#include "../include/datoviz/canvas.h"
+#include "../include/datoviz/vklite.h"
+#include "vklite_utils.h"
 
 
 
@@ -48,6 +51,17 @@ static void _autorun_launch(DvzRun* run)
         ar->frame_count, ar->frame_count, ar->filepath);
 
     // TODO: implement autorun.
+}
+
+
+
+static void blank_commands(DvzCanvas* canvas, DvzCommands* cmds, uint32_t cmd_idx)
+{
+    dvz_cmd_begin(cmds, cmd_idx);
+    dvz_cmd_begin_renderpass(
+        cmds, cmd_idx, &canvas->render.renderpass, &canvas->render.framebuffers);
+    dvz_cmd_end_renderpass(cmds, cmd_idx);
+    dvz_cmd_end(cmds, cmd_idx);
 }
 
 
@@ -126,6 +140,7 @@ static uint32_t _enqueue_frames(DvzRun* run)
         // NOTE: enqueue a REFILL event at the first frame.
         if (canvas->frame_idx == 0)
         {
+            log_info("refill canvas because frame #0");
             _enqueue_refill(run, canvas);
         }
 
@@ -149,9 +164,26 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
 
+    DvzApp* app = canvas->app;
+    ASSERT(app != NULL);
+
+    // Process only created canvas.
+    if (!dvz_obj_is_created(&canvas->obj))
+    {
+        log_debug("skip canvas frame because canvas is invalid");
+        return;
+    }
+
     // Poll events.
     if (canvas->window != NULL)
         dvz_window_poll_events(canvas->window);
+
+    // Raise TO_CLOSE if needed.
+    if (backend_window_should_close(app->backend, canvas->window->backend_window))
+    {
+        _enqueue_canvas_event(run, canvas, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_DELETE);
+        return;
+    }
 
     // NOTE: swapchain image acquisition happens here
 
@@ -184,17 +216,8 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
     // If all good, enqueue a PRESENT task for that canvas.
     log_info("enqueue present");
     _enqueue_canvas_event(run, canvas, DVZ_RUN_DEQ_PRESENT, DVZ_RUN_CANVAS_PRESENT);
-}
 
-
-
-static void blank_commands(DvzCanvas* canvas, DvzCommands* cmds, uint32_t cmd_idx)
-{
-    dvz_cmd_begin(cmds, cmd_idx);
-    dvz_cmd_begin_renderpass(
-        cmds, cmd_idx, &canvas->render.renderpass, &canvas->render.framebuffers);
-    dvz_cmd_end_renderpass(cmds, cmd_idx);
-    dvz_cmd_end(cmds, cmd_idx);
+    canvas->frame_idx++;
 }
 
 
@@ -205,6 +228,13 @@ static void _canvas_refill(DvzRun* run, DvzCanvas* canvas)
 
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
+
+    // Process only created canvas.
+    if (!dvz_obj_is_created(&canvas->obj))
+    {
+        log_debug("skip canvas frame because canvas is invalid");
+        return;
+    }
 
     // TODO: more than 1 DvzCommands (the default, render cmd)
 
@@ -255,7 +285,24 @@ static void _callback_recreate(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
     log_info("canvas recreate");
-    // recreate the canvas and enqueue a REFILL
+
+    ASSERT(deq != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+
+    DvzRun* run = app->run;
+    ASSERT(run != NULL);
+
+    DvzRunCanvasDefaultEvent* ev = (DvzRunCanvasDefaultEvent*)item;
+    ASSERT(item != NULL);
+    DvzCanvas* canvas = ev->canvas;
+
+    // Recreate the canvas.
+    dvz_canvas_recreate(canvas);
+
+    // Enqueue a REFILL after the canvas recreation.
+    _enqueue_refill(run, canvas);
 }
 
 
@@ -264,7 +311,21 @@ static void _callback_delete(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
     log_info("canvas delete");
-    // delete the canvas
+
+    ASSERT(deq != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+
+    DvzRunCanvasDefaultEvent* ev = (DvzRunCanvasDefaultEvent*)item;
+    ASSERT(item != NULL);
+    DvzCanvas* canvas = ev->canvas;
+
+    // Wait for all GPUs to be idle.
+    dvz_app_wait(app);
+
+    // Destroy the canvas.
+    dvz_canvas_destroy(canvas);
 }
 
 
@@ -274,11 +335,9 @@ static void _callback_refill(
     void* user_data)
 {
     ASSERT(deq != NULL);
-    log_info("find out which canvases need a refill, and refill them now");
     //     gathers the cmd buf idx of all dequeued REFILL tasks and, for each of these cmd buf idx,
     //     fills the cmd buf for each canvas, check if a cmd buf has been filled, and if not, fill
     //     it with blank cmd buf
-
 
     DvzApp* app = (DvzApp*)user_data;
     ASSERT(app != NULL);
@@ -383,6 +442,7 @@ static void _callback_present(DvzDeq* deq, void* item, void* user_data)
 static void _callback_copy(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
+    // TODO
     // _callback_copy()
     //     creates new copy cmd buf and fills it in
 }
@@ -394,6 +454,7 @@ static void _callback_copy_batch(
     void* user_data)
 {
     ASSERT(deq != NULL);
+    // TODO
     // _callback_copy_batch()
     //     waits on RENDER GPU queue, then submit all cmd bufs (stored in the dequeued items), and
     //     wait for the TRANSFER GPU queue
@@ -429,6 +490,12 @@ DvzRun* dvz_run(DvzApp* app)
     // Alternatively, only allow 1 callback??
     dvz_deq_proc_batch_callback(
         &run->deq, DVZ_RUN_DEQ_REFILL, DVZ_DEQ_PROC_CALLBACK_POST, _callback_refill, app);
+
+    // Main callbacks.
+    dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_DELETE, _callback_delete, app);
+
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_RECREATE, _callback_recreate, app);
 
     // Present callbacks.
     dvz_deq_callback(

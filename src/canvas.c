@@ -552,6 +552,87 @@ void dvz_canvas_create(DvzCanvas* canvas)
 
 
 
+void dvz_canvas_recreate(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    DvzBackend backend = canvas->app->backend;
+    DvzWindow* window = canvas->window;
+    DvzGpu* gpu = canvas->gpu;
+    DvzSwapchain* swapchain = &canvas->render.swapchain;
+    DvzFramebuffers* framebuffers = &canvas->render.framebuffers;
+    DvzRenderpass* renderpass = &canvas->render.renderpass;
+    DvzFramebuffers* framebuffers_overlay = &canvas->render.framebuffers_overlay;
+    DvzRenderpass* renderpass_overlay = &canvas->render.renderpass_overlay;
+    // bool support_pick = _support_pick(canvas);
+
+    ASSERT(window != NULL);
+    ASSERT(gpu != NULL);
+    ASSERT(swapchain != NULL);
+    ASSERT(framebuffers != NULL);
+    ASSERT(framebuffers_overlay != NULL);
+    ASSERT(renderpass != NULL);
+    ASSERT(renderpass_overlay != NULL);
+
+    log_trace("recreate canvas after resize");
+
+    // Wait until the device is ready and the window fully resized.
+    // Framebuffer new size.
+    uint32_t width, height;
+    backend_window_get_size(
+        backend, window->backend_window, //
+        &window->width, &window->height, //
+        &width, &height);
+    dvz_gpu_wait(gpu);
+
+    // Destroy swapchain resources.
+    dvz_framebuffers_destroy(&canvas->render.framebuffers);
+    if (canvas->overlay)
+        dvz_framebuffers_destroy(&canvas->render.framebuffers_overlay);
+    dvz_images_destroy(&canvas->render.depth_image);
+    if (canvas->with_pick)
+        dvz_images_destroy(&canvas->render.pick_image);
+    dvz_images_destroy(canvas->render.swapchain.images);
+
+    // Recreate the swapchain. This will automatically set the swapchain->images new size.
+    dvz_swapchain_recreate(swapchain);
+
+    // Find the new framebuffer size as determined by the swapchain recreation.
+    width = swapchain->images->width;
+    height = swapchain->images->height;
+
+    // Check that we use the same DvzImages struct here.
+    ASSERT(swapchain->images == framebuffers->attachments[0]);
+
+    // Need to recreate the depth image with the new size.
+    dvz_images_size(&canvas->render.depth_image, width, height, 1);
+    dvz_images_create(&canvas->render.depth_image);
+
+    if (canvas->with_pick)
+    {
+        // Need to recreate the pick image with the new size.
+        dvz_images_size(&canvas->render.pick_image, width, height, 1);
+        dvz_images_create(&canvas->render.pick_image);
+    }
+
+    // Recreate the framebuffers with the new size.
+    for (uint32_t i = 0; i < framebuffers->attachment_count; i++)
+    {
+        ASSERT(framebuffers->attachments[i]->width == width);
+        ASSERT(framebuffers->attachments[i]->height == height);
+    }
+    dvz_framebuffers_create(framebuffers, renderpass);
+    if (canvas->overlay)
+        dvz_framebuffers_create(framebuffers_overlay, renderpass_overlay);
+
+    // Recreate the semaphores.
+    dvz_app_wait(canvas->app);
+    dvz_semaphores_recreate(&canvas->sync.sem_img_available);
+    dvz_semaphores_recreate(&canvas->sync.sem_render_finished);
+    canvas->sync.present_semaphores = &canvas->sync.sem_render_finished;
+}
+
+
+
 /*************************************************************************************************/
 /*  Canvas misc                                                                                  */
 /*************************************************************************************************/

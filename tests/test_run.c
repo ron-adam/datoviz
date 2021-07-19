@@ -46,7 +46,7 @@ int test_run_1(TestContext* tc)
     DvzRun* run = dvz_run(app);
 
     // Event loop.
-    dvz_run_loop(run, 10);
+    dvz_run_loop(run, 0);
 
     dvz_run_destroy(run);
     return 0;
