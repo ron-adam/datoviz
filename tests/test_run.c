@@ -27,6 +27,20 @@
 /*  Utils                                                                                        */
 /*************************************************************************************************/
 
+static void _change_clear_color(DvzCanvas* canvas, vec3 rgb)
+{
+    ASSERT(canvas != NULL);
+    ASSERT(canvas->app != NULL);
+    ASSERT(canvas->app->run != NULL);
+
+    DvzCanvasEventClearColor* ev = calloc(1, sizeof(DvzCanvasEventClearColor));
+    ev->canvas = canvas;
+    ev->r = rgb[0];
+    ev->g = rgb[1];
+    ev->b = rgb[2];
+    dvz_deq_enqueue(&canvas->app->run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_CLEAR_COLOR, ev);
+}
+
 
 
 /*************************************************************************************************/
@@ -47,7 +61,7 @@ int test_run_1(TestContext* tc)
     DvzRun* run = dvz_run(app);
 
     // Event loop.
-    dvz_run_loop(run, 0);
+    dvz_run_loop(run, 10);
 
     // Framebuffer size.
     uvec2 size = {0};
@@ -86,12 +100,7 @@ int test_run_2(TestContext* tc)
     dvz_run_loop(run, 10);
 
     // Change the canvas clear color.
-    {
-        DvzCanvasEventClearColor* ev = calloc(1, sizeof(DvzCanvasEventClearColor));
-        ev->canvas = canvas;
-        ev->r = 1;
-        dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_CLEAR_COLOR, ev);
-    }
+    _change_clear_color(canvas, (vec3){1, 0, 0});
 
     // Event loop.
     dvz_run_loop(run, 10);
@@ -114,6 +123,42 @@ int test_run_2(TestContext* tc)
         ev->canvas = canvas;
         dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_DELETE, ev);
     }
+
+    // Event loop.
+    dvz_run_loop(run, 10);
+
+    dvz_run_destroy(run);
+    return 0;
+}
+
+
+
+static void _on_mouse_move(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    DvzCanvas* canvas = (DvzCanvas*)user_data;
+    ASSERT(canvas != NULL);
+    ASSERT(canvas->app != NULL);
+    ASSERT(canvas->app->run != NULL);
+    // if (canvas->deleting)
+    //     return;
+    log_debug("mouse position: %.0fx%.0f", ev.m.pos[0], ev.m.pos[1]);
+    _change_clear_color(canvas, (vec3){1, ev.m.pos[0] / WIDTH, ev.m.pos[1] / HEIGHT});
+}
+
+int test_run_3(TestContext* tc)
+{
+    DvzApp* app = tc->app;
+    DvzGpu* gpu = dvz_gpu_best(app);
+
+    // Create a canvas.
+    DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
+    dvz_canvas_create(canvas);
+
+    // Mouse move callback.
+    dvz_input_callback(&canvas->input, DVZ_INPUT_MOUSE_MOVE, _on_mouse_move, canvas);
+
+    // Create a run instance.
+    DvzRun* run = dvz_run(app);
 
     // Event loop.
     dvz_run_loop(run, 10);

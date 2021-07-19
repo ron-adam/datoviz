@@ -426,6 +426,20 @@ static void backend_poll_events(DvzBackend backend, DvzWindow* window)
 
 
 
+static void backend_wait(DvzBackend backend, DvzWindow* window)
+{
+    switch (backend)
+    {
+    case DVZ_BACKEND_GLFW:
+        glfwWaitEvents();
+        break;
+    default:
+        break;
+    }
+}
+
+
+
 static void
 backend_window_destroy(VkInstance instance, DvzBackend backend, void* window, VkSurfaceKHR surface)
 {

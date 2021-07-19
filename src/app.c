@@ -176,6 +176,13 @@ int dvz_app_destroy(DvzApp* app)
     // Backend-specific termination code.
     backend_terminate(app->backend);
 
+    // Free the DvzRun struct.
+    if (app->run != NULL)
+    {
+        FREE(app->run);
+        app->run = NULL;
+    }
+
     // Free the App memory.
     int res = (int)app->n_errors;
     FREE(app);

@@ -61,6 +61,21 @@ static void blank_commands(DvzCanvas* canvas, DvzCommands* cmds, uint32_t cmd_id
 
 
 
+static void _run_wait(DvzRun* run)
+{
+    ASSERT(run != NULL);
+    ASSERT(run->app != NULL);
+
+    backend_poll_events(run->app->backend, NULL);
+
+    // for (uint32_t i = 0; i < 4; i++)
+    //     dvz_deq_wait(&run->deq, i);
+
+    dvz_app_wait(run->app);
+}
+
+
+
 /*************************************************************************************************/
 /*  Task enqueueing                                                                              */
 /*************************************************************************************************/
@@ -168,7 +183,7 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
 
-    log_info("canvas frame #%d", canvas->frame_idx);
+    // log_trace("canvas frame #%d", canvas->frame_idx);
 
     DvzApp* app = canvas->app;
     ASSERT(app != NULL);
@@ -328,12 +343,13 @@ static void _callback_delete(DvzDeq* deq, void* item, void* user_data)
     ASSERT(ev != NULL);
     DvzCanvas* canvas = ev->canvas;
 
-    if (!_canvas_check(canvas))
-        return;
-    log_debug("delete canvas");
+    // if (!_canvas_check(canvas))
+    //     return;
+    // canvas->deleting = true;
+    log_info("delete canvas");
 
-    // Wait for all GPUs to be idle.
-    dvz_app_wait(app);
+    // Wait before destroying the canvas.
+    _run_wait(app->run);
 
     // Destroy the canvas.
     dvz_canvas_destroy(canvas);
@@ -682,6 +698,9 @@ int dvz_run_loop(DvzRun* run, uint64_t frame_count)
         }
     }
 
+    // Wait.
+    _run_wait(run);
+
     run->state = DVZ_RUN_STATE_PAUSED;
 
     return 0;
@@ -757,10 +776,13 @@ int dvz_run_auto(DvzRun* run)
 void dvz_run_destroy(DvzRun* run)
 {
     ASSERT(run != NULL);
-    dvz_deq_destroy(&run->deq);
-
     DvzApp* app = run->app;
     ASSERT(app != NULL);
+
+    // Wait.
+    _run_wait(app->run);
+
+    dvz_deq_destroy(&run->deq);
 
     FREE(run);
     app->run = NULL;

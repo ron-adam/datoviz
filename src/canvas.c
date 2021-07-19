@@ -26,20 +26,6 @@
 /*  Utils                                                                                    */
 /*************************************************************************************************/
 
-// static bool _show_fps(DvzCanvas* canvas)
-// {
-//     ASSERT(canvas != NULL);
-//     return ((canvas->flags >> 1) & 1) != 0;
-// }
-
-// static bool _support_pick(DvzCanvas* canvas)
-// {
-//     ASSERT(canvas != NULL);
-//     return ((canvas->flags >> 2) & 1) != 0;
-// }
-
-
-
 static void _copy_image_to_staging(
     DvzCanvas* canvas, DvzImages* images, DvzImages* staging, ivec3 offset, uvec3 shape)
 {
@@ -479,20 +465,6 @@ static void _canvas_input(DvzCanvas* canvas)
     dvz_input_backend(&canvas->input, canvas->app->backend, canvas->window->backend_window);
 }
 
-static void _canvas_deq(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-
-    canvas->deq = dvz_deq(1);
-
-    // Procs
-    dvz_deq_proc(&canvas->deq, 0, 1, (uint32_t[]){0});
-
-    // Deq callbacks: canvas updates.
-    dvz_deq_callback(&canvas->deq, 0, DVZ_CANVAS_UPDATE_TO_REFILL, _canvas_to_refill, canvas);
-    dvz_deq_callback(&canvas->deq, 0, DVZ_CANVAS_UPDATE_TO_CLOSE, _canvas_to_close, canvas);
-}
-
 
 
 void dvz_canvas_create(DvzCanvas* canvas)
@@ -535,9 +507,6 @@ void dvz_canvas_create(DvzCanvas* canvas)
 
     // Create the Input instance.
     _canvas_input(canvas);
-
-    // Create the Deq for canvas updates.
-    _canvas_deq(canvas);
 
     // Update the viewport field.
     canvas->viewport = dvz_viewport_full(canvas);
@@ -800,6 +769,10 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
     ASSERT(canvas->app != NULL);
     ASSERT(canvas->gpu != NULL);
 
+    // Wait until all pending events have been processed.
+    backend_poll_events(canvas->app->backend, canvas->window);
+
+    // Wait on the GPU.
     dvz_gpu_wait(canvas->gpu);
 
     // Destroy the graphics.
@@ -865,12 +838,7 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
 
     // NOTE: the Input destruction must occur AFTER the window destruction, otherwise the window
     // glfw callbacks might enqueue input events to a destroyed deq, causing a segfault.
-
-    // Destroy the canvas deq.
-    {
-        dvz_deq_destroy(&canvas->deq);
-        dvz_input_destroy(&canvas->input);
-    }
+    dvz_input_destroy(&canvas->input);
 
     dvz_obj_destroyed(&canvas->obj);
 }

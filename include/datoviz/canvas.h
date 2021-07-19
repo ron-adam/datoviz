@@ -565,8 +565,9 @@ struct DvzCanvas
     bool overlay;
     bool with_pick;
     bool vsync;
-    bool shown;   // false when the window is hidden
-    bool running; // false when paused
+    bool shown;    // false when the window is hidden
+    bool running;  // false when paused
+    bool deleting; // true as soon as a DELETE request is being processed
     uvec2 init_size;
     int flags;
 
@@ -597,7 +598,7 @@ struct DvzCanvas
     DvzContainer graphics;
 
     // Deq
-    DvzDeq deq;
+    // DvzDeq deq;
     bool captured; // if true, mouse and keyboard should not be processed
 
     // Input.
