@@ -225,9 +225,8 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
 
 
 
-static void _canvas_refill(DvzRun* run, DvzCanvas* canvas)
+static void _canvas_refill(DvzCanvas* canvas)
 {
-    ASSERT(run != NULL);
     ASSERT(canvas != NULL);
 
     if (!_canvas_check(canvas))
@@ -277,7 +276,6 @@ static void _callback_frame(
 
     DvzApp* app = (DvzApp*)user_data;
     ASSERT(app != NULL);
-
     DvzRun* run = app->run;
     ASSERT(run != NULL);
 
@@ -301,11 +299,8 @@ static void _callback_recreate(DvzDeq* deq, void* item, void* user_data)
     ASSERT(deq != NULL);
     log_debug("canvas recreate");
 
-    ASSERT(deq != NULL);
-
     DvzApp* app = (DvzApp*)user_data;
     ASSERT(app != NULL);
-
     DvzRun* run = app->run;
     ASSERT(run != NULL);
 
@@ -356,12 +351,6 @@ static void _callback_refill(
     // fills the cmd buf for each canvas, check if a cmd buf has been filled, and if not, fill
     // it with blank cmd buf
 
-    DvzApp* app = (DvzApp*)user_data;
-    ASSERT(app != NULL);
-
-    DvzRun* run = app->run;
-    ASSERT(run != NULL);
-
     DvzCanvasEvent* ev = NULL;
     for (uint32_t i = 0; i < item_count; i++)
     {
@@ -371,7 +360,7 @@ static void _callback_refill(
 
         // TODO: optim: if multiple FRAME events for 1 canvas, make sure we call it only once.
         // One frame for one canvas.
-        _canvas_refill(run, ev->canvas);
+        _canvas_refill(ev->canvas);
     }
 }
 
@@ -388,9 +377,8 @@ static void _callback_present(DvzDeq* deq, void* item, void* user_data)
 
     DvzApp* app = (DvzApp*)user_data;
     ASSERT(app != NULL);
-
-    DvzRun* run = app->run;
-    ASSERT(run != NULL);
+    // DvzRun* run = app->run;
+    // ASSERT(run != NULL);
 
     DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
     ASSERT(item != NULL);
