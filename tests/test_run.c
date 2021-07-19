@@ -40,13 +40,14 @@ int test_run_1(TestContext* tc)
 
     // Create a canvas.
     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
+    // dvz_canvas_vsync(canvas, false);
     dvz_canvas_create(canvas);
 
     // Create a run instance.
     DvzRun* run = dvz_run(app);
 
     // Event loop.
-    dvz_run_loop(run, 10);
+    dvz_run_loop(run, 0);
 
     // Framebuffer size.
     uvec2 size = {0};

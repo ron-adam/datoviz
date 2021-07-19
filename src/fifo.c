@@ -702,7 +702,7 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
         log_trace("waiting for one of the queues in proc #%d to be non-empty", proc_idx);
         while (_deq_size(deq, proc->queue_count, proc->queue_indices) == 0)
         {
-            log_trace("waiting for proc #%d cond", proc_idx);
+            // log_trace("waiting for proc #%d cond", proc_idx);
             if (_proc_wait(proc) != 0)
             {
                 // If the timeout-ed wait was unsuccessful, we will continue waiting at the next

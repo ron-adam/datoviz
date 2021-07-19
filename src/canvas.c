@@ -175,6 +175,7 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     canvas->init_size[0] = width;
     canvas->init_size[1] = height;
     canvas->running = true;
+    canvas->vsync = true; // by default, vsync is enabled (caps at 60 FPS)
 
     canvas->dpi_scaling = DVZ_DEFAULT_DPI_SCALING;
     // int flag_dpi = flags >> 12;
@@ -364,7 +365,7 @@ static void _canvas_swapchain(DvzCanvas* canvas)
     {
         dvz_swapchain_present_mode(
             &canvas->render.swapchain,
-            canvas->vsync ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR);
+            canvas->vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR);
         dvz_swapchain_create(&canvas->render.swapchain);
 
         ASSERT(canvas->render.swapchain.images != NULL);

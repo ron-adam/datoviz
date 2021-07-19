@@ -168,7 +168,7 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
 
-    // log_trace("canvas frame #%d", canvas->frame_idx);
+    log_info("canvas frame #%d", canvas->frame_idx);
 
     DvzApp* app = canvas->app;
     ASSERT(app != NULL);
