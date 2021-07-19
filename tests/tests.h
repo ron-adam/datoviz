@@ -21,6 +21,7 @@ int test_utils_fifo_discard(TestContext*);
 int test_utils_fifo_first(TestContext*);
 int test_utils_deq_1(TestContext*);
 int test_utils_deq_2(TestContext*);
+int test_utils_deq_dependencies(TestContext*);
 int test_utils_deq_circular(TestContext*);
 int test_utils_deq_proc(TestContext*);
 int test_utils_deq_wait(TestContext*);
@@ -189,19 +190,20 @@ int test_run_1(TestContext*);
 
 static TestCase TEST_CASES[] = {
     // Utils.
-    CASE_FIXTURE(NONE, test_utils_container),    //
-    CASE_FIXTURE(NONE, test_utils_thread),       //
-    CASE_FIXTURE(NONE, test_utils_fifo_1),       //
-    CASE_FIXTURE(NONE, test_utils_fifo_2),       //
-    CASE_FIXTURE(NONE, test_utils_fifo_resize),  //
-    CASE_FIXTURE(NONE, test_utils_fifo_discard), //
-    CASE_FIXTURE(NONE, test_utils_fifo_first),   //
-    CASE_FIXTURE(NONE, test_utils_deq_1),        //
-    CASE_FIXTURE(NONE, test_utils_deq_2),        //
-    CASE_FIXTURE(NONE, test_utils_deq_circular), //
-    CASE_FIXTURE(NONE, test_utils_deq_proc),     //
-    CASE_FIXTURE(NONE, test_utils_deq_wait),     //
-    CASE_FIXTURE(NONE, test_utils_deq_batch),    //
+    CASE_FIXTURE(NONE, test_utils_container),        //
+    CASE_FIXTURE(NONE, test_utils_thread),           //
+    CASE_FIXTURE(NONE, test_utils_fifo_1),           //
+    CASE_FIXTURE(NONE, test_utils_fifo_2),           //
+    CASE_FIXTURE(NONE, test_utils_fifo_resize),      //
+    CASE_FIXTURE(NONE, test_utils_fifo_discard),     //
+    CASE_FIXTURE(NONE, test_utils_fifo_first),       //
+    CASE_FIXTURE(NONE, test_utils_deq_1),            //
+    CASE_FIXTURE(NONE, test_utils_deq_2),            //
+    CASE_FIXTURE(NONE, test_utils_deq_dependencies), //
+    CASE_FIXTURE(NONE, test_utils_deq_circular),     //
+    CASE_FIXTURE(NONE, test_utils_deq_proc),         //
+    CASE_FIXTURE(NONE, test_utils_deq_wait),         //
+    CASE_FIXTURE(NONE, test_utils_deq_batch),        //
 
     CASE_FIXTURE(NONE, test_utils_array_1),    //
     CASE_FIXTURE(NONE, test_utils_array_2),    //

@@ -63,6 +63,7 @@ typedef enum
 typedef struct DvzFifo DvzFifo;
 typedef struct DvzDeq DvzDeq;
 typedef struct DvzDeqItem DvzDeqItem;
+typedef struct DvzDeqItemNext DvzDeqItemNext;
 typedef struct DvzDeqProc DvzDeqProc;
 typedef struct DvzDeqCallbackRegister DvzDeqCallbackRegister;
 typedef struct DvzDeqProcCallbackRegister DvzDeqProcCallbackRegister;
@@ -138,7 +139,19 @@ struct DvzDeqItem
     uint32_t deq_idx;
     int type;
     void* item;
+
+    // Items to enqueue  *after* the current item has been dequeued and the callbacks have run.
+    uint32_t next_count;
+    DvzDeqItemNext* next_items;
 };
+
+struct DvzDeqItemNext
+{
+    bool enqueue_first; // whether the next item should be enqueued with enqueue_first() or not
+    DvzDeqItem* next_item;
+};
+
+
 
 // A Proc represents a pair consumer/producer, where typically one thread enqueues items in a
 // subset of the queues, and another thread dequeues items from that subset.
@@ -395,6 +408,33 @@ DVZ_EXPORT void dvz_deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* i
  * @param item a pointer to the item
  */
 DVZ_EXPORT void dvz_deq_enqueue_first(DvzDeq* deq, uint32_t deq_idx, int type, void* item);
+
+/**
+ * Create a custom task to be enqueued later. This is used to introduce dependencies between tasks.
+ *
+ * @param deq_idx the queue index
+ * @param type the type
+ * @param item the item
+ */
+DVZ_EXPORT DvzDeqItem* dvz_deq_enqueue_custom(uint32_t deq_idx, int type, void* item);
+
+/**
+ * Introduce a dependency between two tasks created by `dvz_deq_enqueue_custom()`.
+ *
+ * @param deq_item the first task
+ * @param next the second task, that will have to be enqueued after the first task's callbacks
+ * @param enqueue_first whether the second task need to be enqueued at the start of the queue
+ */
+DVZ_EXPORT void dvz_deq_enqueue_next(DvzDeqItem* deq_item, DvzDeqItem* next, bool enqueue_first);
+
+/**
+ * Enqueue a task created with `dvz_deq_enqueue_custom()`.
+ *
+ * @param deq the Deq
+ * @param deq_item the item to enqueue
+ * @param enqueue_first whether to enqueue the task at the start of the queue or not
+ */
+DVZ_EXPORT void dvz_deq_enqueue_submit(DvzDeq* deq, DvzDeqItem* deq_item, bool enqueue_first);
 
 /**
  * Delete a number of items in a given queue.

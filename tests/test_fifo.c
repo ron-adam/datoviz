@@ -279,6 +279,90 @@ int test_utils_deq_2(TestContext* tc)
 
 
 
+static void _deq_dep_callback_1(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    dvz_sleep(50);
+}
+
+static void _deq_dep_callback_2(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    int* res = (int*)user_data;
+    ASSERT(res != NULL);
+    *res = 42;
+}
+
+static void* _dep_thread_1(void* user_data)
+{
+    DvzDeq* deq = (DvzDeq*)user_data;
+    ASSERT(deq != NULL);
+    dvz_deq_dequeue_loop(deq, 0);
+    return NULL;
+}
+
+static void* _dep_thread_2(void* user_data)
+{
+    DvzDeq* deq = (DvzDeq*)user_data;
+    ASSERT(deq != NULL);
+    dvz_deq_dequeue_loop(deq, 1);
+    return NULL;
+}
+
+int test_utils_deq_dependencies(TestContext* tc)
+{
+    DvzDeq deq = dvz_deq(2);
+    int res = 0;
+    dvz_deq_proc(&deq, 0, 1, (uint32_t[]){0});
+    dvz_deq_proc(&deq, 1, 1, (uint32_t[]){1});
+    dvz_deq_callback(&deq, 0, 0, _deq_dep_callback_1, NULL);
+    dvz_deq_callback(&deq, 1, 10, _deq_dep_callback_2, &res);
+
+    // Need to allocate on the heap because the dequeue loop will free these items.
+    int* one = calloc(1, sizeof(int));
+    *one = 1;
+    int* two = calloc(1, sizeof(int));
+    *two = 2;
+
+    // First enqueue 0, 0, {1}, and then, after the callbacks, enqueue 1, 10, {2}.
+    DvzDeqItem* deq_item = dvz_deq_enqueue_custom(0, 0, one);
+    DvzDeqItem* next_item = dvz_deq_enqueue_custom(1, 10, two);
+
+    { // Put a dependency between the two tasks.
+        dvz_deq_enqueue_next(deq_item, next_item, false);
+        dvz_deq_enqueue_submit(&deq, deq_item, false);
+
+        // DEBUG: if using two submissions in parallel, the test will fail. The dependency is
+        // required for the test to succeed.
+        // dvz_deq_enqueue_submit(&deq, deq_item, false);
+        // dvz_deq_enqueue_submit(&deq, next_item, false);
+    }
+
+    // Dequeue in a thread.
+    DvzThread thread1 = dvz_thread(_dep_thread_1, &deq);
+    DvzThread thread2 = dvz_thread(_dep_thread_2, &deq);
+
+    // After 20 ms, the first item is still being processed. The second item is NOT in the queue
+    // and is not being processed, because it will only be enqueued after the first item's callback
+    // have finished running.
+    dvz_sleep(20);
+    AT(res == 0);
+    dvz_sleep(80);
+    // If we wait long enough, the first item will have finished being processed, the second item
+    // will have been enqueued, its callback will have modified the value.
+    AT(res == 42);
+
+    // End the threads.
+    dvz_deq_enqueue(&deq, 0, 0, NULL);
+    dvz_deq_enqueue(&deq, 1, 0, NULL);
+    dvz_thread_join(&thread1);
+    dvz_thread_join(&thread2);
+    dvz_deq_destroy(&deq);
+    return 0;
+}
+
+
+
 static void _proc_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, void* user_data)
 {
     ASSERT(deq != NULL);

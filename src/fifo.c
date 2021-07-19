@@ -381,6 +381,30 @@ static int _proc_wait(DvzDeqProc* proc)
 
 
 
+static void _enqueue_next(DvzDeq* deq, uint32_t item_count, DvzDeqItem* items)
+{
+    ASSERT(deq != NULL);
+    if (item_count == 0)
+        return;
+    ASSERT(item_count > 0);
+    ASSERT(items != NULL);
+
+    // Go through all items.
+    DvzDeqItemNext* next = NULL;
+    for (uint32_t i = 0; i < item_count; i++)
+    {
+        // Go through every next item.
+        for (uint32_t j = 0; j < items[i].next_count; j++)
+        {
+            next = &items[i].next_items[j];
+            // Enqueue the next item.
+            dvz_deq_enqueue_submit(deq, next->next_item, next->enqueue_first);
+        }
+    }
+}
+
+
+
 /*************************************************************************************************/
 /*  Dequeues                                                                                     */
 /*************************************************************************************************/
@@ -525,18 +549,26 @@ void dvz_deq_proc_batch_callback(
 
 
 
-static void _deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item, bool enqueue_first)
+static DvzDeqItem*
+_deq_item(uint32_t deq_idx, int type, void* item, uint32_t next_count, DvzDeqItemNext* next_items)
 {
-    ASSERT(deq != NULL);
-    ASSERT(deq_idx < deq->queue_count);
-    ASSERT(deq_idx < DVZ_DEQ_MAX_QUEUES);
-
-    DvzFifo* fifo = _deq_fifo(deq, deq_idx);
     DvzDeqItem* deq_item = calloc(1, sizeof(DvzDeqItem));
     ASSERT(deq_item != NULL);
     deq_item->deq_idx = deq_idx;
     deq_item->type = type;
     deq_item->item = item;
+    deq_item->next_count = next_count;
+    deq_item->next_items = next_items;
+
+    return deq_item;
+}
+
+static void
+_deq_enqueue_item(DvzDeq* deq, uint32_t deq_idx, DvzDeqItem* deq_item, bool enqueue_first)
+{
+    ASSERT(deq != NULL);
+    ASSERT(deq_idx < deq->queue_count);
+    ASSERT(deq_idx < DVZ_DEQ_MAX_QUEUES);
 
     // Find the proc that processes the specified queue.
     uint32_t proc_idx = deq->q_to_proc[deq_idx];
@@ -544,8 +576,8 @@ static void _deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item, bo
     DvzDeqProc* proc = &deq->procs[proc_idx];
 
     // We signal that proc that an item has been enqueued to one of its queues.
-    log_trace("enqueue to queue #%d item type %d", deq_idx, type);
     pthread_mutex_lock(&proc->lock);
+    DvzFifo* fifo = _deq_fifo(deq, deq_idx);
     if (!enqueue_first)
         dvz_fifo_enqueue(fifo, deq_item);
     else
@@ -557,12 +589,51 @@ static void _deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item, bo
 
 void dvz_deq_enqueue(DvzDeq* deq, uint32_t deq_idx, int type, void* item)
 {
-    _deq_enqueue(deq, deq_idx, type, item, false);
+    DvzDeqItem* deq_item = _deq_item(deq_idx, type, item, 0, NULL);
+    _deq_enqueue_item(deq, deq_idx, deq_item, false);
 }
 
 void dvz_deq_enqueue_first(DvzDeq* deq, uint32_t deq_idx, int type, void* item)
 {
-    _deq_enqueue(deq, deq_idx, type, item, true);
+    DvzDeqItem* deq_item = _deq_item(deq_idx, type, item, 0, NULL);
+    _deq_enqueue_item(deq, deq_idx, deq_item, true);
+}
+
+
+
+DvzDeqItem* dvz_deq_enqueue_custom(uint32_t deq_idx, int type, void* item)
+{
+    return _deq_item(deq_idx, type, item, 0, NULL);
+}
+
+void dvz_deq_enqueue_next(DvzDeqItem* deq_item, DvzDeqItem* next_item, bool enqueue_first)
+{
+    ASSERT(deq_item != NULL);
+    ASSERT(next_item != NULL);
+
+    if (deq_item->next_items == NULL)
+    {
+        ASSERT(deq_item->next_count == 0);
+        deq_item->next_items = calloc(2, sizeof(DvzDeqItemNext));
+    }
+    ASSERT(deq_item->next_items != NULL);
+    if (deq_item->next_count >= 2)
+    {
+        // TO DO: implement this, just need a REALLOC with a 2x size
+        log_error("more than 2 next items: not currently supported");
+        return;
+    }
+
+    DvzDeqItemNext* next = &deq_item->next_items[deq_item->next_count++];
+    next->next_item = next_item;
+}
+
+void dvz_deq_enqueue_submit(DvzDeq* deq, DvzDeqItem* deq_item, bool enqueue_first)
+{
+    ASSERT(deq != NULL);
+    ASSERT(deq_item != NULL);
+
+    _deq_enqueue_item(deq, deq_item->deq_idx, deq_item, enqueue_first);
 }
 
 
@@ -697,6 +768,9 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
 
     atomic_store(&proc->is_processing, false);
 
+    // Enqueue the next items.
+    _enqueue_next(deq, 1, &item_s);
+
     // Implement the dequeue strategy here. If queue_offset remains at 0, the dequeue will first
     // empty the first queue, then move to the second queue, etc. Otherwise, all queues will be
     // handled one after the other.
@@ -822,6 +896,9 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
     _proc_batch_callbacks(deq, proc_idx, DVZ_DEQ_PROC_BATCH_END, item_count, items);
 
     atomic_store(&proc->is_processing, false);
+
+    // Enqueue the next items.
+    _enqueue_next(deq, item_count, items);
 
     // FREE all items, and the items container.
     for (uint32_t i = 0; i < item_count; i++)
