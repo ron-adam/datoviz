@@ -64,7 +64,7 @@ typedef enum
     // PRESENT queue
     DVZ_RUN_CANVAS_PRESENT, // need to present the frame to the swapchain
 
-} DvzRunCanvasEvent;
+} DvzCanvasEventType;
 
 
 

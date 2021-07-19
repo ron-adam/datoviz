@@ -66,7 +66,7 @@ static void blank_commands(DvzCanvas* canvas, DvzCommands* cmds, uint32_t cmd_id
 /*************************************************************************************************/
 
 static void
-_enqueue_canvas_event(DvzRun* run, DvzCanvas* canvas, uint32_t deq_idx, DvzRunCanvasEvent type)
+_enqueue_canvas_event(DvzRun* run, DvzCanvas* canvas, uint32_t deq_idx, DvzCanvasEventType type)
 {
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
@@ -558,6 +558,43 @@ static void _dequeue_copies(DvzApp* app)
 
 
 
+static void _gpu_sync_hack(DvzApp* app)
+{
+    // BIG HACK: this call is required at every frame, otherwise the event loop randomly crashes,
+    // fences deadlock (?) and the Vulkan validation layers raise errors, causing the whole system
+    // to crash for ~20 seconds. This is probably a ugly hack and I'd appreciate any help from a
+    // Vulkan synchronization expert.
+
+    // NOTE: this has never been tested with multiple GPUs yet.
+    DvzContainerIterator iterator = dvz_container_iterator(&app->gpus);
+    DvzGpu* gpu = NULL;
+    while (iterator.item != NULL)
+    {
+        gpu = iterator.item;
+        if (!dvz_obj_is_created(&gpu->obj))
+            break;
+
+        // Pending transfers.
+        ASSERT(gpu->context != NULL);
+        // NOTE: the function below uses hard GPU synchronization primitives
+
+        // IMPORTANT: we need to wait for the present queue to be idle, otherwise the GPU hangs
+        // when waiting for fences (not sure why). The problem only arises when using different
+        // queues for command buffer submission and swapchain present. There has be a better
+        // way to fix this.
+        if (gpu->queues.queues[DVZ_DEFAULT_QUEUE_PRESENT] != VK_NULL_HANDLE &&
+            gpu->queues.queues[DVZ_DEFAULT_QUEUE_PRESENT] !=
+                gpu->queues.queues[DVZ_DEFAULT_QUEUE_RENDER])
+        {
+            dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_PRESENT);
+        }
+
+        dvz_container_iter(&iterator);
+    }
+}
+
+
+
 // Run one frame for all active canvases, process all MAIN events, and perform all pending data
 // copies.
 int dvz_run_frame(DvzRun* run)
@@ -595,6 +632,8 @@ int dvz_run_frame(DvzRun* run)
 
     // Dequeue the pending COPY transfers in the GPU contexts.
     _dequeue_copies(app);
+
+    _gpu_sync_hack(app);
 
     // If no canvas is running, stop the event loop.
     if (n_canvas_running == 0)
