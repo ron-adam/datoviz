@@ -783,6 +783,7 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
         fifo = _deq_fifo(deq, deq_idx);
 
         // Dequeue it immediately, return NULL if the queue was empty.
+        // NOTE: the dequeue strategie is implemented in this function.
         deq_item = dvz_fifo_dequeue(fifo, false);
         while (deq_item != NULL)
         {

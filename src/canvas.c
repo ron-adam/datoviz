@@ -174,6 +174,7 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
     canvas->offscreen = offscreen;
     canvas->init_size[0] = width;
     canvas->init_size[1] = height;
+    canvas->running = true;
 
     canvas->dpi_scaling = DVZ_DEFAULT_DPI_SCALING;
     // int flag_dpi = flags >> 12;
