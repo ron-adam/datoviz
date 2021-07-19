@@ -9,11 +9,6 @@
 /*  Constants                                                                                    */
 /*************************************************************************************************/
 
-#define DVZ_RUN_DEQ_FRAME   0
-#define DVZ_RUN_DEQ_MAIN    1
-#define DVZ_RUN_DEQ_REFILL  2
-#define DVZ_RUN_DEQ_PRESENT 3
-
 #define DVZ_RUN_DEFAULT_FRAME_COUNT 0
 
 // Return codes for dvz_run_frame()
@@ -159,10 +154,10 @@ static uint32_t _enqueue_frames(DvzRun* run)
 // backend-specific
 static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
 {
-    log_info("canvas frame");
-
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
+
+    log_info("canvas frame #%d", canvas->frame_idx);
 
     DvzApp* app = canvas->app;
     ASSERT(app != NULL);
@@ -254,6 +249,26 @@ static void _canvas_refill(DvzRun* run, DvzCanvas* canvas)
 
 
 
+static void _callback_new(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    log_warn("canvas new");
+
+    ASSERT(deq != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+
+    DvzRunCanvasNewEvent* ev = (DvzRunCanvasNewEvent*)item;
+    ASSERT(ev != NULL);
+
+    // Create the canvas.
+    DvzCanvas* canvas = dvz_canvas(ev->gpu, ev->width, ev->height, ev->flags);
+    dvz_canvas_create(canvas);
+}
+
+
+
 static void _callback_frame(
     DvzDeq* deq, DvzDeqProcBatchPosition pos, uint32_t item_count, DvzDeqItem* items,
     void* user_data)
@@ -318,7 +333,7 @@ static void _callback_delete(DvzDeq* deq, void* item, void* user_data)
     ASSERT(app != NULL);
 
     DvzRunCanvasDefaultEvent* ev = (DvzRunCanvasDefaultEvent*)item;
-    ASSERT(item != NULL);
+    ASSERT(ev != NULL);
     DvzCanvas* canvas = ev->canvas;
 
     // Wait for all GPUs to be idle.
@@ -379,6 +394,13 @@ static void _callback_present(DvzDeq* deq, void* item, void* user_data)
     DvzRunCanvasDefaultEvent* ev = (DvzRunCanvasDefaultEvent*)item;
     ASSERT(item != NULL);
     DvzCanvas* canvas = ev->canvas;
+
+    // Process only created canvas.
+    if (!dvz_obj_is_created(&canvas->obj))
+    {
+        log_debug("skip canvas frame because canvas is invalid");
+        return;
+    }
 
     DvzSubmit* s = &canvas->render.submit;
     uint32_t f = canvas->cur_frame;
@@ -492,6 +514,8 @@ DvzRun* dvz_run(DvzApp* app)
         &run->deq, DVZ_RUN_DEQ_REFILL, DVZ_DEQ_PROC_CALLBACK_POST, _callback_refill, app);
 
     // Main callbacks.
+    dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_NEW, _callback_new, app);
+
     dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_DELETE, _callback_delete, app);
 
     dvz_deq_callback(

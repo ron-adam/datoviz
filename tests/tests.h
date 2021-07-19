@@ -101,6 +101,7 @@ int test_canvas_blank(TestContext*);
 
 // Test run.
 int test_run_1(TestContext*);
+int test_run_2(TestContext*);
 
 // int test_canvas_multiple(TestContext*);
 // int test_canvas_events(TestContext*);
@@ -276,6 +277,7 @@ static TestCase TEST_CASES[] = {
 
     // Run.
     CASE_FIXTURE(APP, test_run_1), //
+    CASE_FIXTURE(APP, test_run_2), //
 
     // CASE_FIXTURE(APP, test_canvas_multiple),           //
     // CASE_FIXTURE(APP, test_canvas_events),             //

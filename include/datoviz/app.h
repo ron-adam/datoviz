@@ -69,7 +69,7 @@ struct DvzApp
 
     // Global clock
     DvzClock clock;
-    bool is_running;
+    // bool is_running;
 
     // Vulkan objects.
     VkInstance instance;

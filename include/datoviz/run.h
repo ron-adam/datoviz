@@ -14,6 +14,18 @@ extern "C" {
 
 
 /*************************************************************************************************/
+/*  Constants                                                                                    */
+/*************************************************************************************************/
+
+
+#define DVZ_RUN_DEQ_FRAME   0
+#define DVZ_RUN_DEQ_MAIN    1
+#define DVZ_RUN_DEQ_REFILL  2
+#define DVZ_RUN_DEQ_PRESENT 3
+
+
+
+/*************************************************************************************************/
 /*  Enums                                                                                        */
 /*************************************************************************************************/
 
@@ -65,6 +77,7 @@ typedef struct DvzRun DvzRun;
 
 // Event structs.
 typedef struct DvzRunCanvasFrame DvzRunCanvasFrame;
+typedef struct DvzRunCanvasNewEvent DvzRunCanvasNewEvent;
 typedef struct DvzRunCanvasDefaultEvent DvzRunCanvasDefaultEvent;
 
 
@@ -84,6 +97,15 @@ struct DvzRunCanvasFrame
 struct DvzRunCanvasDefaultEvent
 {
     DvzCanvas* canvas;
+};
+
+
+
+struct DvzRunCanvasNewEvent
+{
+    DvzGpu* gpu;
+    uint32_t width, height;
+    int flags;
 };
 
 
