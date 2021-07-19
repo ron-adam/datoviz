@@ -235,7 +235,7 @@ typedef struct DvzScene DvzScene;
 typedef struct DvzMouseLocal DvzMouseLocal;
 
 typedef struct DvzViewport DvzViewport;
-typedef struct DvzAutorun DvzAutorun;
+// typedef struct DvzAutorun DvzAutorun;
 
 
 // Events structures.
@@ -360,15 +360,16 @@ struct DvzViewport
 // Override the application running in order to automate running and generate automatic
 // screenshots or videos.
 // NOTE: applies only to the first canvas
-struct DvzAutorun
-{
-    bool enable;      // whether to enable autorun or not
-    bool offscreen;   // whether to run the canvas offscreen or not
-    char* screenshot; // automatic saving of screenshot at the last frame, or ignored if infinite
-                      // loop
-    char* video;      // automatic saving of screencast
-    uint64_t frame_count; // total number of frames to run
-};
+// struct DvzAutorun
+// {
+//     bool enable;      // whether to enable autorun or not
+//     bool offscreen;   // whether to run the canvas offscreen or not
+//     char* screenshot; // automatic saving of screenshot at the last frame, or ignored if
+//     infinite
+//                       // loop
+//     char* video;      // automatic saving of screencast
+//     uint64_t frame_count; // total number of frames to run
+// };
 
 
 

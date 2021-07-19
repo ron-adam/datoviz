@@ -1,6 +1,5 @@
-#include "../external/video.h"
 #include "../include/datoviz/canvas.h"
-#include "../include/datoviz/controls.h"
+#include "../include/datoviz/run.h"
 #include "proto.h"
 #include "tests.h"
 
@@ -39,7 +38,8 @@ int test_run_1(TestContext* tc)
     DvzApp* app = tc->app;
     DvzGpu* gpu = dvz_gpu_best(app);
 
+    DvzRun* run = dvz_run(app);
 
-
+    dvz_run_destroy(run);
     return 0;
 }

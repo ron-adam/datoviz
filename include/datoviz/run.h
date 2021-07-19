@@ -49,6 +49,7 @@ typedef enum
 /*  Typedefs                                                                                     */
 /*************************************************************************************************/
 
+typedef struct DvzAutorun DvzAutorun;
 typedef struct DvzRun DvzRun;
 
 
@@ -57,12 +58,24 @@ typedef struct DvzRun DvzRun;
 /*  Structs                                                                                      */
 /*************************************************************************************************/
 
+struct DvzAutorun
+{
+    bool enable;          // whether to enable autorun or not
+    uint64_t frame_count; // total number of frames to run
+    bool offscreen;       // whether to run the canvas offscreen or not
+    char* filepath;       // screenshot or video
+};
+
+
+
 struct DvzRun
 {
     DvzApp* app;
     DvzRunState state;
 
     DvzDeq deq;
+
+    DvzAutorun autorun;
 };
 
 
@@ -77,7 +90,7 @@ struct DvzRun
  * @param app the app
  * @returns a Run struct
  */
-DVZ_EXPORT DvzRun dvz_run(DvzApp* app);
+DVZ_EXPORT DvzRun* dvz_run(DvzApp* app);
 
 /**
  * Run one frame for all active canvases.
