@@ -78,6 +78,7 @@ typedef struct DvzRun DvzRun;
 // Event structs.
 typedef struct DvzCanvasEventFrame DvzCanvasEventFrame;
 typedef struct DvzCanvasEventNew DvzCanvasEventNew;
+typedef struct DvzCanvasEventClearColor DvzCanvasEventClearColor;
 typedef struct DvzCanvasEvent DvzCanvasEvent;
 
 
@@ -106,6 +107,14 @@ struct DvzCanvasEventNew
     DvzGpu* gpu;
     uint32_t width, height;
     int flags;
+};
+
+
+
+struct DvzCanvasEventClearColor
+{
+    DvzCanvas* canvas;
+    float r, g, b;
 };
 
 

@@ -341,6 +341,26 @@ static void _callback_delete(DvzDeq* deq, void* item, void* user_data)
 
 
 
+static void _callback_clear_color(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+
+    DvzCanvasEventClearColor* ev = (DvzCanvasEventClearColor*)item;
+    ASSERT(ev != NULL);
+    DvzCanvas* canvas = ev->canvas;
+    if (!_canvas_check(canvas))
+        return;
+    log_debug("change canvas clear color");
+
+    canvas->render.renderpass.clear_values->color = (VkClearColorValue){{ev->r, ev->g, ev->b, 1}};
+    _enqueue_refill(app->run, canvas);
+}
+
+
+
 static void _callback_refill(
     DvzDeq* deq, DvzDeqProcBatchPosition pos, uint32_t item_count, DvzDeqItem* items,
     void* user_data)
@@ -504,6 +524,9 @@ DvzRun* dvz_run(DvzApp* app)
     dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_NEW, _callback_new, app);
 
     dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_DELETE, _callback_delete, app);
+
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_CLEAR_COLOR, _callback_clear_color, app);
 
     dvz_deq_callback(
         &run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_RECREATE, _callback_recreate, app);

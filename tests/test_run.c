@@ -84,6 +84,17 @@ int test_run_2(TestContext* tc)
     // Event loop.
     dvz_run_loop(run, 10);
 
+    // Change the canvas clear color.
+    {
+        DvzCanvasEventClearColor* ev = calloc(1, sizeof(DvzCanvasEventClearColor));
+        ev->canvas = canvas;
+        ev->r = 1;
+        dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_CLEAR_COLOR, ev);
+    }
+
+    // Event loop.
+    dvz_run_loop(run, 10);
+
     // Add a canvas.
     {
         DvzCanvasEventNew* ev = calloc(1, sizeof(DvzCanvasEventNew));

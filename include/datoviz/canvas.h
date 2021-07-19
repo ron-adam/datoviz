@@ -731,19 +731,20 @@ DVZ_EXPORT void dvz_canvas_buffers(
 /*  Canvas misc                                                                                  */
 /*************************************************************************************************/
 
-/**
- * Change the background color of a canvas.
- *
- * !!! note
- *     A command buffer refill will be triggered so as to record them again with the updated clear
- *     color value.
- *
- * @param canvas the canvas
- * @param red the red component, between 0 and 1
- * @param green the green component, between 0 and 1
- * @param blue the blue component, between 0 and 1
- */
-DVZ_EXPORT void dvz_canvas_clear_color(DvzCanvas* canvas, float red, float green, float blue);
+// /**
+//  * Change the background color of a canvas.
+//  *
+//  * !!! note
+//  *     A command buffer refill will be triggered so as to record them again with the updated
+//  clear
+//  *     color value.
+//  *
+//  * @param canvas the canvas
+//  * @param red the red component, between 0 and 1
+//  * @param green the green component, between 0 and 1
+//  * @param blue the blue component, between 0 and 1
+//  */
+// DVZ_EXPORT void dvz_canvas_clear_color(DvzCanvas* canvas, float red, float green, float blue);
 
 /**
  * Get the canvas size.

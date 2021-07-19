@@ -203,9 +203,9 @@ dvz_scene_panel(DvzScene* scene, uint32_t row, uint32_t col, DvzControllerType t
     ASSERT(scene != NULL);
     ASSERT(scene->canvas != NULL);
 
-    // HACK: white background if axes controller.
-    if (type == DVZ_CONTROLLER_AXES_2D)
-        dvz_canvas_clear_color(scene->canvas, 1, 1, 1);
+    // // HACK: white background if axes controller.
+    // if (type == DVZ_CONTROLLER_AXES_2D)
+    //     dvz_canvas_clear_color(scene->canvas, 1, 1, 1);
 
     DvzPanel* panel = dvz_panel(&scene->grid, row, col);
     panel->scene = scene;
