@@ -115,8 +115,7 @@ DVZ_EXPORT int dvz_run_loop(DvzRun* run, uint64_t frame_count);
  * @param offscreen whether the canvases should run offscreen
  * @param filepath save a screenshot or a video
  */
-DVZ_EXPORT void
-dvz_run_setup(DvzRun* run, uint64_t frame_count, bool offscreen, const char* filepath);
+DVZ_EXPORT void dvz_run_setup(DvzRun* run, uint64_t frame_count, bool offscreen, char* filepath);
 
 /**
  * Setup the autorun using environment variables.

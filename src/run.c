@@ -12,6 +12,43 @@
 
 #define DVZ_RUN_DEFAULT_FRAME_COUNT 0
 
+// Return codes for dvz_run_frame()
+// 0: the frame ran successfully
+// -1: an error occurred, need to continue the loop as normally as possible
+// 1: need to stop the run
+#define DVZ_RUN_FRAME_RETURN_OK    0
+#define DVZ_RUN_FRAME_RETURN_ERROR -1
+#define DVZ_RUN_FRAME_RETURN_STOP  1
+
+
+
+/*************************************************************************************************/
+/*  Utils                                                                                        */
+/*************************************************************************************************/
+
+static bool _autorun_is_set(DvzAutorun* autorun)
+{
+    ASSERT(autorun != NULL);
+    // Enable the autorun?
+    DvzAutorun empty = {0};
+    // Enable if and only if at least one of the autorun fields is not blank.
+    return memcmp(autorun, &empty, sizeof(DvzAutorun)) != 0;
+}
+
+
+
+static void _autorun_launch(DvzRun* run)
+{
+    ASSERT(run != NULL);
+    ASSERT(run->autorun.enable);
+    DvzAutorun* ar = &run->autorun;
+    log_debug(
+        "start autorun: offscreen %d, frames %d, save %s", //
+        ar->frame_count, ar->frame_count, ar->filepath);
+
+    // TODO: implement autorun.
+}
+
 
 
 /*************************************************************************************************/
@@ -43,6 +80,8 @@ int dvz_run_frame(DvzRun* run)
 {
     ASSERT(run != NULL);
 
+    // TODO
+
     return 0;
 }
 
@@ -52,9 +91,14 @@ int dvz_run_loop(DvzRun* run, uint64_t frame_count)
 {
     ASSERT(run != NULL);
 
+    int ret = 0;
     for (uint64_t frame_idx = 0; frame_idx < frame_count || UINT64_MAX; frame_idx++)
     {
-        dvz_run_frame(run);
+        ret = dvz_run_frame(run);
+
+        // Stop the event loop if the return code of dvz_run_frame() requires it.
+        if (ret == DVZ_RUN_FRAME_RETURN_STOP)
+            break;
     }
 
     return 0;
@@ -62,9 +106,18 @@ int dvz_run_loop(DvzRun* run, uint64_t frame_count)
 
 
 
-void dvz_run_setup(DvzRun* run, uint64_t frame_count, bool offscreen, const char* filepath)
+void dvz_run_setup(DvzRun* run, uint64_t frame_count, bool offscreen, char* filepath)
 {
-    ASSERT(run != NULL); //
+    ASSERT(run != NULL);
+
+    DvzAutorun* autorun = &run->autorun;
+    ASSERT(autorun != NULL);
+
+    autorun->filepath = filepath;
+    autorun->offscreen = offscreen;
+    autorun->frame_count = frame_count;
+
+    autorun->enable = _autorun_is_set(autorun);
 }
 
 
@@ -93,24 +146,11 @@ void dvz_run_setupenv(DvzRun* run)
     if (s)
         strncpy(autorun->filepath, s, DVZ_PATH_MAX_LEN);
 
-    // Enable the autorun?
-    DvzAutorun empty = {0};
-    // Enable if and only if at least one of the autorun fields is not blank.
-    autorun->enable = memcmp(autorun, &empty, sizeof(DvzAutorun)) != 0;
+    // Enable the autorun if and only if at least one of the autorun fields is not blank.
+    autorun->enable = _autorun_is_set(autorun);
 }
 
 
-
-static void _autorun_launch(DvzRun* run)
-{
-    ASSERT(run != NULL);
-    ASSERT(run->autorun.enable);
-    DvzAutorun* ar = &run->autorun;
-    log_debug(
-        "start autorun: offscreen %d, frames %d, save %s", //
-        ar->frame_count, ar->frame_count, ar->filepath);
-    // TODO: implement autorun.
-}
 
 int dvz_run_auto(DvzRun* run)
 {
