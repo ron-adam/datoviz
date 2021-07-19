@@ -44,7 +44,7 @@ typedef enum
     DVZ_RUN_CANVAS_CLEAR_COLOR, // to change the clear color, will enqueue first a REFILL
     DVZ_RUN_CANVAS_DPI,         // change the DPI scaling of the canvas
     DVZ_RUN_CANVAS_FPS,         // whether to show or hide FPS
-    DVZ_RUN_CANVAS_DELETE,      //
+    DVZ_RUN_CANVAS_DELETE,      // need to delete the canvas
 
     // REFILL queue
     DVZ_RUN_CANVAS_REFILL, // need to refill the canvas, the user should have registered a callback
@@ -65,6 +65,7 @@ typedef struct DvzRun DvzRun;
 
 // Event structs.
 typedef struct DvzRunCanvasFrame DvzRunCanvasFrame;
+typedef struct DvzRunCanvasDefaultEvent DvzRunCanvasDefaultEvent;
 
 
 
@@ -76,6 +77,13 @@ struct DvzRunCanvasFrame
 {
     DvzCanvas* canvas;
     uint64_t frame_idx;
+};
+
+
+
+struct DvzRunCanvasDefaultEvent
+{
+    DvzCanvas* canvas;
 };
 
 
@@ -102,6 +110,8 @@ struct DvzRun
     DvzDeq deq;
 
     DvzAutorun autorun;
+
+    uint64_t global_frame_idx;
 };
 
 
