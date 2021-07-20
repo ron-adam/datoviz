@@ -250,6 +250,17 @@ static void _dark_background(DvzCanvas* canvas)
 
 
 
+static void _glfw_event_loop(GLFWwindow* w)
+{
+    ASSERT(w != NULL);
+    while (!glfwWindowShouldClose(w))
+    {
+        glfwPollEvents();
+    }
+}
+
+
+
 /*************************************************************************************************/
 /*  Test textures                                                                                */
 /*************************************************************************************************/
@@ -269,6 +280,7 @@ static DvzTexture* _earth_texture(DvzContext* context)
     FREE(tex_data)
     return texture;
 }
+
 
 
 static DvzTexture* _synthetic_texture(DvzContext* context)

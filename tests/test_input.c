@@ -28,15 +28,6 @@ static void _glfw_set_mouse_pos(GLFWwindow* w, vec2 pos)
     }
 }
 
-static void _glfw_event_loop(GLFWwindow* w)
-{
-    ASSERT(w != NULL);
-    while (!glfwWindowShouldClose(w))
-    {
-        glfwPollEvents();
-    }
-}
-
 static void _glfw_destroy(GLFWwindow* w)
 {
     ASSERT(w != NULL);

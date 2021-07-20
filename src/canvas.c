@@ -154,6 +154,8 @@ _canvas(DvzGpu* gpu, uint32_t width, uint32_t height, bool offscreen, bool overl
             dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzCanvas), DVZ_OBJECT_TYPE_CANVAS);
     }
 
+    log_debug("initialize new canvas");
+
     DvzCanvas* canvas = dvz_container_alloc(&app->canvases);
     canvas->app = app;
     canvas->gpu = gpu;
@@ -292,6 +294,7 @@ static void _canvas_window(DvzCanvas* canvas)
     if (canvas->offscreen)
         return;
 
+    log_trace("creating canvas window");
     DvzWindow* window = dvz_window(canvas->app, canvas->init_size[0], canvas->init_size[1]);
 
     if (window == NULL)
@@ -333,6 +336,7 @@ static void _canvas_ensure_context(DvzCanvas* canvas)
 static void _canvas_renderpass(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
+    log_trace("creating canvas renderpass");
     canvas->render.renderpass = default_renderpass(
         canvas->gpu, DVZ_DEFAULT_BACKGROUND, DVZ_DEFAULT_IMAGE_FORMAT, canvas->overlay,
         canvas->with_pick);
@@ -345,6 +349,7 @@ static void _canvas_swapchain(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
 
+    log_trace("creating canvas swapchain");
     dvz_swapchain_format(&canvas->render.swapchain, DVZ_DEFAULT_IMAGE_FORMAT);
 
     if (!canvas->offscreen)
@@ -385,6 +390,8 @@ static void _canvas_attachments(DvzCanvas* canvas)
     ASSERT(canvas != NULL);
     DvzGpu* gpu = canvas->gpu;
 
+    log_trace("creating canvas attachments");
+
     // Depth attachment.
     canvas->render.depth_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
     depth_image(
@@ -409,6 +416,8 @@ static void _canvas_framebuffers(DvzCanvas* canvas)
     ASSERT(canvas != NULL);
     DvzGpu* gpu = canvas->gpu;
 
+    log_trace("creating canvas framebuffers");
+
     canvas->render.framebuffers = dvz_framebuffers(gpu);
     dvz_framebuffers_attachment(&canvas->render.framebuffers, 0, canvas->render.swapchain.images);
     dvz_framebuffers_attachment(&canvas->render.framebuffers, 1, &canvas->render.depth_image);
@@ -431,6 +440,8 @@ static void _canvas_sync(DvzCanvas* canvas)
     ASSERT(canvas != NULL);
     DvzGpu* gpu = canvas->gpu;
 
+    log_trace("creating canvas sync objects");
+
     uint32_t frames_in_flight = canvas->offscreen ? 1 : DVZ_MAX_FRAMES_IN_FLIGHT;
 
     canvas->sync.sem_img_available = dvz_semaphores(gpu, frames_in_flight);
@@ -446,6 +457,8 @@ static void _canvas_commands(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
 
+    log_trace("creating canvas command buffers");
+
     // Default transfer commands.
     canvas->cmds_transfer = dvz_commands(canvas->gpu, DVZ_DEFAULT_QUEUE_TRANSFER, 1);
 
@@ -460,9 +473,15 @@ static void _canvas_commands(DvzCanvas* canvas)
 static void _canvas_input(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
+    ASSERT(canvas->app != NULL);
+
+    log_trace("creating canvas input");
 
     canvas->input = dvz_input();
-    dvz_input_backend(&canvas->input, canvas->app->backend, canvas->window->backend_window);
+    void* backend_window = NULL;
+    if (canvas->window != NULL)
+        backend_window = canvas->window->backend_window;
+    dvz_input_backend(&canvas->input, canvas->app->backend, backend_window);
 }
 
 
@@ -470,6 +489,7 @@ static void _canvas_input(DvzCanvas* canvas)
 void dvz_canvas_create(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
+    log_debug("creating canvas");
 
     // Initialize the canvas local clock.
     _canvas_fps(canvas);
