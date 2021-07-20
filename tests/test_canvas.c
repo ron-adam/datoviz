@@ -1,6 +1,7 @@
-#include "../external/video.h"
+// #include "../external/video.h"
 #include "../include/datoviz/canvas.h"
 #include "../include/datoviz/controls.h"
+#include "../src/run_utils.h"
 #include "proto.h"
 #include "tests.h"
 
@@ -79,31 +80,6 @@ static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)
 
 
 
-static void _offscreen_render(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-
-    uint32_t f = canvas->cur_frame;
-    uint32_t img_idx = canvas->render.swapchain.img_idx;
-
-    DvzSubmit* s = &canvas->render.submit;
-
-    // Reset the Submit instance before adding the command buffers.
-    dvz_submit_reset(s);
-
-    // Add the command buffers to the submit instance.
-    if (canvas->cmds_render.obj.status == DVZ_OBJECT_STATUS_CREATED)
-        dvz_submit_commands(s, &canvas->cmds_render);
-
-    // Send the Submit instance.
-    dvz_submit_send(s, img_idx, &canvas->sync.fences_render_finished, f);
-
-    // Wait for the render to finish.
-    dvz_fences_wait(&canvas->sync.fences_render_finished, f);
-}
-
-
-
 /*************************************************************************************************/
 /*  Blank canvas                                                                                 */
 /*************************************************************************************************/
@@ -157,17 +133,7 @@ int test_canvas_offscreen(TestContext* tc)
     dvz_canvas_create(canvas);
 
     // Create command buffers and render them.
-    DvzCommands* cmds = &canvas->cmds_render;
-    for (uint32_t cmd_idx = 0; cmd_idx < canvas->render.swapchain.img_count; cmd_idx++)
-    {
-        dvz_cmd_reset(cmds, cmd_idx);
-        dvz_cmd_begin(cmds, cmd_idx);
-        dvz_cmd_begin_renderpass(
-            cmds, cmd_idx, &canvas->render.renderpass, &canvas->render.framebuffers);
-        dvz_cmd_end_renderpass(cmds, cmd_idx);
-        dvz_cmd_end(cmds, cmd_idx);
-    }
-    _offscreen_render(canvas);
+    _canvas_render(canvas);
 
     dvz_canvas_destroy(canvas);
     return 0;
