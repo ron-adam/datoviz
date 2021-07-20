@@ -78,7 +78,6 @@ int test_run_1(TestContext* tc)
         FREE(rgb);
     }
 
-    dvz_run_destroy(run);
     return 0;
 }
 
@@ -127,7 +126,6 @@ int test_run_2(TestContext* tc)
     // Event loop.
     dvz_run_loop(run, 10);
 
-    dvz_run_destroy(run);
     return 0;
 }
 
@@ -139,8 +137,6 @@ static void _on_mouse_move(DvzInput* input, DvzInputEvent ev, void* user_data)
     ASSERT(canvas != NULL);
     ASSERT(canvas->app != NULL);
     ASSERT(canvas->app->run != NULL);
-    // if (canvas->deleting)
-    //     return;
     log_debug("mouse position: %.0fx%.0f", ev.m.pos[0], ev.m.pos[1]);
     _change_clear_color(canvas, (vec3){1, ev.m.pos[0] / WIDTH, ev.m.pos[1] / HEIGHT});
 }
@@ -163,6 +159,5 @@ int test_run_3(TestContext* tc)
     // Event loop.
     dvz_run_loop(run, 10);
 
-    dvz_run_destroy(run);
     return 0;
 }

@@ -110,6 +110,20 @@ DVZ_EXPORT DvzApp* dvz_app(DvzBackend backend);
 DVZ_EXPORT int dvz_app_destroy(DvzApp* app);
 
 /**
+ * Destroy the run.
+ *
+ * !!! important
+ *     This function should never be called by the user. It is always called automatically by
+ *     dvz_app_destroy() at the last moment, AFTER all canvases have been destroyed. Otherwise,
+ *     canvas callbacks may try to access the run before the canvases are destroyed, but after the
+ *     run has been destroyed, resulting in a segmentation fault.
+ *
+ * @param the run instance
+ */
+DVZ_EXPORT void dvz_run_destroy(DvzRun* run);
+
+
+/**
  * Destroy the Dear ImGui global context if it was ever initialized.
  */
 // DVZ_EXPORT void dvz_imgui_destroy();

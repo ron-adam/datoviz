@@ -345,8 +345,9 @@ static void _callback_delete(DvzDeq* deq, void* item, void* user_data)
 
     // if (!_canvas_check(canvas))
     //     return;
-    // canvas->deleting = true;
     log_info("delete canvas");
+    canvas->destroying = true;
+    canvas->input.destroying = true;
 
     // Wait before destroying the canvas.
     _run_wait(app->run);
@@ -778,6 +779,7 @@ void dvz_run_destroy(DvzRun* run)
     ASSERT(run != NULL);
     DvzApp* app = run->app;
     ASSERT(app != NULL);
+    run->destroying = true;
 
     // Wait.
     _run_wait(app->run);

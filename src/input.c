@@ -777,9 +777,6 @@ void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window)
     ASSERT(input != NULL);
     input->backend = backend;
     input->window = window;
-    // if (window == NULL)
-    //     return;
-    // ASSERT(window != NULL);
 
     input->thread = dvz_thread(_input_thread, input);
 
@@ -877,6 +874,11 @@ void dvz_input_callback(
 static void _input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev, bool enqueue_first)
 {
     ASSERT(input != NULL);
+
+    // Do not enqueue input events when the input is being destroyed.
+    if (input->destroying)
+        return;
+
     uint32_t deq_idx = _deq_from_input_type(type);
 
     // NOTE: prevent input enqueueing for mouse and keyboard if this input is inactive.

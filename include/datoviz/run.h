@@ -32,7 +32,6 @@ extern "C" {
 // Run state.
 typedef enum
 {
-    // DVZ_RUN_STATE_STOP,
     DVZ_RUN_STATE_PAUSED,
     DVZ_RUN_STATE_RUNNING,
 } DvzRunState;
@@ -136,7 +135,8 @@ struct DvzAutorun
 struct DvzRun
 {
     DvzApp* app;
-    DvzRunState state;
+    DvzRunState state; // to remove??
+    bool destroying;   // true as soon as the canvas is being destroyed
 
     DvzDeq deq;
 
@@ -197,13 +197,6 @@ DVZ_EXPORT void dvz_run_setupenv(DvzRun* run);
  * @param the run instance
  */
 DVZ_EXPORT int dvz_run_auto(DvzRun* run);
-
-/**
- * Destroy the run.
- *
- * @param the run instance
- */
-DVZ_EXPORT void dvz_run_destroy(DvzRun* run);
 
 
 
