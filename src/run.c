@@ -436,28 +436,10 @@ static void _callback_to_refill(DvzDeq* deq, void* item, void* user_data)
 
 
 
-// backend-specific
-static void _callback_present(DvzDeq* deq, void* item, void* user_data)
+// Submit the command buffers, + swapchain synchronization + presentation if not offscreen.
+static void _canvas_render(DvzCanvas* canvas)
 {
-    ASSERT(deq != NULL);
-
-    // frame submission for that canvas: submit cmd bufs, present swapchain
-
-    ASSERT(deq != NULL);
-
-    DvzApp* app = (DvzApp*)user_data;
-    ASSERT(app != NULL);
-    // DvzRun* run = app->run;
-    // ASSERT(run != NULL);
-
-    DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
-    ASSERT(item != NULL);
-    DvzCanvas* canvas = ev->canvas;
-
-    // Process only created canvas.
-    if (!_canvas_check(canvas))
-        return;
-    // log_debug("present canvas");
+    ASSERT(canvas != NULL);
 
     DvzSubmit* s = &canvas->render.submit;
     uint32_t f = canvas->cur_frame;
@@ -498,16 +480,14 @@ static void _callback_present(DvzDeq* deq, void* item, void* user_data)
     }
 
     // SEND callbacks and send the Submit instance.
-    {
-        // Call PRE_SEND callbacks
-        // _event_presend(canvas);
+    // Call PRE_SEND callbacks
+    // _event_presend(canvas);
 
-        // Send the Submit instance.
-        dvz_submit_send(s, img_idx, &canvas->sync.fences_render_finished, f);
+    // Send the Submit instance.
+    dvz_submit_send(s, img_idx, &canvas->sync.fences_render_finished, f);
 
-        // Call POST_SEND callbacks
-        // _event_postsend(canvas);
-    }
+    // Call POST_SEND callbacks
+    // _event_postsend(canvas);
 
     // Once the image is rendered, we present the swapchain image.
     // The semaphore used for waiting during presentation may be changed by the canvas
@@ -519,6 +499,35 @@ static void _callback_present(DvzDeq* deq, void* item, void* user_data)
             CLIP(f, 0, canvas->sync.present_semaphores->count - 1));
 
     canvas->cur_frame = (f + 1) % canvas->sync.fences_render_finished.count;
+}
+
+
+
+// backend-specific
+static void _callback_present(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+
+    // frame submission for that canvas: submit cmd bufs, present swapchain
+
+    ASSERT(deq != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+    // DvzRun* run = app->run;
+    // ASSERT(run != NULL);
+
+    DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
+    ASSERT(item != NULL);
+    DvzCanvas* canvas = ev->canvas;
+
+    // Process only created canvas.
+    if (!_canvas_check(canvas))
+        return;
+    // log_debug("present canvas");
+
+    // Submit the command buffers and make the swapchain rendering.
+    _canvas_render(canvas);
 }
 
 
