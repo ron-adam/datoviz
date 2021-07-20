@@ -1035,6 +1035,8 @@ DVZ_EXPORT void dvz_swapchain_destroy(DvzSwapchain* swapchain);
 /**
  * Create a set of command buffers.
  *
+ * The status is INIT when the command buffers are initialized, and CREATED when they are filled.
+ *
  * !!! note
  *     We use the following convention in vklite and elsewhere in datoviz: the queue #0 **must**
  *     support transfer tasks. This convention makes the implementation a bit simpler.

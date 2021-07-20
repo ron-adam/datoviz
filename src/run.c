@@ -108,7 +108,7 @@ static void _enqueue_canvas_frame(DvzRun* run, DvzCanvas* canvas)
 
 
 
-static void _enqueue_refill(DvzRun* run, DvzCanvas* canvas)
+static void _enqueue_to_refill(DvzRun* run, DvzCanvas* canvas)
 {
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
@@ -116,7 +116,22 @@ static void _enqueue_refill(DvzRun* run, DvzCanvas* canvas)
 
     DvzCanvasEvent* ev = calloc(1, sizeof(DvzCanvasEvent));
     ev->canvas = canvas;
-    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_REFILL, DVZ_RUN_CANVAS_REFILL, ev);
+    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_REFILL, DVZ_RUN_CANVAS_TO_REFILL, ev);
+}
+
+
+
+static void _enqueue_refill(DvzRun* run, DvzCanvas* canvas, DvzCommands* cmds, uint32_t cmd_idx)
+{
+    ASSERT(run != NULL);
+    ASSERT(canvas != NULL);
+    log_debug("enqueue refill #%d", cmd_idx);
+
+    DvzCanvasEventRefill* ev = calloc(1, sizeof(DvzCanvasEventRefill));
+    ev->canvas = canvas;
+    ev->cmds = cmds;
+    ev->cmd_idx = cmd_idx;
+    dvz_deq_enqueue_first(&run->deq, DVZ_RUN_DEQ_REFILL, DVZ_RUN_CANVAS_REFILL, ev);
 }
 
 
@@ -149,8 +164,8 @@ static uint32_t _enqueue_frames(DvzRun* run)
         // NOTE: enqueue a REFILL event at the first frame.
         if (canvas->frame_idx == 0)
         {
-            log_info("refill canvas because frame #0");
-            _enqueue_refill(run, canvas);
+            log_debug("refill canvas because frame #0");
+            _enqueue_to_refill(run, canvas);
         }
 
         dvz_container_iter(&iter);
@@ -243,6 +258,8 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
 static void _canvas_refill(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
+    ASSERT(canvas->app != NULL);
+    ASSERT(canvas->app->run != NULL);
 
     if (!_canvas_check(canvas))
         return;
@@ -254,10 +271,11 @@ static void _canvas_refill(DvzCanvas* canvas)
     dvz_queue_wait(canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
 
     // Reset all command buffers before calling the REFILL callbacks.
-    for (uint32_t i = 0; i < canvas->render.swapchain.img_count; i++)
+    for (int32_t i = (int32_t)canvas->render.swapchain.img_count - 1; i >= 0; i--)
     {
-        dvz_cmd_reset(&canvas->cmds_render, i);
-        blank_commands(canvas, &canvas->cmds_render, i);
+        dvz_cmd_reset(&canvas->cmds_render, (uint32_t)i);
+        // blank_commands(canvas, &canvas->cmds_render, i);
+        _enqueue_refill(canvas->app->run, canvas, &canvas->cmds_render, (uint32_t)i);
     }
 }
 
@@ -327,7 +345,7 @@ static void _callback_recreate(DvzDeq* deq, void* item, void* user_data)
     dvz_canvas_recreate(canvas);
 
     // Enqueue a REFILL after the canvas recreation.
-    _enqueue_refill(run, canvas);
+    _enqueue_to_refill(run, canvas);
 }
 
 
@@ -345,7 +363,7 @@ static void _callback_delete(DvzDeq* deq, void* item, void* user_data)
 
     // if (!_canvas_check(canvas))
     //     return;
-    log_info("delete canvas");
+    log_debug("delete canvas");
     // canvas->destroying = true;
     // canvas->input.destroying = true;
 
@@ -373,33 +391,48 @@ static void _callback_clear_color(DvzDeq* deq, void* item, void* user_data)
     log_debug("change canvas clear color");
 
     canvas->render.renderpass.clear_values->color = (VkClearColorValue){{ev->r, ev->g, ev->b, 1}};
-    _enqueue_refill(app->run, canvas);
+    _enqueue_to_refill(app->run, canvas);
 }
 
 
 
-static void _callback_refill(
-    DvzDeq* deq, DvzDeqProcBatchPosition pos, uint32_t item_count, DvzDeqItem* items,
-    void* user_data)
+static void _callback_to_refill(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
 
-    // gathers the cmd buf idx of all dequeued REFILL tasks and, for each of these cmd buf idx,
-    // fills the cmd buf for each canvas, check if a cmd buf has been filled, and if not, fill
-    // it with blank cmd buf
+    DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
+    ASSERT(ev != NULL);
+    _canvas_refill(ev->canvas);
+    // for (uint32_t i = 0; i < item_count; i++)
+    // {
+    //     ASSERT(items[i].type == DVZ_RUN_CANVAS_TO_REFILL);
+    //     ev = item;
+    //     ASSERT(ev != NULL);
 
-    DvzCanvasEvent* ev = NULL;
-    for (uint32_t i = 0; i < item_count; i++)
-    {
-        ASSERT(items[i].type == DVZ_RUN_CANVAS_REFILL);
-        ev = items[i].item;
-        ASSERT(ev != NULL);
-
-        // TODO: optim: if multiple FRAME events for 1 canvas, make sure we call it only once.
-        // One frame for one canvas.
-        _canvas_refill(ev->canvas);
-    }
+    //     // TODO: optim: if multiple REFILL events for 1 canvas, make sure we call it only once.
+    //     // One frame for one canvas.
+    //     _canvas_refill(ev->canvas);
+    // }
 }
+
+
+
+// To be provided by the user.
+// static void _callback_refill(DvzDeq* deq, void* item, void* user_data)
+// {
+//     ASSERT(deq != NULL);
+
+//     DvzApp* app = (DvzApp*)user_data;
+//     ASSERT(app != NULL);
+
+//     DvzCanvasEventRefill* ev = (DvzCanvasEventRefill*)item;
+//     ASSERT(ev != NULL);
+//     DvzCanvas* canvas = ev->canvas;
+//     if (!_canvas_check(canvas))
+//         return;
+//     log_debug("refill canvas");
+//     // TODO: refill cmd buf
+// }
 
 
 
@@ -438,10 +471,15 @@ static void _callback_present(DvzDeq* deq, void* item, void* user_data)
     // Reset the Submit instance before adding the command buffers.
     dvz_submit_reset(s);
 
+    // Render command buffers empty? Fill them with blank color by default.
+    if (canvas->cmds_render.obj.status != DVZ_OBJECT_STATUS_CREATED)
+    {
+        for (uint32_t i = 0; i < canvas->render.swapchain.img_count; i++)
+            blank_commands(canvas, &canvas->cmds_render, i);
+    }
+    ASSERT(canvas->cmds_render.obj.status == DVZ_OBJECT_STATUS_CREATED);
     // Add the command buffers to the submit instance.
-    // Default render commands.
-    if (canvas->cmds_render.obj.status == DVZ_OBJECT_STATUS_CREATED)
-        dvz_submit_commands(s, &canvas->cmds_render);
+    dvz_submit_commands(s, &canvas->cmds_render);
 
     if (s->commands_count == 0)
     {
@@ -532,10 +570,8 @@ DvzRun* dvz_run(DvzApp* app)
     dvz_deq_proc_batch_callback(
         &run->deq, DVZ_RUN_DEQ_FRAME, DVZ_RUN_CANVAS_FRAME, _callback_frame, app);
 
-    // TODO: let the user do this, and only register a refill callback if there is none.
-    // Alternatively, only allow 1 callback??
-    dvz_deq_proc_batch_callback(
-        &run->deq, DVZ_RUN_DEQ_REFILL, DVZ_DEQ_PROC_CALLBACK_POST, _callback_refill, app);
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_REFILL, DVZ_RUN_CANVAS_TO_REFILL, _callback_to_refill, app);
 
     // Main callbacks.
     dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_NEW, _callback_new, app);

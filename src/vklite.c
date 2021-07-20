@@ -634,6 +634,10 @@ void dvz_cmd_reset(DvzCommands* cmds, uint32_t idx)
     log_trace("reset command buffer #%d", idx);
     ASSERT(cmds->cmds[idx] != VK_NULL_HANDLE);
     VK_CHECK_RESULT(vkResetCommandBuffer(cmds->cmds[idx], 0));
+
+    // NOTE: when resetting, we mark the object as not created because it is no longer filled with
+    // commands.
+    dvz_obj_init(&cmds->obj);
 }
 
 

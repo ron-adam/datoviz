@@ -58,7 +58,9 @@ typedef enum
     DVZ_RUN_CANVAS_DELETE,      // need to delete the canvas
 
     // REFILL queue
-    DVZ_RUN_CANVAS_REFILL, // need to refill the canvas, the user should have registered a callback
+    DVZ_RUN_CANVAS_TO_REFILL, // need to refill the canvas, the user should have registered a
+                              // callback
+    DVZ_RUN_CANVAS_REFILL,
 
     // PRESENT queue
     DVZ_RUN_CANVAS_PRESENT, // need to present the frame to the swapchain
@@ -76,6 +78,7 @@ typedef struct DvzRun DvzRun;
 
 // Event structs.
 typedef struct DvzCanvasEventFrame DvzCanvasEventFrame;
+typedef struct DvzCanvasEventRefill DvzCanvasEventRefill;
 typedef struct DvzCanvasEventNew DvzCanvasEventNew;
 typedef struct DvzCanvasEventClearColor DvzCanvasEventClearColor;
 typedef struct DvzCanvasEvent DvzCanvasEvent;
@@ -97,6 +100,15 @@ struct DvzCanvasEventFrame
 {
     DvzCanvas* canvas;
     uint64_t frame_idx;
+};
+
+
+
+struct DvzCanvasEventRefill
+{
+    DvzCanvas* canvas;
+    DvzCommands* cmds;
+    uint32_t cmd_idx;
 };
 
 
