@@ -76,6 +76,7 @@ static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)
     visual->data = calloc(size, 1);
     memcpy(visual->data, data, size);
     dvz_upload_buffer(gpu->context, visual->br, 0, size, data);
+    // dvz_buffer_regions_upload(&visual->br, 0, 0, size, data);
 
     dvz_gpu_wait(gpu);
 }
