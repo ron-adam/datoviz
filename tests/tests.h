@@ -97,8 +97,9 @@ int test_input_keyboard(TestContext*);
 int test_input_timer(TestContext*);
 
 // Test canvas.
+int test_canvas_window(TestContext*);
 int test_canvas_blank(TestContext*);
-int test_canvas_offscreen(TestContext*);
+int test_canvas_triangle(TestContext*);
 
 // Test run.
 int test_run_1(TestContext*);
@@ -275,8 +276,9 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(CONTEXT, test_transfers_texture),         //
 
     // Canvas.
-    CASE_FIXTURE(APP, test_canvas_blank),     //
-    CASE_FIXTURE(APP, test_canvas_offscreen), //
+    CASE_FIXTURE(APP, test_canvas_window), //
+    CASE_FIXTURE(APP, test_canvas_blank),  //
+    CASE_FIXTURE(APP, test_canvas_triangle),  //
 
     // Run.
     CASE_FIXTURE(APP, test_run_1), //

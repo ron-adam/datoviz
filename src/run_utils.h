@@ -247,6 +247,7 @@ static void _canvas_render(DvzCanvas* canvas)
     // Render command buffers empty? Fill them with blank color by default.
     if (canvas->cmds_render.obj.status != DVZ_OBJECT_STATUS_CREATED)
     {
+        log_debug("empty command buffers, filling with blank color");
         for (uint32_t i = 0; i < canvas->render.swapchain.img_count; i++)
             blank_commands(canvas, &canvas->cmds_render, i);
     }
@@ -284,10 +285,12 @@ static void _canvas_render(DvzCanvas* canvas)
     // The semaphore used for waiting during presentation may be changed by the canvas
     // callbacks.
     if (!canvas->offscreen)
+    {
         dvz_swapchain_present(
             &canvas->render.swapchain, 1, //
             canvas->sync.present_semaphores,
             CLIP(f, 0, canvas->sync.present_semaphores->count - 1));
+    }
 
     canvas->cur_frame = (f + 1) % canvas->sync.fences_render_finished.count;
 }

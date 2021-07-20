@@ -605,6 +605,8 @@ void dvz_cmd_begin(DvzCommands* cmds, uint32_t idx)
 {
     ASSERT(cmds != NULL);
     ASSERT(cmds->count > 0);
+    ASSERT(idx != cmds->count);
+
     // log_trace("begin command buffer");
     VkCommandBufferBeginInfo begin_info = {0};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -617,6 +619,7 @@ void dvz_cmd_end(DvzCommands* cmds, uint32_t idx)
 {
     ASSERT(cmds != NULL);
     ASSERT(cmds->count > 0);
+    ASSERT(idx != cmds->count);
 
     // log_trace("end command buffer");
     VK_CHECK_RESULT(vkEndCommandBuffer(cmds->cmds[idx]));
@@ -630,6 +633,7 @@ void dvz_cmd_reset(DvzCommands* cmds, uint32_t idx)
 {
     ASSERT(cmds != NULL);
     ASSERT(cmds->count > 0);
+    ASSERT(idx != cmds->count);
 
     log_trace("reset command buffer #%d", idx);
     ASSERT(cmds->cmds[idx] != VK_NULL_HANDLE);
