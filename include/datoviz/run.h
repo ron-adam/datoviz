@@ -136,7 +136,7 @@ struct DvzRun
 {
     DvzApp* app;
     DvzRunState state; // to remove??
-    bool destroying;   // true as soon as the canvas is being destroyed
+    // bool destroying;   // true as soon as the canvas is being destroyed
 
     DvzDeq deq;
 

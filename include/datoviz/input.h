@@ -363,7 +363,7 @@ struct DvzInputCallbackPayload
 struct DvzInput
 {
     DvzBackend backend;
-    bool destroying; // true as soon as the window is being destroyed
+    // bool destroying; // true as soon as the window is being destroyed
 
     // Event queues for mouse, keyboard, and timer.
     DvzDeq deq;

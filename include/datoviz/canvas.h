@@ -565,9 +565,9 @@ struct DvzCanvas
     bool overlay;
     bool with_pick;
     bool vsync;
-    bool shown;      // false when the window is hidden
-    bool running;    // false when paused
-    bool destroying; // true as soon as the canvas is being destroyed
+    bool shown;   // false when the window is hidden
+    bool running; // false when paused
+    // bool destroying; // true as soon as the canvas is being destroyed
     uvec2 init_size;
     int flags;
 

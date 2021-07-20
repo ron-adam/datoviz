@@ -875,9 +875,9 @@ static void _input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev, b
 {
     ASSERT(input != NULL);
 
-    // Do not enqueue input events when the input is being destroyed.
-    if (input->destroying)
-        return;
+    // // Do not enqueue input events when the input is being destroyed.
+    // if (input->destroying)
+    //     return;
 
     uint32_t deq_idx = _deq_from_input_type(type);
 
