@@ -36,14 +36,13 @@ typedef enum
 
     DVZ_TRANSFER_BUFFER_UPLOAD,
     DVZ_TRANSFER_BUFFER_DOWNLOAD,
-    DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE,
     DVZ_TRANSFER_BUFFER_COPY,
 
-    DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE,
     DVZ_TRANSFER_TEXTURE_COPY,
-
     DVZ_TRANSFER_TEXTURE_BUFFER,
     DVZ_TRANSFER_BUFFER_TEXTURE,
+
+    DVZ_TRANSFER_DOWNLOAD_DONE, // download is only possible from a buffer
 } DvzDataTransferType;
 
 
@@ -55,9 +54,7 @@ typedef enum
 typedef struct DvzTransfer DvzTransfer;
 typedef struct DvzTransferBuffer DvzTransferBuffer;
 typedef struct DvzTransferBufferCopy DvzTransferBufferCopy;
-typedef struct DvzTransferTexture DvzTransferTexture;
 typedef struct DvzTransferBufferTexture DvzTransferBufferTexture;
-typedef struct DvzTransferTextureBuffer DvzTransferTextureBuffer;
 typedef struct DvzTransferTextureCopy DvzTransferTextureCopy;
 typedef struct DvzTransferDownload DvzTransferDownload;
 typedef union DvzTransferUnion DvzTransferUnion;
@@ -70,15 +67,10 @@ typedef union DvzTransferUnion DvzTransferUnion;
 
 struct DvzTransferBuffer
 {
-    // TODO: remove br
-    DvzBufferRegions stg, br; // staging (mappable) buffer, and source/destination buffer
-    VkDeviceSize stg_offset, br_offset, size;
+    DvzBufferRegions br;
+    VkDeviceSize offset;
+    VkDeviceSize size;
     void* data;
-
-    // TODO: remove texture
-    // If the data has to be copied to a texture after transfer to the GPU buffer.
-    DvzTexture* tex;
-    uvec3 tex_offset, shape;
 };
 
 
@@ -87,24 +79,6 @@ struct DvzTransferBufferCopy
 {
     DvzBufferRegions src, dst;
     VkDeviceSize src_offset, dst_offset, size;
-
-    // TODO: remove
-    void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
-};
-
-
-
-// TODO: remove completely
-struct DvzTransferTexture
-{
-    DvzTexture* tex;
-    uvec3 offset, shape;
-
-    DvzBufferRegions stg;
-    VkDeviceSize stg_offset;
-
-    VkDeviceSize size;
-    void* data;
 };
 
 
@@ -130,20 +104,6 @@ struct DvzTransferBufferTexture
 
 
 
-struct DvzTransferTextureBuffer
-{
-    DvzTexture* tex;
-    uvec3 tex_offset, shape;
-    DvzBufferRegions br;
-    VkDeviceSize buf_offset;
-    VkDeviceSize size;
-
-    // TODO: remove:
-    void* to_download; // if set, need to enqueue a DL task to this buffer after the copy
-};
-
-
-
 struct DvzTransferDownload
 {
     VkDeviceSize size;
@@ -155,13 +115,8 @@ struct DvzTransferDownload
 union DvzTransferUnion
 {
     DvzTransferBuffer buf;
-
-    // TODO: remove:
-    DvzTransferTexture tex;
-
     DvzTransferBufferCopy buf_copy;
     DvzTransferTextureCopy tex_copy;
-    DvzTransferTextureBuffer tex_buf;
     DvzTransferBufferTexture buf_tex;
     DvzTransferDownload download;
 };

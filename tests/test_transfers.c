@@ -24,8 +24,7 @@ int test_transfers_buffer_mappable(TestContext* tc)
 
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().
-    dvz_deq_callback(
-        &ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
+    dvz_deq_callback(&ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_DOWNLOAD_DONE, _dl_done, &res);
 
     uint8_t data[128] = {0};
     for (uint32_t i = 0; i < 128; i++)
@@ -35,9 +34,7 @@ int test_transfers_buffer_mappable(TestContext* tc)
     DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
 
     // Enqueue an upload transfer task.
-    uvec3 ZEROS = {0};
-    _enqueue_buffer_upload(
-        &ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, NULL, ZEROS, ZEROS, 128, data);
+    _enqueue_buffer_upload(&ctx->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data);
 
     // NOTE: need to wait for the upload to be finished before we download the data.
     // The DL and UL are on different queues and may be processed out of order.
@@ -45,8 +42,9 @@ int test_transfers_buffer_mappable(TestContext* tc)
 
     // Enqueue a download transfer task.
     uint8_t data2[128] = {0};
-    _enqueue_buffer_download(&ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, 128, data2);
+    _enqueue_buffer_download(&ctx->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data2);
     AT(res == 0);
+    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
 
     // Wait until the download_done event has been raised, dequeue it, and finish the test.
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
@@ -72,8 +70,7 @@ int test_transfers_buffer_large(TestContext* tc)
     data[size - 1] = 2;
 
     int res = 0; // should be set to 42 by _dl_done().
-    dvz_deq_callback(
-        &ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
+    dvz_deq_callback(&ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_DOWNLOAD_DONE, _dl_done, &res);
 
     // Allocate a staging buffer region.
     DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_STAGING);
@@ -81,16 +78,14 @@ int test_transfers_buffer_large(TestContext* tc)
     DvzBufferRegions stg = dvz_buffer_regions(staging, 1, 0, size, 0);
 
     // Enqueue an upload transfer task.
-    uvec3 ZEROS = {0};
-    _enqueue_buffer_upload(
-        &ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, NULL, ZEROS, ZEROS, size, data);
+    _enqueue_buffer_upload(&ctx->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data);
 
     // Wait for the transfer thread to process both transfer tasks.
     dvz_app_wait(tc->app);
 
     // Enqueue a download transfer task.
     uint8_t* data2 = calloc(size, 1);
-    _enqueue_buffer_download(&ctx->deq, (DvzBufferRegions){0}, 0, stg, 0, size, data2);
+    _enqueue_buffer_download(&ctx->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data2);
     // This download task will be processed by the background transfer thread. At the end, it will
     // enqueue a DOWNLOAD_DONE task in the EV queue.
     AT(res == 0);
@@ -119,8 +114,7 @@ int test_transfers_buffer_copy(TestContext* tc)
 
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().
-    dvz_deq_callback(
-        &ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_BUFFER_DOWNLOAD_DONE, _dl_done, &res);
+    dvz_deq_callback(&ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_DOWNLOAD_DONE, _dl_done, &res);
 
     uint8_t data[128] = {0};
     for (uint32_t i = 0; i < 128; i++)
@@ -130,8 +124,7 @@ int test_transfers_buffer_copy(TestContext* tc)
     DvzBufferRegions br = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_VERTEX, 1, 1024);
 
     // Enqueue an upload transfer task.
-    uvec3 ZEROS = {0};
-    _enqueue_buffer_upload(&ctx->deq, br, 0, stg, 0, NULL, ZEROS, ZEROS, 128, data);
+    _enqueue_buffer_upload(&ctx->deq, br, 0, stg, 0, 128, data);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
@@ -178,8 +171,7 @@ int test_transfers_texture(TestContext* tc)
 
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().
-    dvz_deq_callback(
-        &ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_TEXTURE_DOWNLOAD_DONE, _dl_done, &res);
+    dvz_deq_callback(&ctx->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_DOWNLOAD_DONE, _dl_done, &res);
 
     // Enqueue an upload transfer task.
     _enqueue_texture_upload(&ctx->deq, tex, offset, shape, stg, 0, size, data);

@@ -254,33 +254,35 @@ DvzContext* dvz_context(DvzGpu* gpu)
         dvz_deq_callback(
             &context->deq, DVZ_TRANSFER_DEQ_UL, //
             DVZ_TRANSFER_BUFFER_UPLOAD,         //
-            _transfer_buffer_upload, context);
+            _process_buffer_upload, context);
 
         // Downloads.
         dvz_deq_callback(
             &context->deq, DVZ_TRANSFER_DEQ_DL, //
             DVZ_TRANSFER_BUFFER_DOWNLOAD,       //
-            _transfer_buffer_download, context);
+            _process_buffer_download, context);
 
         // Copies.
         dvz_deq_callback(
             &context->deq, DVZ_TRANSFER_DEQ_COPY, //
             DVZ_TRANSFER_BUFFER_COPY,             //
-            _transfer_buffer_copy, context);
+            _process_buffer_copy, context);
+
         dvz_deq_callback(
             &context->deq, DVZ_TRANSFER_DEQ_COPY, //
             DVZ_TRANSFER_TEXTURE_COPY,            //
-            _transfer_texture_copy, context);
+            _process_texture_copy, context);
 
         // Buffer/texture copies.
         dvz_deq_callback(
             &context->deq, DVZ_TRANSFER_DEQ_COPY, //
             DVZ_TRANSFER_TEXTURE_BUFFER,          //
-            _transfer_texture_buffer, context);
+            _process_texture_buffer, context);
+
         dvz_deq_callback(
             &context->deq, DVZ_TRANSFER_DEQ_COPY, //
             DVZ_TRANSFER_BUFFER_TEXTURE,          //
-            _transfer_buffer_texture, context);
+            _process_buffer_texture, context);
 
         // Transfer thread.
         context->thread = dvz_thread(_thread_transfers, context);

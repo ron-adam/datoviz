@@ -29,8 +29,7 @@ void dvz_upload_buffer(
     DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
 
     // Enqueue an upload transfer task.
-    uvec3 ZEROS = {0};
-    _enqueue_buffer_upload(&ctx->deq, br, offset, stg, 0, NULL, ZEROS, ZEROS, size, data);
+    _enqueue_buffer_upload(&ctx->deq, br, offset, stg, 0, size, data);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
@@ -70,7 +69,7 @@ void dvz_copy_buffer(
     ASSERT(size > 0);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_copy(&ctx->deq, src, src_offset, dst, dst_offset, size, NULL);
+    _enqueue_buffer_copy(&ctx->deq, src, src_offset, dst, dst_offset, size);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
@@ -146,7 +145,7 @@ void dvz_copy_texture(
     DvzContext* ctx, DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset,
     uvec3 shape, VkDeviceSize size)
 {
-    _enqueue_texture_copy(&ctx->deq, src, src_offset, dst, dst_offset, shape, size);
+    _enqueue_texture_copy(&ctx->deq, src, src_offset, dst, dst_offset, shape);
 
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
     dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
