@@ -357,25 +357,25 @@ DvzRun* dvz_run(DvzApp* app)
 
     // Deq batch callbacks.
     dvz_deq_proc_batch_callback(
-        &run->deq, DVZ_RUN_DEQ_FRAME, DVZ_RUN_CANVAS_FRAME, _callback_frame, app);
+        &run->deq, DVZ_RUN_DEQ_FRAME, (int)DVZ_RUN_CANVAS_FRAME, _callback_frame, app);
 
     dvz_deq_callback(
-        &run->deq, DVZ_RUN_DEQ_REFILL, DVZ_RUN_CANVAS_TO_REFILL, _callback_to_refill, app);
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_TO_REFILL, _callback_to_refill, app);
 
     // Main callbacks.
-    dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_NEW, _callback_new, app);
+    dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_NEW, _callback_new, app);
 
-    dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_DELETE, _callback_delete, app);
-
-    dvz_deq_callback(
-        &run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_CLEAR_COLOR, _callback_clear_color, app);
+    dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_DELETE, _callback_delete, app);
 
     dvz_deq_callback(
-        &run->deq, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_RECREATE, _callback_recreate, app);
+        &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_CLEAR_COLOR, _callback_clear_color, app);
+
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_RECREATE, _callback_recreate, app);
 
     // Present callbacks.
     dvz_deq_callback(
-        &run->deq, DVZ_RUN_DEQ_PRESENT, DVZ_RUN_CANVAS_PRESENT, _callback_present, app);
+        &run->deq, DVZ_RUN_DEQ_PRESENT, (int)DVZ_RUN_CANVAS_PRESENT, _callback_present, app);
 
     run->state = DVZ_RUN_STATE_PAUSED;
 

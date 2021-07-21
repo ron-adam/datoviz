@@ -71,7 +71,7 @@ static DvzDeqItem* _create_buffer_transfer(
     tr->size = size;
     tr->data = data;
 
-    return dvz_deq_enqueue_custom(deq_idx, type, tr);
+    return dvz_deq_enqueue_custom(deq_idx, (int)type, tr);
 }
 
 
@@ -92,7 +92,7 @@ static DvzDeqItem* _create_buffer_copy(
     tr->dst_offset = dst_offset;
     tr->size = size;
 
-    return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_COPY, DVZ_TRANSFER_BUFFER_COPY, tr);
+    return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_COPY, (int)DVZ_TRANSFER_BUFFER_COPY, tr);
 }
 
 
@@ -124,7 +124,7 @@ static DvzDeqItem* _create_buffer_texture_copy(
     memcpy(tr->tex_offset, tex_offset, sizeof(uvec3));
     memcpy(tr->shape, shape, sizeof(uvec3));
 
-    return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_COPY, type, tr);
+    return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_COPY, (int)type, tr);
 }
 
 
@@ -149,7 +149,7 @@ static DvzDeqItem* _create_texture_copy(
     memcpy(tr->dst_offset, dst_offset, sizeof(uvec3));
     memcpy(tr->shape, shape, sizeof(uvec3));
 
-    return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_COPY, DVZ_TRANSFER_TEXTURE_COPY, tr);
+    return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_COPY, (int)DVZ_TRANSFER_TEXTURE_COPY, tr);
 }
 
 
@@ -163,7 +163,7 @@ static DvzDeqItem* _create_download_done(VkDeviceSize size, void* data)
         1, sizeof(DvzTransferDownload)); // will be free-ed by the callbacks
     tr->size = size;
     tr->data = data;
-    return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_DOWNLOAD_DONE, tr);
+    return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_EV, (int)DVZ_TRANSFER_DOWNLOAD_DONE, tr);
 }
 
 

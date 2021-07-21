@@ -24,7 +24,7 @@ _enqueue_canvas_event(DvzRun* run, DvzCanvas* canvas, uint32_t deq_idx, DvzCanva
     // Will be FREE-ed by the dequeue batch function in the main loop.
     DvzCanvasEvent* ev = (DvzCanvasEvent*)calloc(1, sizeof(DvzCanvasEvent));
     ev->canvas = canvas;
-    dvz_deq_enqueue(&run->deq, deq_idx, type, ev);
+    dvz_deq_enqueue(&run->deq, deq_idx, (int)type, ev);
 }
 
 
@@ -38,7 +38,7 @@ static void _enqueue_canvas_frame(DvzRun* run, DvzCanvas* canvas)
     DvzCanvasEventFrame* ev = calloc(1, sizeof(DvzCanvasEventFrame));
     ev->canvas = canvas;
     ev->frame_idx = ev->canvas->frame_idx;
-    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_FRAME, DVZ_RUN_CANVAS_FRAME, ev);
+    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_FRAME, (int)DVZ_RUN_CANVAS_FRAME, ev);
 }
 
 
@@ -51,7 +51,7 @@ static void _enqueue_to_refill(DvzRun* run, DvzCanvas* canvas)
 
     DvzCanvasEvent* ev = calloc(1, sizeof(DvzCanvasEvent));
     ev->canvas = canvas;
-    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_REFILL, DVZ_RUN_CANVAS_TO_REFILL, ev);
+    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_TO_REFILL, ev);
 }
 
 
@@ -66,7 +66,7 @@ static void _enqueue_refill(DvzRun* run, DvzCanvas* canvas, DvzCommands* cmds, u
     ev->canvas = canvas;
     ev->cmds = cmds;
     ev->cmd_idx = cmd_idx;
-    dvz_deq_enqueue_first(&run->deq, DVZ_RUN_DEQ_REFILL, DVZ_RUN_CANVAS_REFILL, ev);
+    dvz_deq_enqueue_first(&run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, ev);
 }
 
 
