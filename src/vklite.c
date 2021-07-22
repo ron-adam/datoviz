@@ -1428,53 +1428,58 @@ void dvz_images_resize(DvzImages* images, uint32_t width, uint32_t height, uint3
 
 
 
-void dvz_images_download(
-    DvzImages* staging, uint32_t idx, VkDeviceSize bytes_per_component, //
-    bool swizzle, bool has_alpha, void* out)
+static void*
+_images_download(DvzImages* images, uint32_t idx, bool has_alpha, VkSubresourceLayout* res_layout)
 {
-    // NOTE: we make the following assumptions:
-    // - bytes_per_component is the same between the source and target
-    // - source always has alpha
-    // - parameter "has_alpha" only refers to the source buffer
+    ASSERT(images != NULL);
 
-    VkImageSubresource subResource = {0};
-    subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    VkSubresourceLayout subResourceLayout = {0};
-    vkGetImageSubresourceLayout(
-        staging->gpu->device, staging->images[idx], &subResource, &subResourceLayout);
+    VkImageSubresource res = {0};
+    res.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    vkGetImageSubresourceLayout(images->gpu->device, images->images[idx], &res, res_layout);
 
     // Map image memory so we can start copying from it
-    void* data = NULL;
-    vkMapMemory(staging->gpu->device, staging->memories[idx], 0, VK_WHOLE_SIZE, 0, &data);
-    ASSERT(data != NULL);
-    VkDeviceSize offset = subResourceLayout.offset;
-    VkDeviceSize row_pitch = subResourceLayout.rowPitch;
+    void* cdata = NULL;
+    vkMapMemory(images->gpu->device, images->memories[idx], 0, VK_WHOLE_SIZE, 0, &cdata);
+    ASSERT(cdata != NULL);
+    VkDeviceSize row_pitch = res_layout->rowPitch;
     ASSERT(row_pitch > 0);
 
-    uint32_t w = staging->width;
-    uint32_t h = staging->height;
-    uint32_t n_components = has_alpha ? 4 : 3;
-    log_debug(
-        "starting download of RGB%s image %dx%d with %d components of %d bytes each",
-        has_alpha ? "A" : "", w, h, n_components, bytes_per_component);
-    log_trace("offset is %d, row pitch is %d", offset, row_pitch);
+    uint32_t w = images->width;
+    uint32_t h = images->height;
 
     // Size of the buffer to copy.
     VkDeviceSize size = row_pitch * h;
     ASSERT(w > 0);
     ASSERT(h > 0);
-    ASSERT(row_pitch >= w * n_components * bytes_per_component);
-    // Ensure that the staging buffer has the right size.
-    ASSERT(staging->size >= size);
+    // Ensure that the images buffer has the right size.
+    ASSERT(images->size >= size);
 
     // First, memcopy from the GPU to the CPU.
     void* image = calloc(row_pitch * h, 1);
-    void* image_orig = image;
-    memcpy(image, data, size);
-    vkUnmapMemory(staging->gpu->device, staging->memories[idx]);
+    memcpy(image, cdata, size);
+    vkUnmapMemory(images->gpu->device, images->memories[idx]);
+
+    return image;
+}
+
+static void _pack_image_data(
+    DvzImages* images, void* imgdata, VkDeviceSize bytes_per_component, //
+    VkDeviceSize offset, VkDeviceSize row_pitch,                        //
+    bool swizzle, bool has_alpha, void* out)
+{
+    ASSERT(images != NULL);
+    ASSERT(imgdata != NULL);
+    ASSERT(out != NULL);
+    ASSERT(row_pitch > 0);
+
+    // void* image_orig = images;
+
+    uint32_t n_components = has_alpha ? 4 : 3;
+    uint32_t w = images->width;
+    uint32_t h = images->height;
 
     // Then, convert the image to the requested format, into a contiguous array of pixels.
-    image = (void*)((uint64_t)image + offset);
+    imgdata = (void*)((uint64_t)imgdata + offset);
     uint32_t src_offset = 0;
     uint32_t dst_offset = 0;
     uint32_t y, x, k, l;
@@ -1494,34 +1499,40 @@ void dvz_images_download(
                     continue;
                 memcpy(
                     (void*)((uint64_t)out + (dst_offset + k) * bytes_per_component),
-                    (void*)((uint64_t)image + (src_offset + l) * bytes_per_component),
+                    (void*)((uint64_t)imgdata + (src_offset + l) * bytes_per_component),
                     bytes_per_component);
             }
-
-            // if (swizzle)
-            // {
-            // out[dst_offset + 0] = image[src_offset + 2];
-            // out[dst_offset + 1] = image[src_offset + 1];
-            // out[dst_offset + 2] = image[src_offset + 0];
-            // if (has_alpha)
-            //     out[dst_offset + 3] = 255;
-            // }
-            // else
-            // {
-            //     out[dst_offset + 0] = image[src_offset + 0];
-            //     out[dst_offset + 1] = image[src_offset + 1];
-            //     out[dst_offset + 2] = image[src_offset + 2];
-            //     if (has_alpha)
-            //         out[dst_offset + 3] = 255;
-            // }
 
             src_offset += 4;            // we assume RGBA in the source array
             dst_offset += n_components; // either RGB or RGBA in the target array
         }
-        image = (void*)((uint64_t)image + row_pitch);
+        imgdata = (void*)((uint64_t)imgdata + row_pitch);
     }
     ASSERT(dst_offset == w * h * n_components);
-    FREE(image_orig);
+}
+
+void dvz_images_download(
+    DvzImages* staging, uint32_t idx, VkDeviceSize bytes_per_component, //
+    bool swizzle, bool has_alpha, void* out)
+{
+    // NOTE: we make the following assumptions:
+    // - bytes_per_component is the same between the source and target
+    // - source always has alpha
+    // - parameter "has_alpha" only refers to the source buffer
+
+    ASSERT(staging != NULL);
+    ASSERT(out != NULL);
+    ASSERT(bytes_per_component > 0);
+
+    VkSubresourceLayout res_layout = {0};
+    // Copy via memory mapping the image memory, which is supposed to be linear.
+    void* imgdata = _images_download(staging, idx, has_alpha, &res_layout);
+    // Before we can use the copied data, we need to pack it as it may be padded due to internal
+    // hardware constraints.
+    _pack_image_data(
+        staging, imgdata, bytes_per_component, res_layout.offset, res_layout.rowPitch, swizzle,
+        has_alpha, out);
+    FREE(imgdata);
 }
 
 
