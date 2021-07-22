@@ -732,10 +732,6 @@ static uint8_t* _remove_alpha(uint32_t w, uint32_t h, uint8_t* rgba)
 
 uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha)
 {
-    // WARNING: this function is SLOW because it recreates a staging buffer at every call.
-    // Also because it forces a hard synchronization on the whole GPU.
-    // TODO: more efficient screenshot saving with screencast
-
     ASSERT(canvas != NULL);
 
     DvzGpu* gpu = canvas->gpu;
@@ -772,6 +768,9 @@ uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha)
 
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
     dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
+    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_EV);
 
     if (!has_alpha)
         data = _remove_alpha(shape[0], shape[1], data);

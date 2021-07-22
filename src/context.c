@@ -69,6 +69,8 @@ static void _context_default_buffers(DvzContext* context)
             buffer,
             transferable | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
         dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        // dvz_buffer_memory(
+        //     buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         dvz_buffer_create(buffer);
         ASSERT(dvz_obj_is_created(&buffer->obj));
     }

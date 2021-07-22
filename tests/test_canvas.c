@@ -2,6 +2,7 @@
 #include "../include/datoviz/canvas.h"
 #include "../include/datoviz/controls.h"
 #include "../src/run_utils.h"
+#include "../src/transfer_utils.h"
 #include "proto.h"
 #include "tests.h"
 
@@ -75,6 +76,7 @@ static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)
     TestVertex data[3] = TRIANGLE_VERTICES;
     visual->data = calloc(size, 1);
     memcpy(visual->data, data, size);
+
     dvz_upload_buffer(gpu->context, visual->br, 0, size, visual->data);
 
     // DEBUG: Check that the data was successfully uploaded.
@@ -142,13 +144,13 @@ int test_canvas_blank(TestContext* tc)
     _canvas_render(canvas);
 
     // Check blank canvas.
-    uint8_t* rgb = dvz_screenshot(canvas, true);
+    uint8_t* rgba = dvz_screenshot(canvas, true);
     uint8_t exp[4] = {18, 8, 0, 255};
-    if (rgb != NULL)
+    if (rgba != NULL)
     {
         for (uint32_t i = 0; i < WIDTH * HEIGHT * 4 * sizeof(uint8_t); i++)
-            AT(rgb[i] == exp[i % 4]);
-        FREE(rgb);
+            AT(rgba[i] == exp[i % 4]);
+        FREE(rgba);
     }
 
     dvz_canvas_destroy(canvas);
@@ -184,6 +186,10 @@ int test_canvas_triangle(TestContext* tc)
     dvz_gpu_wait(gpu);
 
     int res = check_canvas(canvas, "test_canvas_triangle");
+
+    TestVertex data2[3] = {0};
+    dvz_download_buffer(gpu->context, visual.br, 0, sizeof(data2), data2);
+    AT(memcmp(data2, visual.data, sizeof(data2)) == 0);
 
     destroy_visual(&visual);
     dvz_canvas_destroy(canvas);

@@ -275,6 +275,9 @@ static void _canvas_render(DvzCanvas* canvas)
     // Call PRE_SEND callbacks
     // _event_presend(canvas);
 
+    if (canvas->offscreen)
+        ASSERT(img_idx == 0);
+
     // Send the Submit instance.
     dvz_submit_send(s, img_idx, &canvas->sync.fences_render_finished, f);
 
