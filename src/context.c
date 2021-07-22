@@ -56,7 +56,7 @@ static void _context_default_buffers(DvzContext* context)
         ASSERT(dvz_obj_is_created(&buffer->obj));
 
         // Permanently map the buffer.
-        buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
+        // buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
     }
 
     // Vertex buffer

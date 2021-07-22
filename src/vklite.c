@@ -1075,7 +1075,7 @@ void* dvz_buffer_regions_map(
 {
     ASSERT(br != NULL);
     DvzBuffer* buffer = br->buffer;
-    ASSERT(br->offsets[idx] + offset + size <= br->size);
+    ASSERT(br->offsets[idx] + offset + size <= buffer->size);
     return dvz_buffer_map(buffer, br->offsets[idx] + offset, size);
 }
 
