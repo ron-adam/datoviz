@@ -369,6 +369,68 @@ static DvzTexture* _volume_texture(DvzContext* context, int kind)
 
 
 /*************************************************************************************************/
+/*  Triangle visual                                                                              */
+/*************************************************************************************************/
+
+static TestVisual triangle(DvzCanvas* canvas, const char* suffix)
+{
+    ASSERT(canvas != NULL);
+    DvzGpu* gpu = canvas->gpu;
+    ASSERT(gpu != NULL);
+
+    TestVisual visual = {0};
+    visual.gpu = gpu;
+    visual.renderpass = &canvas->render.renderpass;
+    visual.framebuffers = &canvas->render.framebuffers;
+
+    // Make the graphics.
+    visual.graphics = triangle_graphics(gpu, visual.renderpass, suffix);
+
+    return visual;
+}
+
+static void triangle_refill(DvzCanvas* canvas, TestVisual* visual, uint32_t idx)
+{
+    ASSERT(canvas != NULL);
+    ASSERT(visual != NULL);
+
+    // Take the first command buffers, which corresponds to the default canvas render command//
+    // buffer.
+    // ASSERT(ev.u.rf.cmd_count == 1);
+    DvzCommands* cmds = &canvas->cmds_render;
+    ASSERT(cmds->queue_idx == DVZ_DEFAULT_QUEUE_RENDER);
+
+    triangle_commands(
+        cmds, idx, &canvas->render.renderpass, &canvas->render.framebuffers, //
+        &visual->graphics, &visual->bindings, visual->br);
+}
+
+static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)
+{
+    ASSERT(canvas != NULL);
+    ASSERT(visual != NULL);
+    DvzGpu* gpu = visual->gpu;
+    ASSERT(gpu != NULL);
+
+    // Create the buffer.
+    VkDeviceSize size = 3 * sizeof(TestVertex);
+    visual->br = dvz_ctx_buffers(gpu->context, DVZ_BUFFER_TYPE_VERTEX, 1, size);
+    TestVertex data[3] = TRIANGLE_VERTICES;
+    visual->data = calloc(size, 1);
+    memcpy(visual->data, data, size);
+
+    dvz_upload_buffer(gpu->context, visual->br, 0, size, visual->data);
+
+    // DEBUG: Check that the data was successfully uploaded.
+    TestVertex data2[3] = {0};
+    dvz_download_buffer(gpu->context, visual->br, 0, size, data2);
+    ASSERT(memcmp(data, data2, size) == 0);
+    // dvz_buffer_regions_upload(&visual->br, 0, 0, size, data);
+}
+
+
+
+/*************************************************************************************************/
 /*  Test data                                                                                    */
 /*************************************************************************************************/
 

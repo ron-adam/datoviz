@@ -339,6 +339,36 @@ static void _callback_copy_batch(
 /*  Run creation                                                                                 */
 /*************************************************************************************************/
 
+static void _refill_callback_wait(
+    DvzDeq* deq, DvzDeqProcBatchPosition pos, uint32_t item_count, DvzDeqItem* items,
+    void* user_data)
+{
+    if (item_count == 0)
+        return;
+
+    ASSERT(deq != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+
+    // HACK: full wait before filling the command buffers.
+    dvz_app_wait(app);
+
+    // DvzCanvasEventRefill* ev = NULL;
+
+    // ASSERT(item_count > 0);
+    // ASSERT(items != NULL);
+    // for (uint32_t i = 0; i < item_count; i++)
+    // {
+    //     log_trace("wait on the render queue before filling the command buffers");
+    //     ev = (DvzCanvasEventRefill*)items[i].item;
+    //     ASSERT(ev != NULL);
+    //     ASSERT(ev->canvas != NULL);
+    //     ASSERT(ev->canvas->gpu != NULL);
+    //     dvz_queue_wait(ev->canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
+    // }
+}
+
 DvzRun* dvz_run(DvzApp* app)
 {
     ASSERT(app != NULL); //
@@ -378,6 +408,10 @@ DvzRun* dvz_run(DvzApp* app)
     dvz_deq_callback(
         &run->deq, DVZ_RUN_DEQ_PRESENT, (int)DVZ_RUN_CANVAS_PRESENT, _callback_present, app);
 
+    // HACK: callback before the REFILL user callbacks are called, that is used to wait on the
+    // relevant GPUs so that we can safely refill the canvas command buffers.
+    dvz_deq_proc_batch_callback(
+        &run->deq, DVZ_RUN_DEQ_REFILL, DVZ_DEQ_PROC_CALLBACK_PRE, _refill_callback_wait, app);
     run->state = DVZ_RUN_STATE_PAUSED;
 
     return run;

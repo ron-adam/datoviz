@@ -178,6 +178,52 @@ int test_run_3(TestContext* tc)
 
 
 
+static void _refill_callback_triangle(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(item != NULL);
+    ASSERT(user_data != NULL);
+    TestVisual* visual = (TestVisual*)user_data;
+    DvzCanvasEventRefill* ev = (DvzCanvasEventRefill*)item;
+    triangle_refill(ev->canvas, visual, ev->cmd_idx);
+}
+
+int test_run_triangle(TestContext* tc)
+{
+    DvzApp* app = tc->app;
+    DvzGpu* gpu = dvz_gpu_best(app);
+
+    // Create a canvas.
+    DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
+    dvz_canvas_create(canvas);
+
+    // Triangle visual.
+    TestVisual visual = triangle(canvas, "");
+
+    // Bindings and graphics pipeline.
+    visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
+    dvz_bindings_update(&visual.bindings);
+    dvz_graphics_create(&visual.graphics);
+
+    // Triangle data.
+    triangle_upload(canvas, &visual);
+
+    // Create a run instance.
+    DvzRun* run = dvz_run(app);
+
+    // Refill callback.
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _refill_callback_triangle,
+        &visual);
+
+    // Event loop.
+    dvz_run_loop(run, 10);
+
+    destroy_visual(&visual);
+    return 0;
+}
+
+
+
 // int test_canvas_multiple(TestContext* tc)
 // {
 //     DvzApp* app = tc->app;

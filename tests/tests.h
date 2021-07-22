@@ -107,6 +107,7 @@ int test_canvas_triangle(TestContext*);
 int test_run_1(TestContext*);
 int test_run_2(TestContext*);
 int test_run_3(TestContext*);
+int test_run_triangle(TestContext*);
 
 // int test_canvas_multiple(TestContext*);
 // int test_canvas_events(TestContext*);
@@ -285,9 +286,10 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(APP, test_canvas_triangle), //
 
     // Run.
-    CASE_FIXTURE(APP, test_run_1), //
-    CASE_FIXTURE(APP, test_run_2), //
-    CASE_FIXTURE(APP, test_run_3), //
+    CASE_FIXTURE(APP, test_run_1),        //
+    CASE_FIXTURE(APP, test_run_2),        //
+    CASE_FIXTURE(APP, test_run_3),        //
+    CASE_FIXTURE(APP, test_run_triangle), //
 
     // CASE_FIXTURE(APP, test_canvas_multiple),           //
     // CASE_FIXTURE(APP, test_canvas_events),             //

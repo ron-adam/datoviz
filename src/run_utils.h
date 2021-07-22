@@ -212,9 +212,7 @@ static void _canvas_refill(DvzCanvas* canvas)
     log_debug("canvas refill");
 
     // TODO: more than 1 DvzCommands (the default, render cmd)
-    // TODO OPTIM: this is slow: blocking the GPU for recording the command buffers.
-    // Might be better to create new command buffers from the pool??
-    dvz_queue_wait(canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
+    // dvz_queue_wait(canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
 
     // Reset all command buffers before calling the REFILL callbacks.
     for (int32_t i = (int32_t)canvas->render.swapchain.img_count - 1; i >= 0; i--)
