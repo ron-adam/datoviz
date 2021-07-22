@@ -88,7 +88,8 @@ int test_transfers_buffer_mappable(TestContext*);
 int test_transfers_buffer_large(TestContext*);
 int test_transfers_buffer_copy(TestContext*);
 int test_transfers_texture_buffer(TestContext*);
-int test_transfers_buffer(TestContext*);
+int test_transfers_direct_buffer(TestContext*);
+int test_transfers_direct_texture(TestContext*);
 
 // Test input.
 int test_input_mouse_raw(TestContext*);
@@ -275,7 +276,8 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(CONTEXT, test_transfers_buffer_large),    //
     CASE_FIXTURE(CONTEXT, test_transfers_buffer_copy),     //
     CASE_FIXTURE(CONTEXT, test_transfers_texture_buffer),  //
-    CASE_FIXTURE(CONTEXT, test_transfers_buffer),          //
+    CASE_FIXTURE(CONTEXT, test_transfers_direct_buffer),   //
+    CASE_FIXTURE(CONTEXT, test_transfers_direct_texture),  //
 
     // Canvas.
     CASE_FIXTURE(APP, test_canvas_window),   //

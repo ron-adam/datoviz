@@ -64,7 +64,7 @@ int test_transfers_buffer_large(TestContext* tc)
     DvzContext* ctx = tc->context;
     ASSERT(ctx != NULL);
 
-    uint64_t size = 64 * 1024 * 1024;
+    uint64_t size = 32 * 1024 * 1024; // MB
     uint8_t* data = calloc(size, 1);
     data[0] = 1;
     data[size - 1] = 2;
@@ -203,9 +203,8 @@ int test_transfers_texture_buffer(TestContext* tc)
 /*  Test high-level transfer functions                                                           */
 /*************************************************************************************************/
 
-int test_transfers_buffer(TestContext* tc)
+int test_transfers_direct_buffer(TestContext* tc)
 {
-
     DvzContext* ctx = tc->context;
     ASSERT(ctx != NULL);
 
@@ -228,6 +227,39 @@ int test_transfers_buffer(TestContext* tc)
     // Enqueue a download transfer task.
     uint8_t data2[64] = {0};
     dvz_download_buffer(ctx, br, offset, size, data2);
+
+    // Check that the copy worked.
+    AT(memcmp(data2, data, size) == 0);
+
+    return 0;
+}
+
+
+
+int test_transfers_direct_texture(TestContext* tc)
+{
+    DvzContext* ctx = tc->context;
+    ASSERT(ctx != NULL);
+
+    uvec3 shape_full = {16, 48, 1};
+    uvec3 offset = {0, 16, 0};
+    uvec3 shape = {16, 16, 1};
+    VkDeviceSize size = 256 * 4;
+    VkFormat format = VK_FORMAT_R8G8B8A8_UINT;
+
+    // Texture data.
+    uint8_t data[1024] = {0};
+    for (uint32_t i = 0; i < 1024; i++)
+        data[i] = i % 256;
+
+    DvzTexture* tex = dvz_ctx_texture(ctx, 2, shape_full, format);
+
+    log_debug("start uploading data to texture");
+    dvz_upload_texture(ctx, tex, offset, shape, size, data);
+
+    log_debug("start downloading data from buffer");
+    uint8_t data2[1024] = {0};
+    dvz_download_texture(ctx, tex, offset, shape, size, data2);
 
     // Check that the copy worked.
     AT(memcmp(data2, data, size) == 0);

@@ -186,11 +186,13 @@ static void _enqueue_buffer_upload(
     DvzDeqItem* deq_item = NULL;
     DvzDeqItem* next_item = NULL;
 
+    // Upload to a mappable buffer, no need for a staging buffer.
     if (stg.buffer == NULL)
     {
         // Upload in one step, directly to the destination buffer that is assumed to be mappable.
         deq_item = _create_buffer_transfer(DVZ_TRANSFER_BUFFER_UPLOAD, br, buf_offset, size, data);
     }
+    // Upload to a staging buffer first.
     else
     {
         // First, upload to the staging buffer.
@@ -224,6 +226,7 @@ static void _enqueue_buffer_download(
     DvzDeqItem* next_item = NULL;
     DvzDeqItem* done_item = NULL;
 
+    // Upload to a mappable buffer, no need for a staging buffer.
     if (stg.buffer == NULL)
     {
         // Upload in one step, directly to the destination buffer that is assumed to be mappable.
@@ -233,7 +236,7 @@ static void _enqueue_buffer_download(
         // Enqueue the DOWNLOAD_DONE item after the download has finished.
         done_item = _create_download_done(size, data);
         dvz_deq_enqueue_next(deq_item, done_item, false);
-    }
+    } // Upload to a staging buffer first.
     else
     {
         // First, need to do a copy to the staging buffer.
@@ -274,13 +277,13 @@ static void _enqueue_buffer_copy(
 
 
 
-static void _enqueue_buffer_download_done(DvzDeq* deq, VkDeviceSize size, void* data)
-{
-    ASSERT(deq != NULL);
-    ASSERT(size > 0);
-    log_trace("enqueue buffer download done");
-    dvz_deq_enqueue_submit(deq, _create_download_done(size, data), false);
-}
+// static void _enqueue_buffer_download_done(DvzDeq* deq, VkDeviceSize size, void* data)
+// {
+//     ASSERT(deq != NULL);
+//     ASSERT(size > 0);
+//     log_info("enqueue buffer download done");
+//     dvz_deq_enqueue_submit(deq, _create_download_done(size, data), false);
+// }
 
 
 

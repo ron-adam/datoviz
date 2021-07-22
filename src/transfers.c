@@ -7,8 +7,8 @@
 
 
 
-// NOTE WARNING: PUBLIC FUNCTIONS HERE NOT TESTED YET
-// These convenient functions use the Dequeue interface. They are not efficient.
+// WARNING: these functions are convenient because they return immediately, but they are not
+// optimally efficient because of the use of hard GPU synchronization primitives.
 
 
 
@@ -58,6 +58,10 @@ void dvz_download_buffer(
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
     dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+
+    // Wait until the download is done.
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
+    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_EV);
 }
 
 
@@ -140,6 +144,10 @@ void dvz_download_texture(
 
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
     dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+
+    // Wait until the download is done.
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
+    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_EV);
 }
 
 
