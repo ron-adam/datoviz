@@ -142,11 +142,12 @@ int test_canvas_blank(TestContext* tc)
     _canvas_render(canvas);
 
     // Check blank canvas.
-    uint8_t* rgb = dvz_screenshot(canvas, false);
+    uint8_t* rgb = dvz_screenshot(canvas, true);
+    uint8_t exp[4] = {18, 8, 0, 255};
     if (rgb != NULL)
     {
-        for (uint32_t i = 0; i < WIDTH * HEIGHT * 3 * sizeof(uint8_t); i++)
-            AT(rgb[i] == (i % 3 == 0 ? 0 : (i % 3 == 1 ? 8 : 18)))
+        for (uint32_t i = 0; i < WIDTH * HEIGHT * 4 * sizeof(uint8_t); i++)
+            AT(rgb[i] == exp[i % 4]);
         FREE(rgb);
     }
 

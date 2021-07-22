@@ -830,8 +830,16 @@ void dvz_buffer_create(DvzBuffer* buffer)
 void dvz_buffer_resize(DvzBuffer* buffer, VkDeviceSize size)
 {
     ASSERT(buffer != NULL);
-    log_debug("[SLOW] resize buffer to size %s", pretty_size(size));
     DvzGpu* gpu = buffer->gpu;
+    if (size <= buffer->size)
+    {
+        log_trace(
+            "skip buffer resizing as the buffer size is large enough:"
+            "(requested %s, is %s already)",
+            pretty_size(buffer->size), pretty_size(size));
+        return;
+    }
+    log_debug("[SLOW] resize buffer to size %s", pretty_size(size));
 
     // Create the new buffer with the new size.
     DvzBuffer new_buffer = dvz_buffer(gpu);

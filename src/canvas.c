@@ -5,6 +5,7 @@
 #include "../include/datoviz/vklite.h"
 #include "canvas_utils.h"
 #include "events_utils.h"
+#include "transfer_utils.h"
 #include "vklite_utils.h"
 
 #include <stdlib.h>
@@ -332,11 +333,31 @@ static void _offscreen_images(DvzCanvas* canvas, DvzImages* images)
 
 static void _screencast_staging(DvzCanvas* canvas)
 {
-    // Create a staging image with the correct size, to be used for screenshot and screencast.
     ASSERT(canvas != NULL);
-    DvzImages* images = canvas->render.swapchain.images;
-    canvas->render.screencast_staging =
-        _staging_image(canvas, images->format, images->width, images->height);
+    ASSERT(canvas->gpu != NULL);
+
+    DvzContext* ctx = canvas->gpu->context;
+    ASSERT(ctx != NULL);
+
+    canvas->render.screencast_staging = dvz_buffer(ctx->gpu);
+    DvzBuffer* buffer = &canvas->render.screencast_staging;
+    dvz_buffer_queue_access(buffer, DVZ_DEFAULT_QUEUE_TRANSFER);
+    VkBufferUsageFlagBits transferable =
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_STAGING);
+    dvz_buffer_size(buffer, 1600 * 1200 * 4); // default size
+    dvz_buffer_usage(buffer, transferable);
+    dvz_buffer_memory(
+        buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_create(buffer);
+    ASSERT(dvz_obj_is_created(&buffer->obj));
+
+    // Also create a texture wrapper around the swapchain image so as to user the transfer API.
+    DvzTexture* tex = &canvas->render.screencast_tex;
+    tex->context = ctx;
+    tex->dims = 2;
+    tex->image = canvas->render.swapchain.images;
+    dvz_obj_created(&tex->obj);
 }
 
 static void _canvas_swapchain(DvzCanvas* canvas)
@@ -366,7 +387,7 @@ static void _canvas_swapchain(DvzCanvas* canvas)
         dvz_obj_created(&canvas->render.swapchain.obj);
     }
 
-    // Create a staging image, to be used by screencast and screenshot.
+    // Create a staging buffer, to be used by screencast and screenshot.
     // It is automatically recreated upon resize.
     _screencast_staging(canvas);
 }
@@ -568,7 +589,6 @@ void dvz_canvas_recreate(DvzCanvas* canvas)
     if (canvas->with_pick)
         dvz_images_destroy(&canvas->render.pick_image);
     dvz_images_destroy(canvas->render.swapchain.images);
-    dvz_images_destroy(&canvas->render.screencast_staging);
 
     // Recreate the swapchain. This will automatically set the swapchain->images new size.
     dvz_swapchain_recreate(swapchain);
@@ -585,8 +605,7 @@ void dvz_canvas_recreate(DvzCanvas* canvas)
     dvz_images_create(&canvas->render.depth_image);
 
     // Need to recreate the staging image with the new size.
-    dvz_images_size(&canvas->render.screencast_staging, width, height, 1);
-    dvz_images_create(&canvas->render.screencast_staging);
+    dvz_buffer_resize(&canvas->render.screencast_staging, width * height * 4);
 
     if (canvas->with_pick)
     {
@@ -695,6 +714,22 @@ void dvz_canvas_buffers(
 /*  Screenshot                                                                                   */
 /*************************************************************************************************/
 
+static uint8_t* _remove_alpha(uint32_t w, uint32_t h, uint8_t* rgba)
+{
+    ASSERT(rgba != NULL);
+    ASSERT(w > 0);
+    ASSERT(h > 0);
+
+    uint8_t* rgb = calloc(w * h, 3);
+    for (uint32_t i = 0; i < w * h; i++)
+    {
+        memcpy(&rgb[3 * i], &rgba[4 * i], 3);
+    }
+
+    FREE(rgba);
+    return rgb;
+}
+
 uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha)
 {
     // WARNING: this function is SLOW because it recreates a staging buffer at every call.
@@ -705,6 +740,8 @@ uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha)
 
     DvzGpu* gpu = canvas->gpu;
     ASSERT(gpu != NULL);
+    DvzContext* ctx = gpu->context;
+    ASSERT(ctx != NULL);
 
     // Hard GPU synchronization.
     dvz_gpu_wait(gpu);
@@ -717,34 +754,30 @@ uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha)
     }
 
     // Staging images.
-    DvzImages* staging = &canvas->render.screencast_staging;
     // HACK: DvzTexture wrapper so that we can use the transfers API.
-    DvzTexture* tex = &canvas->render.screencast_texture;
-    tex->context = gpu->context;
-    tex->dims = 2;
-    tex->image = staging;
-    dvz_obj_created(&tex->obj);
+    DvzTexture* tex = &canvas->render.screencast_tex;
 
-    // // Copy from the swapchain image to the staging image.
-    // uvec3 shape = {images->width, images->height, images->depth};
-    // _copy_image_to_staging(canvas, images, &staging, (ivec3){0, 0, 0}, shape);
+    // NOTE: if has_alpha = false, we can only remove it at the end.
+    uint32_t ncomp = 4;
 
-    // // Make the screenshot.
-    // VkDeviceSize size = staging.width * staging.height * (has_alpha ? 4 : 3) * sizeof(uint8_t);
-    uint8_t* rgba = calloc(0, 1);
-    // dvz_images_download(&staging, 0, sizeof(uint8_t), true, has_alpha, rgba);
-    // dvz_gpu_wait(gpu);
-    // dvz_images_destroy(&staging);
+    VkDeviceSize size = images->width * images->height * ncomp;
+    uvec3 shape = {images->width, images->height, images->depth};
 
-    // {
-    //     uint8_t* null = calloc(size, 1);
-    //     if (memcmp(rgba, null, size) == 0)
-    //         log_warn("screenshot was blank");
-    //     FREE(null);
-    // }
+    DvzBuffer* buf = &canvas->render.screencast_staging;
+    DvzBufferRegions stg = dvz_buffer_regions(buf, 1, 0, size, 0);
+
+    uint8_t* data = calloc(size, 1);
+
+    _enqueue_texture_download(&ctx->deq, tex, (uvec3){0}, shape, stg, 0, size, data);
+
+    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+
+    if (!has_alpha)
+        data = _remove_alpha(shape[0], shape[1], data);
 
     // NOTE: the caller MUST free the returned pointer.
-    return rgba;
+    return data;
 }
 
 
@@ -797,11 +830,13 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
     CONTAINER_DESTROY_ITEMS(DvzGraphics, canvas->graphics, dvz_graphics_destroy)
     dvz_container_destroy(&canvas->graphics);
 
-    // Destroy the depth, pick, and screencast staging images.
+    // Destroy the depth and pick images.
     dvz_images_destroy(&canvas->render.depth_image);
     dvz_images_destroy(&canvas->render.pick_image);
     dvz_images_destroy(&canvas->render.pick_staging);
-    dvz_images_destroy(&canvas->render.screencast_staging);
+
+    // Destroy the screencast staging buffer.
+    dvz_buffer_destroy(&canvas->render.screencast_staging);
 
     // Destroy the renderpasses.
     log_trace("canvas destroy renderpass");
