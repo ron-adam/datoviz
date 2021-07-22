@@ -311,10 +311,11 @@ static void* _dep_thread_2(void* user_data)
 
 int test_utils_deq_dependencies(TestContext* tc)
 {
-    DvzDeq deq = dvz_deq(2);
+    DvzDeq deq = dvz_deq(3);
     int res = 0;
     dvz_deq_proc(&deq, 0, 1, (uint32_t[]){0});
     dvz_deq_proc(&deq, 1, 1, (uint32_t[]){1});
+    dvz_deq_proc(&deq, 2, 1, (uint32_t[]){2});
     dvz_deq_callback(&deq, 0, 0, _deq_dep_callback_1, NULL);
     dvz_deq_callback(&deq, 1, 10, _deq_dep_callback_2, &res);
 
@@ -323,13 +324,17 @@ int test_utils_deq_dependencies(TestContext* tc)
     *one = 1;
     int* two = calloc(1, sizeof(int));
     *two = 2;
+    int* three = calloc(1, sizeof(int));
+    *three = 3;
 
     // First enqueue 0, 0, {1}, and then, after the callbacks, enqueue 1, 10, {2}.
     DvzDeqItem* deq_item = dvz_deq_enqueue_custom(0, 0, one);
     DvzDeqItem* next_item = dvz_deq_enqueue_custom(1, 10, two);
+    DvzDeqItem* last_item = dvz_deq_enqueue_custom(2, 0, three);
 
     { // Put a dependency between the two tasks.
         dvz_deq_enqueue_next(deq_item, next_item, false);
+        dvz_deq_enqueue_next(next_item, last_item, false);
         dvz_deq_enqueue_submit(&deq, deq_item, false);
 
         // DEBUG: if using two submissions in parallel, the test will fail. The dependency is
@@ -337,6 +342,9 @@ int test_utils_deq_dependencies(TestContext* tc)
         // dvz_deq_enqueue_submit(&deq, deq_item, false);
         // dvz_deq_enqueue_submit(&deq, next_item, false);
     }
+    // should return immediately because that queue is still empty at this point. It won't be after
+    // the 2 other tasks have finished, because of the dependencies between them.
+    dvz_deq_wait(&deq, 2);
 
     // Dequeue in a thread.
     DvzThread thread1 = dvz_thread(_dep_thread_1, &deq);
@@ -351,6 +359,13 @@ int test_utils_deq_dependencies(TestContext* tc)
     // If we wait long enough, the first item will have finished being processed, the second item
     // will have been enqueued, its callback will have modified the value.
     AT(res == 42);
+
+    dvz_deq_wait(&deq, 0);
+    dvz_deq_wait(&deq, 1);
+
+    // Dequeue the last item.
+    dvz_deq_dequeue(&deq, 2, true);
+    dvz_deq_wait(&deq, 2);
 
     // End the threads.
     dvz_deq_enqueue(&deq, 0, 0, NULL);
