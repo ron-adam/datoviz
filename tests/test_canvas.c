@@ -75,10 +75,13 @@ static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)
     TestVertex data[3] = TRIANGLE_VERTICES;
     visual->data = calloc(size, 1);
     memcpy(visual->data, data, size);
-    dvz_upload_buffer(gpu->context, visual->br, 0, size, data);
-    // dvz_buffer_regions_upload(&visual->br, 0, 0, size, data);
+    dvz_upload_buffer(gpu->context, visual->br, 0, size, visual->data);
 
-    dvz_gpu_wait(gpu);
+    // DEBUG: Check that the data was successfully uploaded.
+    TestVertex data2[3] = {0};
+    dvz_download_buffer(gpu->context, visual->br, 0, size, data2);
+    ASSERT(memcmp(data, data2, size) == 0);
+    // dvz_buffer_regions_upload(&visual->br, 0, 0, size, data);
 }
 
 

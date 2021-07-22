@@ -525,6 +525,9 @@ struct DvzRender
     DvzImages pick_image;
     DvzImages pick_staging;
 
+    DvzImages screencast_staging;
+    DvzTexture screencast_texture; // HACK: just a wrapper around the staging image, for transfers
+
     DvzFramebuffers framebuffers;
     DvzFramebuffers framebuffers_overlay; // used by the overlay renderpass
 
