@@ -29,6 +29,13 @@ Each section on this page provides the details of the supported management comma
 We use CMake to build the library.
 
 
+### Compiler warnings
+
+Our philosophy is to enable as many compiler warnings as possible, and enforce a zero tolerance policy for compiler warnings. Getting a compiler warning is a bug that justifies opening a GitHub issue.
+
+We compile the library with gcc on Linux and Windows, with clang on macOS. There is no support for Microsoft Visual C compiler at the moment, and any help would be highly appreciated.
+
+
 ### Library dependencies
 
 * **Vulkan**: mandatory. The Vulkan SDK is required when *compiling* the library (not when *using* it).
