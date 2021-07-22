@@ -149,7 +149,7 @@ int test_transfers_buffer_copy(TestContext* tc)
 
 
 
-int test_transfers_texture(TestContext* tc)
+int test_transfers_texture_buffer(TestContext* tc)
 {
     DvzContext* ctx = tc->context;
     ASSERT(ctx != NULL);
@@ -193,6 +193,44 @@ int test_transfers_texture(TestContext* tc)
     AT(memcmp(data2, data, 256) == 0);
     for (uint32_t i = 0; i < 256; i++)
         AT(data2[i] == i);
+
+    return 0;
+}
+
+
+
+/*************************************************************************************************/
+/*  Test high-level transfer functions                                                           */
+/*************************************************************************************************/
+
+int test_transfers_buffer(TestContext* tc)
+{
+
+    DvzContext* ctx = tc->context;
+    ASSERT(ctx != NULL);
+
+    // Create a data array.
+    uint8_t data[64] = {0};
+    for (uint32_t i = 0; i < 64; i++)
+        data[i] = i;
+
+    VkDeviceSize offset = 32;
+    VkDeviceSize size = 64;
+
+    log_debug("start uploading data to buffer");
+
+    // Allocate a vertex buffer.
+    DvzBufferRegions br = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_VERTEX, 1, 128);
+    dvz_upload_buffer(ctx, br, offset, size, data);
+
+    log_debug("start downloading data from buffer");
+
+    // Enqueue a download transfer task.
+    uint8_t data2[64] = {0};
+    dvz_download_buffer(ctx, br, offset, size, data2);
+
+    // Check that the copy worked.
+    AT(memcmp(data2, data, size) == 0);
 
     return 0;
 }

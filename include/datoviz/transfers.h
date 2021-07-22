@@ -132,7 +132,7 @@ struct DvzTransfer
 
 
 /*************************************************************************************************/
-/*  Old transfers                                                                                */
+/*  Convenient but slow transfer functions, essentially used in testing or offscreen contexts    */
 /*************************************************************************************************/
 
 /**

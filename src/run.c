@@ -365,7 +365,8 @@ DvzRun* dvz_run(DvzApp* app)
     // Main callbacks.
     dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_NEW, _callback_new, app);
 
-    dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_DELETE, _callback_delete, app);
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_DELETE, _callback_delete, app);
 
     dvz_deq_callback(
         &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_CLEAR_COLOR, _callback_clear_color, app);

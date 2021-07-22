@@ -16,7 +16,6 @@
 /*  Buffer transfers                                                                             */
 /*************************************************************************************************/
 
-// WARNING: these functions require that the pointer lives through the next frame (no copy)
 void dvz_upload_buffer(
     DvzContext* ctx, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size, void* data)
 {
@@ -24,6 +23,8 @@ void dvz_upload_buffer(
     ASSERT(br.buffer != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
+
+    log_debug("upload %s to a buffer", pretty_size(size));
 
     // TODO: better staging buffer allocation
     DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
@@ -45,6 +46,8 @@ void dvz_download_buffer(
     ASSERT(br.buffer != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
+
+    log_debug("download %s from a buffer", pretty_size(size));
 
     // TODO: better staging buffer allocation
     DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
