@@ -165,6 +165,7 @@ static void canvas_render(DvzCanvas* canvas)
     DvzSubmit* s = &canvas->render.submit;
     uint32_t f = canvas->cur_frame;
     uint32_t img_idx = canvas->render.swapchain.img_idx;
+    log_trace("render canvas frame #%d", img_idx);
 
     // Keep track of the fence associated to the current swapchain image.
     dvz_fences_copy(

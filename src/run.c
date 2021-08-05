@@ -426,6 +426,16 @@ DvzRun* dvz_run(DvzApp* app)
 /*  Run event loop                                                                               */
 /*************************************************************************************************/
 
+static int _deq_size(DvzRun* run)
+{
+    ASSERT(run != NULL);
+    int size = 0;
+    size += dvz_fifo_size(&run->deq.queues[DVZ_RUN_DEQ_FRAME]);
+    size += dvz_fifo_size(&run->deq.queues[DVZ_RUN_DEQ_MAIN]);
+    size += dvz_fifo_size(&run->deq.queues[DVZ_RUN_DEQ_REFILL]);
+    return size;
+}
+
 // Run one frame for all active canvases, process all MAIN events, and perform all pending data
 // copies.
 int dvz_run_frame(DvzRun* run)
@@ -435,30 +445,36 @@ int dvz_run_frame(DvzRun* run)
     DvzApp* app = run->app;
     ASSERT(app != NULL);
 
+    log_trace("frame #%06d", run->global_frame_idx);
+
     // Go through all canvases to find out which are active, and enqueue a FRAME event for them.
     uint32_t n_canvas_running = _enqueue_frames(run);
-
-    // TODO: the next calls should be in a loop, until both deqs are empty.
 
     // Dequeue all items until all queues are empty (depth first dequeue)
     //
     // NOTES: This is the call when most of the logic happens!
+    while (_deq_size(run) > 0)
+    {
+        // First, this call may dequeue a FRAME item, for which the callbacks will be called
+        // immediately. The FRAME callbacks may enqueue REFILL items (third queue) or
+        // ADD/REMOVE/VISIBLE/ACTIVE items (second queue).
+        // They may also enqueue TRANSFER items, to be processed directly in the background
+        // transfer thread. However, COPY transfers may be enqueued, to be handled separately later
+        // in the run_frame().
+        log_trace("dequeue batch frame");
+        dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_FRAME);
 
-    // First, this call may dequeue a FRAME item, for which the callbacks will be called
-    // immediately. The FRAME callbacks may enqueue REFILL items (third queue) or
-    // ADD/REMOVE/VISIBLE/ACTIVE items (second queue).
-    // They may also enqueue TRANSFER items, to be processed directly in the background transfer
-    // thread. However, COPY transfers may be enqueued, to be handled separately later in the
-    // run_frame().
-    dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_FRAME);
+        // Then, dequeue MAIN items. The ADD/VISIBLE/ACTIVE/RESIZE callbacks may be called.
+        log_trace("dequeue batch main");
+        dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_MAIN);
 
-    // Then, dequeue MAIN items. The ADD/VISIBLE/ACTIVE/RESIZE callbacks may be called.
-    dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_MAIN);
-
-    // Refill canvases if needed.
-    dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_REFILL);
+        // Refill canvases if needed.
+        log_trace("dequeue batch refill");
+        dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_REFILL);
+    }
 
     // Swapchain presentation.
+    log_trace("dequeue batch present");
     dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_PRESENT);
 
     // Dequeue the pending COPY transfers in the GPU contexts.

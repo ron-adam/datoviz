@@ -208,6 +208,7 @@ static void _refill_callback_triangle(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(item != NULL);
     ASSERT(user_data != NULL);
+    log_trace("refill canvas with triangle");
     TestVisual* visual = (TestVisual*)user_data;
     DvzCanvasEventRefill* ev = (DvzCanvasEventRefill*)item;
     triangle_refill(ev->canvas, visual, ev->cmd_idx);

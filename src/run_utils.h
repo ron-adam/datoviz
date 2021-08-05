@@ -207,7 +207,7 @@ static void _canvas_refill(DvzCanvas* canvas)
     // Reset all command buffers before calling the REFILL callbacks.
     for (int32_t i = (int32_t)canvas->render.swapchain.img_count - 1; i >= 0; i--)
     {
-        // dvz_cmd_reset(&canvas->cmds_render, (uint32_t)i);
+        dvz_cmd_reset(&canvas->cmds_render, (uint32_t)i);
         // blank_commands(canvas, &canvas->cmds_render, i);
         _enqueue_refill(canvas->app->run, canvas, &canvas->cmds_render, (uint32_t)i);
     }
