@@ -1,6 +1,7 @@
 #include "../include/datoviz/run.h"
 #include "../include/datoviz/canvas.h"
 #include "../include/datoviz/vklite.h"
+#include "canvas_utils.h"
 #include "run_utils.h"
 #include "vklite_utils.h"
 

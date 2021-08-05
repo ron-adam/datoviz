@@ -1,6 +1,7 @@
 // #include "../external/video.h"
 #include "../include/datoviz/canvas.h"
 #include "../include/datoviz/controls.h"
+#include "../src/canvas_utils.h"
 #include "../src/run_utils.h"
 #include "../src/transfer_utils.h"
 #include "proto.h"

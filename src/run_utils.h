@@ -115,17 +115,6 @@ static uint32_t _enqueue_frames(DvzRun* run)
 /*  Utils for the run module                                                                     */
 /*************************************************************************************************/
 
-static void blank_commands(DvzCanvas* canvas, DvzCommands* cmds, uint32_t cmd_idx)
-{
-    dvz_cmd_begin(cmds, cmd_idx);
-    dvz_cmd_begin_renderpass(
-        cmds, cmd_idx, &canvas->render.renderpass, &canvas->render.framebuffers);
-    dvz_cmd_end_renderpass(cmds, cmd_idx);
-    dvz_cmd_end(cmds, cmd_idx);
-}
-
-
-
 static bool _canvas_check(DvzCanvas* canvas)
 {
     if (!dvz_obj_is_created(&canvas->obj))
@@ -221,79 +210,6 @@ static void _canvas_refill(DvzCanvas* canvas)
         // blank_commands(canvas, &canvas->cmds_render, i);
         _enqueue_refill(canvas->app->run, canvas, &canvas->cmds_render, (uint32_t)i);
     }
-}
-
-
-
-// Submit the command buffers, + swapchain synchronization + presentation if not offscreen.
-static void _canvas_render(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-
-    DvzSubmit* s = &canvas->render.submit;
-    uint32_t f = canvas->cur_frame;
-    uint32_t img_idx = canvas->render.swapchain.img_idx;
-
-    // Keep track of the fence associated to the current swapchain image.
-    dvz_fences_copy(
-        &canvas->sync.fences_render_finished, f, //
-        &canvas->sync.fences_flight, img_idx);
-
-    // Reset the Submit instance before adding the command buffers.
-    dvz_submit_reset(s);
-
-    // Render command buffers empty? Fill them with blank color by default.
-    if (canvas->cmds_render.obj.status != DVZ_OBJECT_STATUS_CREATED)
-    {
-        log_debug("empty command buffers, filling with blank color");
-        for (uint32_t i = 0; i < canvas->render.swapchain.img_count; i++)
-            blank_commands(canvas, &canvas->cmds_render, i);
-    }
-    ASSERT(canvas->cmds_render.obj.status == DVZ_OBJECT_STATUS_CREATED);
-    // Add the command buffers to the submit instance.
-    dvz_submit_commands(s, &canvas->cmds_render);
-
-    if (s->commands_count == 0)
-    {
-        log_error("no recorded command buffers");
-        return;
-    }
-
-    if (!canvas->offscreen)
-    {
-        dvz_submit_wait_semaphores(
-            s, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, //
-            &canvas->sync.sem_img_available, f);
-
-        // Once the render is finished, we signal another semaphore.
-        dvz_submit_signal_semaphores(s, &canvas->sync.sem_render_finished, f);
-    }
-
-    // SEND callbacks and send the Submit instance.
-    // Call PRE_SEND callbacks
-    // _event_presend(canvas);
-
-    if (canvas->offscreen)
-        ASSERT(img_idx == 0);
-
-    // Send the Submit instance.
-    dvz_submit_send(s, img_idx, &canvas->sync.fences_render_finished, f);
-
-    // Call POST_SEND callbacks
-    // _event_postsend(canvas);
-
-    // Once the image is rendered, we present the swapchain image.
-    // The semaphore used for waiting during presentation may be changed by the canvas
-    // callbacks.
-    if (!canvas->offscreen)
-    {
-        dvz_swapchain_present(
-            &canvas->render.swapchain, 1, //
-            canvas->sync.present_semaphores,
-            CLIP(f, 0, canvas->sync.present_semaphores->count - 1));
-    }
-
-    canvas->cur_frame = (f + 1) % canvas->sync.fences_render_finished.count;
 }
 
 
