@@ -86,16 +86,17 @@ int test_canvas_blank(TestContext* tc)
     dvz_canvas_create(canvas);
 
     // Create command buffers and render them.
-    _canvas_render(canvas);
+    canvas_render(canvas);
 
     // Check blank canvas.
-    uint8_t* rgba = dvz_screenshot(canvas, true);
-    uint8_t exp[4] = {18, 8, 0, 255};
-    if (rgba != NULL)
+    uint8_t* rgb = dvz_screenshot(canvas, true);
+    uint8_t exp[3] = {0, 8, 18};
+    if (rgb != NULL)
     {
-        for (uint32_t i = 0; i < WIDTH * HEIGHT * 4 * sizeof(uint8_t); i++)
-            AT(rgba[i] == exp[i % 4]);
-        FREE(rgba);
+        for (uint32_t i = 0; i < WIDTH * HEIGHT * 3 * sizeof(uint8_t); i++)
+            AT(rgb[i] == exp[i % 3]);
+        // log_info("%d %d", rgb[i], exp[i % 3]);
+        FREE(rgb);
     }
 
     dvz_canvas_destroy(canvas);
@@ -127,7 +128,7 @@ int test_canvas_triangle(TestContext* tc)
     triangle_refill(canvas, &visual, 0);
 
     // Create command buffers and render them.
-    _canvas_render(canvas);
+    canvas_render(canvas);
     dvz_gpu_wait(gpu);
 
     int res = check_canvas(canvas, "test_canvas_triangle");

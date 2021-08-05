@@ -56,6 +56,31 @@ static void _change_clear_color(DvzCanvas* canvas, vec3 rgb)
 
 
 
+static int _check_clear_color(DvzCanvas* canvas, cvec3 exp)
+{
+    ASSERT(canvas != NULL);
+
+    // Framebuffer size.
+    uvec2 size = {0};
+    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_FRAMEBUFFER, size);
+
+    // Check blank canvas.
+    uint8_t* rgb = dvz_screenshot(canvas, true);
+    if (rgb != NULL)
+    {
+        for (uint32_t i = 0; i < size[0] * size[1] * 3 * sizeof(uint8_t); i++)
+        {
+            // log_info("%d %d", rgb[i], exp[i % 3]);
+            AT(rgb[i] == exp[i % 3]);
+        }
+        FREE(rgb);
+    }
+
+    return 0;
+}
+
+
+
 /*************************************************************************************************/
 /*  Run tests                                                                                    */
 /*************************************************************************************************/
@@ -76,23 +101,10 @@ int test_run_1(TestContext* tc)
     // Event loop.
     dvz_run_loop(run, 10);
 
-    // Framebuffer size.
-    uvec2 size = {0};
-    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_FRAMEBUFFER, size);
+    int res = _check_clear_color(canvas, (cvec3){0, 8, 18});
 
-    // Check blank canvas.
-    uint8_t* rgb = dvz_screenshot(canvas, false);
-    uint8_t exp[3] = {18, 8, 0};
-    if (rgb != NULL)
-    {
-        for (uint32_t i = 0; i < size[0] * size[1] * 3 * sizeof(uint8_t); i++)
-        {
-            AT(rgb[i] == exp[i % 3]);
-        }
-        FREE(rgb);
-    }
-
-    return 0;
+    dvz_canvas_destroy(canvas);
+    return res;
 }
 
 
@@ -129,6 +141,18 @@ int test_run_2(TestContext* tc)
 
     // Event loop.
     dvz_run_loop(run, 10);
+
+    AT(dvz_container_get_created(&app->canvases, 0) == (void*)canvas);
+
+    // Recover the newly-created canvas.
+    // TODO: system to recover objects created by the run.
+    DvzCanvas* canvas_1 = dvz_container_get_created(&app->canvases, 1);
+    ASSERT(canvas_1 != NULL);
+    AT(dvz_obj_is_created(&canvas_1->obj) == true);
+
+    // Check the clear color of both canvases.
+    AT(_check_clear_color(canvas, (cvec3){255, 0, 0}) == 0);
+    AT(_check_clear_color(canvas_1, (cvec3){0, 8, 18}) == 0);
 
     // Delete a canvas.
     {
@@ -171,8 +195,9 @@ int test_run_3(TestContext* tc)
     DvzRun* run = dvz_run(app);
 
     // Event loop.
-    dvz_run_loop(run, 10);
+    dvz_run_loop(run, N_FRAMES);
 
+    dvz_canvas_destroy(canvas);
     return 0;
 }
 
@@ -216,9 +241,11 @@ int test_run_triangle(TestContext* tc)
         &visual);
 
     // Event loop.
-    dvz_run_loop(run, 10);
+    dvz_run_loop(run, N_FRAMES);
 
     destroy_visual(&visual);
+
+    dvz_canvas_destroy(canvas);
     return 0;
 }
 

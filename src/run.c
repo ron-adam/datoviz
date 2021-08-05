@@ -308,7 +308,7 @@ static void _callback_present(DvzDeq* deq, void* item, void* user_data)
     // log_debug("present canvas");
 
     // Submit the command buffers and make the swapchain rendering.
-    _canvas_render(canvas);
+    canvas_render(canvas);
 }
 
 

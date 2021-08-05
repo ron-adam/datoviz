@@ -158,7 +158,7 @@ static void blank_commands(DvzCanvas* canvas, DvzCommands* cmds, uint32_t cmd_id
 
 
 // Submit the command buffers, + swapchain synchronization + presentation if not offscreen.
-static void _canvas_render(DvzCanvas* canvas)
+static void canvas_render(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
 

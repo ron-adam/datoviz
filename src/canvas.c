@@ -714,23 +714,44 @@ void dvz_canvas_buffers(
 /*  Screenshot                                                                                   */
 /*************************************************************************************************/
 
-static uint8_t* _remove_alpha(uint32_t w, uint32_t h, uint8_t* rgba)
+static uint8_t*
+_rearrange_image(uint32_t w, uint32_t h, bool remove_alpha, bool swizzle, uint8_t* rgba)
 {
     ASSERT(rgba != NULL);
     ASSERT(w > 0);
     ASSERT(h > 0);
 
     uint8_t* rgb = calloc(w * h, 3);
-    for (uint32_t i = 0; i < w * h; i++)
+    uint32_t k = remove_alpha ? 4 : 3;
+    if (swizzle)
     {
-        memcpy(&rgb[3 * i], &rgba[4 * i], 3);
+        for (uint32_t i = 0; i < w * h; i++)
+        {
+            rgb[3 * i + 0] = rgba[k * i + 2];
+            rgb[3 * i + 1] = rgba[k * i + 1];
+            rgb[3 * i + 2] = rgba[k * i + 0];
+        }
+    }
+    else
+    {
+        if (remove_alpha)
+        {
+            for (uint32_t i = 0; i < w * h; i++)
+            {
+                memcpy(&rgb[3 * i], &rgba[4 * i], 3);
+            }
+        }
+        else
+        {
+            memcpy(rgb, rgba, w * h * 3);
+        }
     }
 
     FREE(rgba);
     return rgb;
 }
 
-uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha)
+uint8_t* dvz_screenshot(DvzCanvas* canvas, bool remove_alpha)
 {
     ASSERT(canvas != NULL);
 
@@ -772,8 +793,8 @@ uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha)
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
     dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_EV);
 
-    if (!has_alpha)
-        data = _remove_alpha(shape[0], shape[1], data);
+    bool swizzle = true; // canvas->offscreen;
+    data = _rearrange_image(shape[0], shape[1], remove_alpha, swizzle, data);
 
     // NOTE: the caller MUST free the returned pointer.
     return data;
@@ -807,7 +828,7 @@ void dvz_screenshot_file(DvzCanvas* canvas, const char* png_path)
 
 void dvz_canvas_destroy(DvzCanvas* canvas)
 {
-    if (canvas == NULL || canvas->obj.status == DVZ_OBJECT_STATUS_DESTROYED)
+    if (canvas == NULL || canvas->obj.status != DVZ_OBJECT_STATUS_CREATED)
     {
         log_trace("skip destruction of already-destroyed canvas");
         return;

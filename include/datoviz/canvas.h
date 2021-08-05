@@ -944,9 +944,10 @@ DVZ_EXPORT DvzViewport dvz_viewport_full(DvzCanvas* canvas);
  *     The caller MUST free the output pointer.
  *
  * @param canvas the canvas
+ * @param remove_alpha whether to remove the alpha component (TODO: always true)
  * @returns A pointer to the 24-bit RGB framebuffer.
  */
-DVZ_EXPORT uint8_t* dvz_screenshot(DvzCanvas* canvas, bool has_alpha);
+DVZ_EXPORT uint8_t* dvz_screenshot(DvzCanvas* canvas, bool remove_alpha);
 
 /**
  * Make a screenshot and save it to a PNG file.

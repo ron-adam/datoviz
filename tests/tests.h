@@ -591,7 +591,7 @@ static int check_canvas(DvzCanvas* canvas, const char* test_name)
         return 0;
 
     ASSERT(canvas != NULL);
-    uint8_t* image = dvz_screenshot(canvas, false);
+    uint8_t* image = dvz_screenshot(canvas, true);
     ASSERT(image != NULL);
     char path[1024];
     snprintf(path, sizeof(path), "%s/%s.ppm", ARTIFACTS_DIR, test_name);
