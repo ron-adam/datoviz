@@ -155,6 +155,7 @@ static void _callback_frame(
     void* user_data)
 {
     ASSERT(deq != NULL);
+    log_trace("callback frame");
 
     DvzApp* app = (DvzApp*)user_data;
     ASSERT(app != NULL);
@@ -248,6 +249,7 @@ static void _callback_clear_color(DvzDeq* deq, void* item, void* user_data)
 static void _callback_to_refill(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
+    log_trace("callback to refill");
 
     DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
     ASSERT(ev != NULL);
@@ -485,6 +487,8 @@ int dvz_run_loop(DvzRun* run, uint64_t frame_count)
     uint64_t n = frame_count > 0 ? frame_count : UINT64_MAX;
 
     run->state = DVZ_RUN_STATE_RUNNING;
+
+    log_debug("run loop with %d frames", frame_count);
 
     // NOTE: there is the global frame index for the event loop, but every frame has its own local
     // frame index too.

@@ -47,7 +47,6 @@ static void _enqueue_to_refill(DvzRun* run, DvzCanvas* canvas)
 {
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
-    // log_info("enqueue refill");
 
     DvzCanvasEvent* ev = calloc(1, sizeof(DvzCanvasEvent));
     ev->canvas = canvas;
@@ -133,7 +132,7 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
 
-    // log_trace("canvas frame #%d", canvas->frame_idx);
+    log_trace("canvas frame #%d", canvas->frame_idx);
 
     DvzApp* app = canvas->app;
     ASSERT(app != NULL);
@@ -147,11 +146,13 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
         dvz_window_poll_events(canvas->window);
 
     // Raise TO_CLOSE if needed.
-    if (backend_window_should_close(app->backend, canvas->window->backend_window))
+    void* backend_window = canvas->window != NULL ? canvas->window->backend_window : NULL;
+    if (backend_window_should_close(app->backend, backend_window))
     {
         _enqueue_canvas_event(run, canvas, DVZ_RUN_DEQ_MAIN, DVZ_RUN_CANVAS_DELETE);
         return;
     }
+
 
     // NOTE: swapchain image acquisition happens here
 

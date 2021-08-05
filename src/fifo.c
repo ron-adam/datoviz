@@ -582,7 +582,7 @@ _deq_enqueue_item(DvzDeq* deq, uint32_t deq_idx, DvzDeqItem* deq_item, bool enqu
         dvz_fifo_enqueue(fifo, deq_item);
     else
         dvz_fifo_enqueue_first(fifo, deq_item);
-    log_trace("signal cond of proc #%d", proc_idx);
+    // log_trace("signal cond of proc #%d", proc_idx);
     pthread_cond_signal(&proc->cond);
     pthread_mutex_unlock(&proc->lock);
 }
@@ -711,13 +711,13 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
             }
             else
             {
-                log_trace("proc #%d cond signaled!", proc_idx);
+                // log_trace("proc #%d cond signaled!", proc_idx);
                 break; // NOTE: this is not necessary, because if the cond is signaled, it means
                        // the queue is non empty, and the while() condition at the very next
                        // iteration will fail, thereby ending the while loop.
             }
         }
-        log_trace("proc #%d has an item", proc_idx);
+        // log_trace("proc #%d has an item", proc_idx);
     }
 
     // Here, we know there is at least one item to dequeue because one of the queues is non-empty.
@@ -743,11 +743,11 @@ DvzDeqItem dvz_deq_dequeue(DvzDeq* deq, uint32_t proc_idx, bool wait)
             item_s = *deq_item;
             // Consistency check.
             ASSERT(deq_idx == item_s.deq_idx);
-            log_trace("dequeue item from FIFO queue #%d with type %d", deq_idx, item_s.type);
+            // log_trace("dequeue item from FIFO queue #%d with type %d", deq_idx, item_s.type);
             FREE(deq_item);
             break;
         }
-        log_trace("queue #%d was empty", deq_idx);
+        // log_trace("queue #%d was empty", deq_idx);
     }
     // IMPORTANT: we must unlock BEFORE calling the callbacks if we want to permit callbacks to
     // enqueue new tasks.
@@ -807,7 +807,7 @@ void dvz_deq_dequeue_loop(DvzDeq* deq, uint32_t proc_idx)
             log_trace("free item");
             FREE(item.item);
         }
-        log_trace("got a deq item on proc #%d", proc_idx);
+        // log_trace("got a deq item on proc #%d", proc_idx);
     }
 }
 
@@ -865,7 +865,7 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
             item_s = *deq_item;
             // Consistency check.
             ASSERT(deq_idx == item_s.deq_idx);
-            log_trace("dequeue item from FIFO queue #%d with type %d", deq_idx, item_s.type);
+            // log_trace("dequeue item from FIFO queue #%d with type %d", deq_idx, item_s.type);
             FREE(deq_item);
             // Copy the item into the array allocated above.
             items[k++] = item_s;
@@ -873,9 +873,9 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
             // Dequeue the next item, if any.
             deq_item = dvz_fifo_dequeue(fifo, false);
         }
-        log_trace("%d items batch-dequeued from queue #%d", k, deq_idx);
+        // log_trace("%d items batch-dequeued from queue #%d", k, deq_idx);
     }
-    log_trace("%d items batch-dequeued from %d queues", k_tot, proc->queue_count);
+    // log_trace("%d items batch-dequeued from %d queues", k_tot, proc->queue_count);
     ASSERT(k_tot == item_count);
 
     // IMPORTANT: we must unlock BEFORE calling the callbacks if we want to permit callbacks to

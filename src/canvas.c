@@ -830,10 +830,11 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
 {
     if (canvas == NULL || canvas->obj.status != DVZ_OBJECT_STATUS_CREATED)
     {
-        log_trace("skip destruction of already-destroyed canvas");
+        log_trace(
+            "skip destruction of already-destroyed canvas with status %d", canvas->obj.status);
         return;
     }
-    log_debug("destroying canvas");
+    log_debug("destroying canvas with status %d", canvas->obj.status);
 
     ASSERT(canvas != NULL);
     ASSERT(canvas->app != NULL);

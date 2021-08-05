@@ -122,13 +122,13 @@ int test_run_2(TestContext* tc)
     DvzRun* run = dvz_run(app);
 
     // Event loop.
-    dvz_run_loop(run, 10);
+    dvz_run_loop(run, 5);
 
     // Change the canvas clear color.
     _change_clear_color(canvas, (vec3){1, 0, 0});
 
     // Event loop.
-    dvz_run_loop(run, 10);
+    dvz_run_loop(run, 5);
 
     // Add a canvas.
     {
@@ -140,7 +140,7 @@ int test_run_2(TestContext* tc)
     }
 
     // Event loop.
-    dvz_run_loop(run, 10);
+    dvz_run_loop(run, 5);
 
     AT(dvz_container_get_created(&app->canvases, 0) == (void*)canvas);
 
@@ -162,7 +162,7 @@ int test_run_2(TestContext* tc)
     }
 
     // Event loop.
-    dvz_run_loop(run, 10);
+    dvz_run_loop(run, 5);
 
     return 0;
 }
@@ -251,411 +251,9 @@ int test_run_triangle(TestContext* tc)
 
 
 
-// int test_canvas_multiple(TestContext* tc)
-// {
-//     DvzApp* app = tc->app;
-//     OFFSCREEN_SKIP
-
-//     DvzGpu* gpu = dvz_gpu_best(app);
-
-//     DvzCanvas* canvas0 = dvz_canvas(gpu, WIDTH, HEIGHT, DVZ_CANVAS_FLAGS_IMGUI);
-//     DvzCanvas* canvas1 = dvz_canvas(gpu, WIDTH, HEIGHT, DVZ_CANVAS_FLAGS_IMGUI);
-
-//     uvec2 size = {0};
-//     dvz_canvas_size(canvas0, DVZ_CANVAS_SIZE_FRAMEBUFFER, size);
-
-//     dvz_canvas_clear_color(canvas0, 1, 0, 0);
-//     dvz_canvas_clear_color(canvas1, 0, 1, 0);
-
-//     dvz_app_run(app, N_FRAMES);
-
-//     // Check canvas background color.
-//     uint8_t* rgb0 = dvz_screenshot(canvas0, false);
-//     uint8_t* rgb1 = dvz_screenshot(canvas1, false);
-//     for (uint32_t i = 0; i < size[0] * size[1] * 3 * sizeof(uint8_t); i++)
-//     {
-//         AT(rgb0[i] == (i % 3 == 0 ? 255 : 0));
-//         AT(rgb1[i] == (i % 3 == 1 ? 255 : 0));
-//     }
-//     FREE(rgb0);
-//     FREE(rgb1);
-
-//     dvz_canvas_destroy(canvas0);
-//     dvz_canvas_destroy(canvas1);
-//     return 0;
-// }
-
-
-
-// static void _init_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     log_debug("init event for canvas");
-//     ASSERT(canvas != NULL);
-//     EventHolder* events = (EventHolder*)ev.user_data;
-//     ASSERT(events != NULL);
-//     events->init = ev;
-// }
-
-// static void _wheel_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     log_debug("wheel %.3f", ev.u.w.dir[1]);
-//     ASSERT(canvas != NULL);
-//     EventHolder* events = (EventHolder*)ev.user_data;
-//     ASSERT(events != NULL);
-//     events->wheel = ev;
-// }
-
-// static void _button_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     log_debug("clicked %d mods %d", ev.u.b.button, ev.u.b.modifiers);
-//     ASSERT(canvas != NULL);
-//     EventHolder* events = (EventHolder*)ev.user_data;
-//     ASSERT(events != NULL);
-//     events->button = ev;
-// }
-
-// static void _move_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     ASSERT(canvas != NULL);
-//     EventHolder* events = (EventHolder*)ev.user_data;
-//     ASSERT(events != NULL);
-//     events->move = ev;
-// }
-
-// static void _timer_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     log_trace("timer callback #%d time %.3f", ev.u.t.idx, ev.u.t.time);
-//     ASSERT(canvas != NULL);
-//     EventHolder* events = (EventHolder*)ev.user_data;
-//     ASSERT(events != NULL);
-//     events->timer = ev;
-// }
-
-// static void _frame_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     ASSERT(canvas != NULL);
-//     log_trace(
-//         "canvas #%d, frame callback #%d, time %.6f, interval %.6f", //
-//         canvas->obj.id, ev.u.f.idx, ev.u.f.time, ev.u.f.interval);
-//     EventHolder* events = (EventHolder*)ev.user_data;
-//     ASSERT(events != NULL);
-//     events->frame = ev;
-// }
-
-// static void _key_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     ASSERT(canvas != NULL);
-//     log_debug("key code %d", ev.u.k.key_code);
-//     EventHolder* events = (EventHolder*)ev.user_data;
-//     ASSERT(events != NULL);
-//     events->key = ev;
-// }
-
-
-
-// int test_canvas_events(TestContext* tc)
-// {
-//     DvzApp* app = tc->app;
-//     OFFSCREEN_SKIP
-
-//     DvzGpu* gpu = dvz_gpu_best(app);
-//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, DVZ_CANVAS_FLAGS_FPS);
-
-//     EventHolder events = {0};
-//     dvz_event_callback( //
-//         canvas, DVZ_EVENT_INIT, 0, DVZ_EVENT_MODE_SYNC, _init_callback, &events);
-//     dvz_event_callback( //
-//         canvas, DVZ_EVENT_TIMER, .00001, DVZ_EVENT_MODE_SYNC, _timer_callback, &events);
-//     dvz_event_callback( //
-//         canvas, DVZ_EVENT_FRAME, 0, DVZ_EVENT_MODE_SYNC, _frame_callback, &events);
-//     dvz_event_callback( //
-//         canvas, DVZ_EVENT_KEY_PRESS, 0, DVZ_EVENT_MODE_SYNC, _key_callback, &events);
-//     dvz_event_callback( //
-//         canvas, DVZ_EVENT_MOUSE_WHEEL, 0, DVZ_EVENT_MODE_SYNC, _wheel_callback, &events);
-//     dvz_event_callback( //
-//         canvas, DVZ_EVENT_MOUSE_MOVE, 0, DVZ_EVENT_MODE_SYNC, _move_callback, &events);
-//     dvz_event_callback( //
-//         canvas, DVZ_EVENT_MOUSE_PRESS, 0, DVZ_EVENT_MODE_SYNC, _button_callback, &events);
-
-//     dvz_app_run(app, N_FRAMES);
-
-//     // Init, timer, frame events.
-//     AT(events.init.type == DVZ_EVENT_INIT);
-//     AT(events.timer.u.t.idx > 0);
-//     AT(events.frame.u.f.idx == 4);
-
-//     // Key press.
-//     dvz_event_key_press(canvas, DVZ_KEY_A, 0);
-//     // dvz_app_run(app, 3);
-//     AT(events.key.u.k.key_code == DVZ_KEY_A);
-
-//     // Mouse wheel.
-//     vec2 pos = {10, 10};
-//     vec2 dir = {0, -2};
-//     dvz_event_mouse_wheel(canvas, pos, dir, 0);
-//     // dvz_app_run(app, 3);
-//     ACn(2, events.wheel.u.w.dir, dir, EPS);
-
-//     // Mouse move.
-//     pos[0] = 20;
-//     dvz_event_mouse_move(canvas, pos, 0);
-//     // dvz_app_run(app, 3);
-//     ACn(2, events.move.u.m.pos, pos, EPS);
-
-//     // Mouse press.
-//     dvz_event_mouse_press(canvas, DVZ_MOUSE_BUTTON_LEFT, 0);
-//     AT(events.button.u.b.button == DVZ_MOUSE_BUTTON_LEFT);
-
-//     // TODO: more events.
-
-//     dvz_canvas_destroy(canvas);
-//     return 0;
-// }
-
-
-
-// static void _gui_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     ASSERT(canvas != NULL);
-//     if (ev.u.g.control->type == DVZ_GUI_CONTROL_SLIDER_FLOAT)
-//     {
-//         float* value = ev.u.g.control->value;
-//         log_info("value is %.3f", *value);
-//     }
-//     if (ev.u.g.control->type == DVZ_GUI_CONTROL_SLIDER_INT)
-//     {
-//         int* value = ev.u.g.control->value;
-//         log_info("value is %d", *value);
-//     }
-//     if (ev.u.g.control->type == DVZ_GUI_CONTROL_CHECKBOX)
-//     {
-//         bool* value = ev.u.g.control->value;
-//         log_info("value is %s", (*value) ? "checked" : "unchecked");
-//     }
-//     if (ev.u.g.control->type == DVZ_GUI_CONTROL_BUTTON)
-//     {
-//         log_info("button pressed");
-//     }
-// }
-
-// int test_canvas_gui(TestContext* tc)
-// {
-//     DvzApp* app = tc->app;
-//     OFFSCREEN_SKIP
-
-//     DvzGpu* gpu = dvz_gpu_best(app);
-//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, DVZ_CANVAS_FLAGS_IMGUI);
-
-//     // Make a simple GUI.
-//     DvzGui* gui = dvz_gui(canvas, "Hello world", 0);
-
-//     dvz_gui_label(gui, "label", "hello world!");
-//     dvz_gui_checkbox(gui, "my checkbox", true);
-//     dvz_gui_slider_float(gui, "my slider 1", 0.0f, 1.0f, .5);
-//     dvz_gui_slider_float2(gui, "my slider bis", 0.0f, 1.0f, (vec2){.25, .75}, true);
-//     dvz_gui_slider_int(gui, "my slider 2", 10, 20, 10);
-//     dvz_gui_input_float(gui, "enter a float", 1, 10, 0);
-//     dvz_gui_textbox(gui, "textbox", "some text");
-//     dvz_gui_button(gui, "my button", 0);
-//     dvz_gui_colormap(gui, DVZ_CMAP_VIRIDIS);
-
-//     dvz_event_callback(canvas, DVZ_EVENT_GUI, 0, DVZ_EVENT_MODE_SYNC, _gui_callback, NULL);
-
-//     dvz_app_run(app, N_FRAMES);
-//     int res = check_canvas(canvas, "test_canvas_gui");
-
-//     dvz_canvas_destroy(canvas);
-//     return res;
-// }
-
-
-
-// static void _frame_screencast_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     ASSERT(canvas != NULL);
-//     cvec4 color = {0};
-//     dvz_colormap(DVZ_CMAP_HSV, (ev.u.f.idx / 3) % 256, color);
-//     dvz_canvas_clear_color(canvas, color[0] / 255.0, color[1] / 255.0, color[2] / 255.0);
-// }
-
-// static void _screencast_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     ASSERT(canvas != NULL); //
-//     bool ok = false;
-//     cvec4 color = {0};
-//     dvz_colormap(DVZ_CMAP_HSV, (canvas->frame_idx / 3) % 256, color);
-
-//     // log_info("%d %d %d %d", color[0], color[1], color[2], color[3]);
-//     // log_info("%d %d %d %d", ev.u.sc.rgba[0], ev.u.sc.rgba[1], ev.u.sc.rgba[2],
-//     ev.u.sc.rgba[3]);
-
-//     ok =
-//         (abs((int)color[0] - (int)ev.u.sc.rgba[0]) <= 16 &&
-//          abs((int)color[1] - (int)ev.u.sc.rgba[1]) <= 16 &&
-//          abs((int)color[2] - (int)ev.u.sc.rgba[2]) <= 16);
-
-//     FREE(ev.u.sc.rgba);
-//     if (((int*)ev.user_data)[0] == 0)
-//         ((int*)ev.user_data)[0] = ok ? 0 : 1;
-// }
-
-// int test_canvas_screencast(TestContext* tc)
-// {
-//     DvzApp* app = tc->app;
-
-//     // TODO: fix screencast/video in offscreen mode
-//     OFFSCREEN_SKIP
-
-//     DvzGpu* gpu = dvz_gpu_best(app);
-//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
-//     dvz_canvas_clear_color(canvas, 0, 1, 0);
-
-//     dvz_event_callback(
-//         canvas, DVZ_EVENT_FRAME, 0, DVZ_EVENT_MODE_SYNC, _frame_screencast_callback, NULL);
-
-//     int res = 0;
-//     dvz_event_callback(
-//         canvas, DVZ_EVENT_SCREENCAST, 0, DVZ_EVENT_MODE_SYNC, _screencast_callback, &res);
-//     AT(res == 0);
-
-//     dvz_screencast(canvas, 1.0 / 30.0, false);
-
-//     dvz_app_run(app, 60);
-
-//     dvz_canvas_destroy(canvas);
-//     return res;
-// }
-
-
-
-// static void _video_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     ASSERT(canvas != NULL);
-//     cvec4 color = {0};
-//     dvz_colormap(DVZ_CMAP_HSV, ev.u.t.idx % 256, color);
-//     dvz_canvas_clear_color(canvas, color[0] / 255.0, color[1] / 255.0, color[2] / 255.0);
-// }
-
-// static void _video_read_callback(int frame_idx, int width, int height, int wrap, uint8_t* image)
-// {
-//     log_info("%d", frame_idx);
-// }
-
-// int test_canvas_video(TestContext* tc)
-// {
-//     DvzApp* app = tc->app;
-
-//     // TODO: fix screencast/video in offscreen mode
-//     OFFSCREEN_SKIP
-
-//     DvzGpu* gpu = dvz_gpu_best(app);
-//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
-//     dvz_canvas_clear_color(canvas, 1, 0, 0);
-
-//     dvz_event_callback(canvas, DVZ_EVENT_TIMER, 0.01, DVZ_EVENT_MODE_SYNC, _video_callback,
-//     NULL);
-
-// #if HAS_FFMPEG
-//     char path[1024];
-//     snprintf(path, sizeof(path), "%s/test_canvas_video.mp4", ARTIFACTS_DIR);
-//     dvz_canvas_video(canvas, 30, 10000000, path, true);
-
-//     dvz_app_run(app, 120);
-//     dvz_canvas_stop(canvas);
-
-//     AT(file_exists(path))
-//     AT(file_size(path) > 4096)
-
-//     // // Try to open the video file.
-//     // Video* video = read_video(path);
-//     // read_frames(video, _video_read_callback);
-//     // close_video(video);
-
-// #else
-//     log_warn("skipping ffmpeg video, datoviz was not compiled with ffmpeg support");
-// #endif
-
-//     dvz_canvas_destroy(canvas);
-//     return 0;
-// }
-
-
-
 // /*************************************************************************************************/
 // /*  Canvas with triangle */
 // /*************************************************************************************************/
-
-// int test_canvas_triangle_1(TestContext* tc)
-// {
-//     DvzApp* app = tc->app;
-//     DvzGpu* gpu = dvz_gpu_best(app);
-//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
-//     TestVisual visual = triangle(canvas, "");
-
-//     // Bindings and graphics pipeline.
-//     visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
-//     dvz_bindings_update(&visual.bindings);
-//     dvz_graphics_create(&visual.graphics);
-
-//     // Triangle data.
-//     triangle_upload(canvas, &visual);
-
-//     // Run.
-//     dvz_event_callback(canvas, DVZ_EVENT_REFILL, 0, DVZ_EVENT_MODE_SYNC, triangle_refill,
-//     &visual); dvz_app_run(app, N_FRAMES);
-
-//     // Check screenshot.
-//     int res = check_canvas(canvas, "test_canvas_triangle_1");
-
-//     // Destroy.
-//     destroy_visual(&visual);
-//     dvz_canvas_destroy(canvas);
-
-//     return res;
-// }
-
-
-
-// int test_canvas_triangle_resize(TestContext* tc)
-// {
-//     DvzApp* app = tc->app;
-
-//     OFFSCREEN_SKIP
-
-//     DvzGpu* gpu = dvz_gpu_best(app);
-//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
-//     TestVisual visual = triangle(canvas, "");
-
-//     // Bindings and graphics pipeline.
-//     visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
-//     dvz_bindings_update(&visual.bindings);
-//     dvz_graphics_create(&visual.graphics);
-
-//     // Triangle data.
-//     triangle_upload(canvas, &visual);
-
-//     // Run.
-//     dvz_event_callback(canvas, DVZ_EVENT_REFILL, 0, DVZ_EVENT_MODE_SYNC, triangle_refill,
-//     &visual); dvz_app_run(app, N_FRAMES);
-
-//     // Resize to a smaller size.
-//     dvz_canvas_resize(canvas, WIDTH / 2, HEIGHT / 2);
-//     dvz_app_run(app, 20);
-//     int res = check_canvas(canvas, "test_canvas_triangle_resize_1");
-
-//     // Resize to a larger size.
-//     dvz_app_wait(canvas->app);
-//     dvz_canvas_resize(canvas, 1000, 1000);
-//     dvz_app_run(app, 20);
-//     res = res || check_canvas(canvas, "test_canvas_triangle_resize_2");
-
-//     // Destroy.
-//     destroy_visual(&visual);
-//     dvz_canvas_destroy(canvas);
-
-//     return res;
-// }
-
 
 
 // int test_canvas_triangle_offscreen(TestContext* tc)
@@ -1117,5 +715,341 @@ int test_run_triangle(TestContext* tc)
 //     // Destroy.
 //     destroy_visual(&visual);
 //     dvz_canvas_destroy(canvas);
+//     return res;
+// }
+
+
+
+// static void _init_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     log_debug("init event for canvas");
+//     ASSERT(canvas != NULL);
+//     EventHolder* events = (EventHolder*)ev.user_data;
+//     ASSERT(events != NULL);
+//     events->init = ev;
+// }
+
+// static void _wheel_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     log_debug("wheel %.3f", ev.u.w.dir[1]);
+//     ASSERT(canvas != NULL);
+//     EventHolder* events = (EventHolder*)ev.user_data;
+//     ASSERT(events != NULL);
+//     events->wheel = ev;
+// }
+
+// static void _button_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     log_debug("clicked %d mods %d", ev.u.b.button, ev.u.b.modifiers);
+//     ASSERT(canvas != NULL);
+//     EventHolder* events = (EventHolder*)ev.user_data;
+//     ASSERT(events != NULL);
+//     events->button = ev;
+// }
+
+// static void _move_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     ASSERT(canvas != NULL);
+//     EventHolder* events = (EventHolder*)ev.user_data;
+//     ASSERT(events != NULL);
+//     events->move = ev;
+// }
+
+// static void _timer_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     log_trace("timer callback #%d time %.3f", ev.u.t.idx, ev.u.t.time);
+//     ASSERT(canvas != NULL);
+//     EventHolder* events = (EventHolder*)ev.user_data;
+//     ASSERT(events != NULL);
+//     events->timer = ev;
+// }
+
+// static void _frame_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     ASSERT(canvas != NULL);
+//     log_trace(
+//         "canvas #%d, frame callback #%d, time %.6f, interval %.6f", //
+//         canvas->obj.id, ev.u.f.idx, ev.u.f.time, ev.u.f.interval);
+//     EventHolder* events = (EventHolder*)ev.user_data;
+//     ASSERT(events != NULL);
+//     events->frame = ev;
+// }
+
+// static void _key_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     ASSERT(canvas != NULL);
+//     log_debug("key code %d", ev.u.k.key_code);
+//     EventHolder* events = (EventHolder*)ev.user_data;
+//     ASSERT(events != NULL);
+//     events->key = ev;
+// }
+
+
+
+// int test_canvas_events(TestContext* tc)
+// {
+//     DvzApp* app = tc->app;
+//     OFFSCREEN_SKIP
+
+//     DvzGpu* gpu = dvz_gpu_best(app);
+//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, DVZ_CANVAS_FLAGS_FPS);
+
+//     EventHolder events = {0};
+//     dvz_event_callback( //
+//         canvas, DVZ_EVENT_INIT, 0, DVZ_EVENT_MODE_SYNC, _init_callback, &events);
+//     dvz_event_callback( //
+//         canvas, DVZ_EVENT_TIMER, .00001, DVZ_EVENT_MODE_SYNC, _timer_callback, &events);
+//     dvz_event_callback( //
+//         canvas, DVZ_EVENT_FRAME, 0, DVZ_EVENT_MODE_SYNC, _frame_callback, &events);
+//     dvz_event_callback( //
+//         canvas, DVZ_EVENT_KEY_PRESS, 0, DVZ_EVENT_MODE_SYNC, _key_callback, &events);
+//     dvz_event_callback( //
+//         canvas, DVZ_EVENT_MOUSE_WHEEL, 0, DVZ_EVENT_MODE_SYNC, _wheel_callback, &events);
+//     dvz_event_callback( //
+//         canvas, DVZ_EVENT_MOUSE_MOVE, 0, DVZ_EVENT_MODE_SYNC, _move_callback, &events);
+//     dvz_event_callback( //
+//         canvas, DVZ_EVENT_MOUSE_PRESS, 0, DVZ_EVENT_MODE_SYNC, _button_callback, &events);
+
+//     dvz_app_run(app, N_FRAMES);
+
+//     // Init, timer, frame events.
+//     AT(events.init.type == DVZ_EVENT_INIT);
+//     AT(events.timer.u.t.idx > 0);
+//     AT(events.frame.u.f.idx == 4);
+
+//     // Key press.
+//     dvz_event_key_press(canvas, DVZ_KEY_A, 0);
+//     // dvz_app_run(app, 3);
+//     AT(events.key.u.k.key_code == DVZ_KEY_A);
+
+//     // Mouse wheel.
+//     vec2 pos = {10, 10};
+//     vec2 dir = {0, -2};
+//     dvz_event_mouse_wheel(canvas, pos, dir, 0);
+//     // dvz_app_run(app, 3);
+//     ACn(2, events.wheel.u.w.dir, dir, EPS);
+
+//     // Mouse move.
+//     pos[0] = 20;
+//     dvz_event_mouse_move(canvas, pos, 0);
+//     // dvz_app_run(app, 3);
+//     ACn(2, events.move.u.m.pos, pos, EPS);
+
+//     // Mouse press.
+//     dvz_event_mouse_press(canvas, DVZ_MOUSE_BUTTON_LEFT, 0);
+//     AT(events.button.u.b.button == DVZ_MOUSE_BUTTON_LEFT);
+
+//     // TODO: more events.
+
+//     dvz_canvas_destroy(canvas);
+//     return 0;
+// }
+
+
+
+// static void _gui_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     ASSERT(canvas != NULL);
+//     if (ev.u.g.control->type == DVZ_GUI_CONTROL_SLIDER_FLOAT)
+//     {
+//         float* value = ev.u.g.control->value;
+//         log_info("value is %.3f", *value);
+//     }
+//     if (ev.u.g.control->type == DVZ_GUI_CONTROL_SLIDER_INT)
+//     {
+//         int* value = ev.u.g.control->value;
+//         log_info("value is %d", *value);
+//     }
+//     if (ev.u.g.control->type == DVZ_GUI_CONTROL_CHECKBOX)
+//     {
+//         bool* value = ev.u.g.control->value;
+//         log_info("value is %s", (*value) ? "checked" : "unchecked");
+//     }
+//     if (ev.u.g.control->type == DVZ_GUI_CONTROL_BUTTON)
+//     {
+//         log_info("button pressed");
+//     }
+// }
+
+// int test_canvas_gui(TestContext* tc)
+// {
+//     DvzApp* app = tc->app;
+//     OFFSCREEN_SKIP
+
+//     DvzGpu* gpu = dvz_gpu_best(app);
+//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, DVZ_CANVAS_FLAGS_IMGUI);
+
+//     // Make a simple GUI.
+//     DvzGui* gui = dvz_gui(canvas, "Hello world", 0);
+
+//     dvz_gui_label(gui, "label", "hello world!");
+//     dvz_gui_checkbox(gui, "my checkbox", true);
+//     dvz_gui_slider_float(gui, "my slider 1", 0.0f, 1.0f, .5);
+//     dvz_gui_slider_float2(gui, "my slider bis", 0.0f, 1.0f, (vec2){.25, .75}, true);
+//     dvz_gui_slider_int(gui, "my slider 2", 10, 20, 10);
+//     dvz_gui_input_float(gui, "enter a float", 1, 10, 0);
+//     dvz_gui_textbox(gui, "textbox", "some text");
+//     dvz_gui_button(gui, "my button", 0);
+//     dvz_gui_colormap(gui, DVZ_CMAP_VIRIDIS);
+
+//     dvz_event_callback(canvas, DVZ_EVENT_GUI, 0, DVZ_EVENT_MODE_SYNC, _gui_callback, NULL);
+
+//     dvz_app_run(app, N_FRAMES);
+//     int res = check_canvas(canvas, "test_canvas_gui");
+
+//     dvz_canvas_destroy(canvas);
+//     return res;
+// }
+
+
+
+// static void _frame_screencast_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     ASSERT(canvas != NULL);
+//     cvec4 color = {0};
+//     dvz_colormap(DVZ_CMAP_HSV, (ev.u.f.idx / 3) % 256, color);
+//     dvz_canvas_clear_color(canvas, color[0] / 255.0, color[1] / 255.0, color[2] / 255.0);
+// }
+
+// static void _screencast_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     ASSERT(canvas != NULL); //
+//     bool ok = false;
+//     cvec4 color = {0};
+//     dvz_colormap(DVZ_CMAP_HSV, (canvas->frame_idx / 3) % 256, color);
+
+//     // log_info("%d %d %d %d", color[0], color[1], color[2], color[3]);
+//     // log_info("%d %d %d %d", ev.u.sc.rgba[0], ev.u.sc.rgba[1], ev.u.sc.rgba[2],
+//     ev.u.sc.rgba[3]);
+
+//     ok =
+//         (abs((int)color[0] - (int)ev.u.sc.rgba[0]) <= 16 &&
+//          abs((int)color[1] - (int)ev.u.sc.rgba[1]) <= 16 &&
+//          abs((int)color[2] - (int)ev.u.sc.rgba[2]) <= 16);
+
+//     FREE(ev.u.sc.rgba);
+//     if (((int*)ev.user_data)[0] == 0)
+//         ((int*)ev.user_data)[0] = ok ? 0 : 1;
+// }
+
+// int test_canvas_screencast(TestContext* tc)
+// {
+//     DvzApp* app = tc->app;
+
+//     // TODO: fix screencast/video in offscreen mode
+//     OFFSCREEN_SKIP
+
+//     DvzGpu* gpu = dvz_gpu_best(app);
+//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
+//     dvz_canvas_clear_color(canvas, 0, 1, 0);
+
+//     dvz_event_callback(
+//         canvas, DVZ_EVENT_FRAME, 0, DVZ_EVENT_MODE_SYNC, _frame_screencast_callback, NULL);
+
+//     int res = 0;
+//     dvz_event_callback(
+//         canvas, DVZ_EVENT_SCREENCAST, 0, DVZ_EVENT_MODE_SYNC, _screencast_callback, &res);
+//     AT(res == 0);
+
+//     dvz_screencast(canvas, 1.0 / 30.0, false);
+
+//     dvz_app_run(app, 60);
+
+//     dvz_canvas_destroy(canvas);
+//     return res;
+// }
+
+
+
+// static void _video_callback(DvzCanvas* canvas, DvzEvent ev)
+// {
+//     ASSERT(canvas != NULL);
+//     cvec4 color = {0};
+//     dvz_colormap(DVZ_CMAP_HSV, ev.u.t.idx % 256, color);
+//     dvz_canvas_clear_color(canvas, color[0] / 255.0, color[1] / 255.0, color[2] / 255.0);
+// }
+
+// static void _video_read_callback(int frame_idx, int width, int height, int wrap, uint8_t* image)
+// {
+//     log_info("%d", frame_idx);
+// }
+
+// int test_canvas_video(TestContext* tc)
+// {
+//     DvzApp* app = tc->app;
+
+//     // TODO: fix screencast/video in offscreen mode
+//     OFFSCREEN_SKIP
+
+//     DvzGpu* gpu = dvz_gpu_best(app);
+//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
+//     dvz_canvas_clear_color(canvas, 1, 0, 0);
+
+//     dvz_event_callback(canvas, DVZ_EVENT_TIMER, 0.01, DVZ_EVENT_MODE_SYNC, _video_callback,
+//     NULL);
+
+// #if HAS_FFMPEG
+//     char path[1024];
+//     snprintf(path, sizeof(path), "%s/test_canvas_video.mp4", ARTIFACTS_DIR);
+//     dvz_canvas_video(canvas, 30, 10000000, path, true);
+
+//     dvz_app_run(app, 120);
+//     dvz_canvas_stop(canvas);
+
+//     AT(file_exists(path))
+//     AT(file_size(path) > 4096)
+
+//     // // Try to open the video file.
+//     // Video* video = read_video(path);
+//     // read_frames(video, _video_read_callback);
+//     // close_video(video);
+
+// #else
+//     log_warn("skipping ffmpeg video, datoviz was not compiled with ffmpeg support");
+// #endif
+
+//     dvz_canvas_destroy(canvas);
+//     return 0;
+// }
+
+
+
+// int test_canvas_triangle_resize(TestContext* tc)
+// {
+//     DvzApp* app = tc->app;
+
+//     OFFSCREEN_SKIP
+
+//     DvzGpu* gpu = dvz_gpu_best(app);
+//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
+//     TestVisual visual = triangle(canvas, "");
+
+//     // Bindings and graphics pipeline.
+//     visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
+//     dvz_bindings_update(&visual.bindings);
+//     dvz_graphics_create(&visual.graphics);
+
+//     // Triangle data.
+//     triangle_upload(canvas, &visual);
+
+//     // Run.
+//     dvz_event_callback(canvas, DVZ_EVENT_REFILL, 0, DVZ_EVENT_MODE_SYNC, triangle_refill,
+//     &visual); dvz_app_run(app, N_FRAMES);
+
+//     // Resize to a smaller size.
+//     dvz_canvas_resize(canvas, WIDTH / 2, HEIGHT / 2);
+//     dvz_app_run(app, 20);
+//     int res = check_canvas(canvas, "test_canvas_triangle_resize_1");
+
+//     // Resize to a larger size.
+//     dvz_app_wait(canvas->app);
+//     dvz_canvas_resize(canvas, 1000, 1000);
+//     dvz_app_run(app, 20);
+//     res = res || check_canvas(canvas, "test_canvas_triangle_resize_2");
+
+//     // Destroy.
+//     destroy_visual(&visual);
+//     dvz_canvas_destroy(canvas);
+
 //     return res;
 // }

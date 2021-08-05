@@ -544,7 +544,8 @@ static bool backend_window_should_close(DvzBackend backend, void* window)
     switch (backend)
     {
     case DVZ_BACKEND_GLFW:;
-        return glfwWindowShouldClose(window);
+        if (window != NULL)
+            return glfwWindowShouldClose(window);
         break;
     default:
         break;
