@@ -545,6 +545,37 @@ static DvzContainerIterator dvz_container_iterator(DvzContainer* container)
 }
 
 /**
+ * Return the n-th created object.
+ *
+ * @param container the container
+ * @param idx the index of the object within the container
+ * @param returns a pointer to the created object at the specified index
+ */
+static void* dvz_container_get_created(DvzContainer* container, uint32_t idx)
+{
+    ASSERT(container != NULL);
+    ASSERT(container->items != NULL);
+    DvzContainerIterator iter = dvz_container_iterator(container);
+    DvzObject* obj = NULL;
+    uint32_t n = 0;
+    while (iter.item != NULL)
+    {
+        // WARNING: we assume that every item in the container is a struct for which the first item
+        // is a DvzObject.
+        obj = (DvzObject*)iter.item;
+        ASSERT(obj != NULL);
+        if (dvz_obj_is_created(obj))
+        {
+            if (n == idx)
+                return obj;
+            n++;
+        }
+        dvz_container_iter(&iter);
+    }
+    return NULL;
+}
+
+/**
  * Destroy a container.
  *
  * Free all remaining objects, as well as the container itself.
