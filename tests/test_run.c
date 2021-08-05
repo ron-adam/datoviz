@@ -1,5 +1,6 @@
 #include "../include/datoviz/canvas.h"
 #include "../include/datoviz/run.h"
+#include "../src/run_utils.h"
 #include "proto.h"
 #include "tests.h"
 
@@ -292,98 +293,81 @@ int test_run_offscreen(TestContext* tc)
 
 
 
-// /*************************************************************************************************/
-// /*  Canvas with triangle */
-// /*************************************************************************************************/
+static void _push_cursor_callback(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    DvzCanvas* canvas = (DvzCanvas*)user_data;
+    ASSERT(canvas != NULL);
+    ASSERT(canvas->app != NULL);
+    ASSERT(canvas->app->run != NULL);
 
+    uvec2 size = {0};
+    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
+    ASSERT(size[0] > 0);
+    ASSERT(size[1] > 0);
 
-// int test_canvas_triangle_offscreen(TestContext* tc)
-// {
-//     DvzApp* app = dvz_app(DVZ_BACKEND_OFFSCREEN);
-//     DvzGpu* gpu = dvz_gpu_best(app);
-//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
-//     TestVisual visual = triangle(canvas, "");
+    double x = ev.m.pos[0] / (double)size[0];
+    double y = ev.m.pos[1] / (double)size[1];
 
-//     // Bindings and graphics pipeline.
-//     visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
-//     dvz_bindings_update(&visual.bindings);
-//     dvz_graphics_create(&visual.graphics);
+    float* push_vec = (float*)canvas->user_data;
+    ASSERT(push_vec != NULL);
+    push_vec[0] = x;
+    push_vec[1] = y;
+    push_vec[2] = 1;
 
-//     // Triangle data.
-//     triangle_upload(canvas, &visual);
+    _enqueue_to_refill(canvas->app->run, canvas);
+}
 
-//     // Run.
-//     dvz_event_callback(canvas, DVZ_EVENT_REFILL, 0, DVZ_EVENT_MODE_SYNC, triangle_refill,
-//     &visual); dvz_app_run(app, N_FRAMES);
+int test_run_push(TestContext* tc)
+{
+    DvzApp* app = tc->app;
+    DvzGpu* gpu = dvz_gpu_best(app);
 
-//     // Check screenshot.
-//     int res = check_canvas(canvas, "test_canvas_triangle_offscreen");
+    // Create a canvas.
+    DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
+    dvz_canvas_create(canvas);
 
-//     // Destroy.
-//     destroy_visual(&visual);
-//     dvz_canvas_destroy(canvas);
-//     dvz_app_destroy(app);
+    // Triangle visual.
+    TestVisual visual = triangle(canvas, "_push");
 
-//     return res;
-// }
+    // Push constant.
+    vec3 push_vec = {1, 1, 1};
 
+    // Bindings and graphics pipeline.
+    dvz_graphics_push(&visual.graphics, 0, sizeof(vec3), VK_SHADER_STAGE_VERTEX_BIT);
+    visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
+    dvz_bindings_update(&visual.bindings);
+    dvz_graphics_create(&visual.graphics);
+    // HACK: for testing, this is where we put the push constant data for the command buffer.
+    visual.graphics.user_data = &push_vec;
+    canvas->user_data = &push_vec;
 
+    // Triangle data.
+    triangle_upload(canvas, &visual);
 
-// static void _push_cursor_callback(DvzCanvas* canvas, DvzEvent ev)
-// {
-//     ASSERT(canvas != NULL);
-//     uvec2 size = {0};
-//     dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
-//     double x = ev.u.m.pos[0] / (double)size[0];
-//     double y = ev.u.m.pos[1] / (double)size[1];
-//     float* push_vec = (float*)canvas->user_data;
-//     push_vec[0] = x;
-//     push_vec[1] = y;
-//     push_vec[2] = 1;
-//     dvz_canvas_to_refill(canvas);
-// }
+    // Create a run instance.
+    DvzRun* run = dvz_run(app);
 
-// int test_canvas_triangle_push(TestContext* tc)
-// {
-//     DvzApp* app = tc->app;
-//     DvzGpu* gpu = dvz_gpu_best(app);
-//     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
-//     dvz_mouse_toggle(&canvas->mouse, false);
-//     TestVisual visual = triangle(canvas, "_push");
+    // Refill callback.
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _refill_callback_triangle,
+        &visual);
 
-//     // Bindings and graphics pipeline.
-//     dvz_graphics_push(&visual.graphics, 0, sizeof(vec3), VK_SHADER_STAGE_VERTEX_BIT);
-//     visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
-//     dvz_bindings_update(&visual.bindings);
-//     dvz_graphics_create(&visual.graphics);
+    // Push constant callback.
+    dvz_input_callback(&canvas->input, DVZ_INPUT_MOUSE_MOVE, _push_cursor_callback, canvas);
 
-//     // Triangle data.
-//     triangle_upload(canvas, &visual);
+    // Event loop.
+    dvz_run_loop(run, N_FRAMES);
 
-//     // Push constant.
-//     vec3 push_vec = {0};
-//     visual.graphics.user_data = &push_vec;
-//     canvas->user_data = &push_vec;
+    // Simulate move mouse.
+    // vec2 pos = {WIDTH / 2, HEIGHT / 2};
+    // TODO
 
-//     // Run.
-//     dvz_event_callback(canvas, DVZ_EVENT_REFILL, 0, DVZ_EVENT_MODE_SYNC, triangle_refill,
-//     &visual); dvz_event_callback(
-//         canvas, DVZ_EVENT_MOUSE_MOVE, 0, DVZ_EVENT_MODE_SYNC, _push_cursor_callback, NULL);
-//     dvz_app_run(app, N_FRAMES);
+    int res = check_canvas(canvas, "test_run_push");
 
-//     // Move mouse.
-//     vec2 pos = {WIDTH / 2, HEIGHT / 2};
-//     dvz_event_mouse_move(canvas, pos, 0);
-//     dvz_app_run(app, N_FRAMES);
-
-//     // Check screenshot.
-//     int res = check_canvas(canvas, "test_canvas_triangle_push");
-
-//     // Destroy.
-//     destroy_visual(&visual);
-//     dvz_canvas_destroy(canvas);
-//     return res;
-// }
+    destroy_visual(&visual);
+    dvz_canvas_destroy(canvas);
+    return res;
+}
 
 
 
