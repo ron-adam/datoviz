@@ -243,10 +243,51 @@ int test_run_triangle(TestContext* tc)
     // Event loop.
     dvz_run_loop(run, N_FRAMES);
 
-    destroy_visual(&visual);
+    int res = check_canvas(canvas, "test_run_triangle");
 
+    destroy_visual(&visual);
     dvz_canvas_destroy(canvas);
-    return 0;
+    return res;
+}
+
+
+
+int test_run_offscreen(TestContext* tc)
+{
+    DvzApp* app = tc->app;
+    DvzGpu* gpu = dvz_gpu_best(app);
+
+    // Create a canvas.
+    DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, DVZ_CANVAS_FLAGS_OFFSCREEN);
+    dvz_canvas_create(canvas);
+
+    // Triangle visual.
+    TestVisual visual = triangle(canvas, "");
+
+    // Bindings and graphics pipeline.
+    visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
+    dvz_bindings_update(&visual.bindings);
+    dvz_graphics_create(&visual.graphics);
+
+    // Triangle data.
+    triangle_upload(canvas, &visual);
+
+    // Create a run instance.
+    DvzRun* run = dvz_run(app);
+
+    // Refill callback.
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _refill_callback_triangle,
+        &visual);
+
+    // Event loop.
+    dvz_run_loop(run, N_FRAMES);
+
+    int res = check_canvas(canvas, "test_run_offscreen");
+
+    destroy_visual(&visual);
+    dvz_canvas_destroy(canvas);
+    return res;
 }
 
 
