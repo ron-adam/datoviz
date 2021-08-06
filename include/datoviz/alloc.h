@@ -80,23 +80,6 @@ static inline void _check_offset_alignment(DvzAlloc* alloc, VkDeviceSize offset)
 
 
 
-static inline DvzAllocSlot* _get_slot(DvzAlloc* alloc, VkDeviceSize offset)
-{
-    ASSERT(alloc != NULL);
-    _check_offset_alignment(alloc, offset);
-    DvzAllocSlot* slot = NULL;
-    for (uint32_t i = 0; i < alloc->items.item_count; i++)
-    {
-        slot = (DvzAllocSlot*)dvz_array_item(&alloc->items, i);
-        if (slot->offset == offset)
-            return slot;
-    }
-    log_error("slot with offset %d not found in alloc", offset);
-    return NULL;
-}
-
-
-
 static inline uint32_t _slot_idx(DvzAlloc* alloc, DvzAllocSlot* slot)
 {
     ASSERT(alloc != NULL);
@@ -110,16 +93,21 @@ static inline uint32_t _slot_idx(DvzAlloc* alloc, DvzAllocSlot* slot)
 static inline VkDeviceSize _slot_size(DvzAlloc* alloc, DvzAllocSlot* slot)
 {
     ASSERT(alloc != NULL);
+    ASSERT(slot != NULL);
+
     uint32_t idx = _slot_idx(alloc, slot);
     VkDeviceSize size = 0;
     VkDeviceSize offset = 0;
     bool occupied = slot->occupied;
     DvzAllocSlot* cur = NULL;
 
+    // log_info("slot size of slot #%d at offset %d", idx, slot->offset);
+
     for (uint32_t i = idx + 1; i < alloc->items.item_count; i++)
     {
         cur = (DvzAllocSlot*)dvz_array_item(&alloc->items, i);
         offset = cur->offset;
+        // log_info("%d %d %d", i, offset, cur->occupied);
         _check_offset_alignment(alloc, offset);
         if (cur->occupied != occupied)
             break;
@@ -128,10 +116,31 @@ static inline VkDeviceSize _slot_size(DvzAlloc* alloc, DvzAllocSlot* slot)
         offset = alloc->size;
     ASSERT(offset >= slot->offset);
     _check_offset_alignment(alloc, offset);
+
     size = offset - slot->offset;
-    ASSERT(size > 0);
+
+    // NOTE: slots may be empty
+    // ASSERT(slot->offset < offset);
+
     _check_offset_alignment(alloc, size);
     return size;
+}
+
+
+
+static inline DvzAllocSlot* _get_slot(DvzAlloc* alloc, VkDeviceSize offset)
+{
+    ASSERT(alloc != NULL);
+    _check_offset_alignment(alloc, offset);
+    DvzAllocSlot* slot = NULL;
+    for (uint32_t i = 0; i < alloc->items.item_count; i++)
+    {
+        slot = (DvzAllocSlot*)dvz_array_item(&alloc->items, i);
+        if (slot->offset == offset && _slot_size(alloc, slot) > 0)
+            return slot;
+    }
+    log_error("slot with offset %d not found in alloc", offset);
+    return NULL;
 }
 
 
@@ -184,6 +193,19 @@ _insert_slot_after(DvzAlloc* alloc, DvzAllocSlot* slot, VkDeviceSize offset, boo
     uint32_t idx = _slot_idx(alloc, slot);
     DvzAllocSlot new_slot = {.occupied = occupied, .offset = offset};
     dvz_array_insert(&alloc->items, idx + 1, 1, &new_slot);
+}
+
+
+
+static inline void _show_alloc(DvzAlloc* alloc)
+{
+    ASSERT(alloc != NULL);
+    DvzAllocSlot* slot = NULL;
+    for (uint32_t i = 0; i < alloc->items.item_count; i++)
+    {
+        slot = (DvzAllocSlot*)dvz_array_item(&alloc->items, i);
+        log_info("item #%d: offset=%d (%d)", i, slot->offset, slot->occupied);
+    }
 }
 
 
@@ -267,6 +289,9 @@ dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize* resized)
         if (resized != NULL)
             *resized = alloc->size;
     }
+    ASSERT(slot != NULL);
+    ASSERT(slot->offset <= alloc->size);
+    VkDeviceSize offset = slot->offset;
 
     // Available slot found, possibly after resize.
     ASSERT(!slot->occupied);
@@ -283,7 +308,7 @@ dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize* resized)
         _insert_slot_after(alloc, slot, slot->offset + req_size, false);
     }
 
-    return slot->offset;
+    return offset;
 }
 
 

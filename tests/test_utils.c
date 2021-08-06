@@ -264,30 +264,32 @@ int test_utils_alloc_1(TestContext* tc)
 
 int test_utils_alloc_2(TestContext* tc)
 {
-    VkDeviceSize size = 64;
+    VkDeviceSize size = 32;
     VkDeviceSize alignment = 4;
     VkDeviceSize offset = 0;
     VkDeviceSize resized = 0;
 
-    // AT(_slot_size(&alloc, _get_slot(&alloc, offset)) == 4);
 
     DvzAlloc alloc = dvz_alloc(size, alignment);
     // [----|----|----|----|----|----|...
 
     offset = dvz_alloc_new(&alloc, 2, &resized);
+    // [XX--|----|----|----|----|----|...
     AT(offset == 0);
     AT(!resized);
-    // [XX--|----|----|----|----|----|...
+    AT(_slot_size(&alloc, _get_slot(&alloc, offset)) == 4);
 
     offset = dvz_alloc_new(&alloc, 2, &resized);
+    // [XX--|XX--|----|----|----|----|...
     AT(offset == 4);
     AT(!resized);
-    // [XX--|XX--|----|----|----|----|...
+    AT(_slot_size(&alloc, _get_slot(&alloc, offset)) == 4);
 
     offset = dvz_alloc_new(&alloc, 1, &resized);
     // [XX--|XX--|XX--|----|----|----|...
     AT(offset == 8);
     AT(!resized);
+    AT(_slot_size(&alloc, _get_slot(&alloc, offset)) == 4);
 
     dvz_alloc_free(&alloc, 4);
     // [XX--|----|XX--|----|----|----|...
@@ -296,12 +298,24 @@ int test_utils_alloc_2(TestContext* tc)
     // [XX--|XXX-|XX--|----|----|----|...
     AT(offset == 4);
     AT(!resized);
+    AT(_slot_size(&alloc, _get_slot(&alloc, offset)) == 4);
 
-    // offset = dvz_alloc_new(&alloc, 9, &resized);
-    // return 0;
-    // // [XX--|XXX-|XX--|XXXX|XXXX|X---|...
-    // AT(offset == 12);
-    // AT(!resized);
+    offset = dvz_alloc_new(&alloc, 13, &resized);
+    // [XX--|XXX-|XX--|XXXX|XXXX|XXXX|X---|----]
+    AT(offset == 12);
+    AT(!resized);
+    AT(_slot_size(&alloc, _get_slot(&alloc, 12)) == 16);
+
+    offset = dvz_alloc_new(&alloc, 5, &resized);
+    // [XX--|XXX-|XX--|XXXX|XXXX|XXXX|X---|XXXX] [X---|...
+    AT(resized);
+    AT(offset == 4 * 7);
+    AT(alloc.size == 2 * size);
+
+    offset = dvz_alloc_new(&alloc, 256, &resized);
+    // [XX--|XXX-|XX--|XXXX|XXXX|XXXX|X---|XXXX] [X---|...
+    AT(resized);
+    AT(offset == 36);
 
     dvz_alloc_destroy(&alloc);
     return 0;
