@@ -87,6 +87,7 @@ DvzGpu* dvz_gpu_best(DvzApp* app)
 
 void dvz_gpu_request_features(DvzGpu* gpu, VkPhysicalDeviceFeatures requested_features)
 {
+    ASSERT(gpu != NULL);
     gpu->requested_features = requested_features;
 }
 
@@ -107,6 +108,9 @@ void dvz_gpu_queue(DvzGpu* gpu, uint32_t idx, DvzQueueType type)
 
 void dvz_gpu_create(DvzGpu* gpu, VkSurfaceKHR surface)
 {
+    ASSERT(gpu != NULL);
+    ASSERT(gpu->app != NULL);
+
     if (gpu->queues.queue_count == 0)
     {
         log_error(
@@ -134,6 +138,15 @@ void dvz_gpu_create(DvzGpu* gpu, VkSurfaceKHR surface)
 
     // Create descriptor pool.
     create_descriptor_pool(gpu->device, &gpu->dset_pool);
+
+    // Create allocator.
+    VmaAllocatorCreateInfo allocatorInfo = {0};
+    allocatorInfo.vulkanApiVersion = DVZ_VULKAN_API;
+    allocatorInfo.physicalDevice = gpu->physical_device;
+    allocatorInfo.device = gpu->device;
+    allocatorInfo.instance = gpu->app->instance;
+    VmaAllocator allocator = {0};
+    vmaCreateAllocator(&allocatorInfo, &allocator);
 
     dvz_obj_created(&gpu->obj);
     log_trace("GPU #%d created", gpu->idx);
@@ -217,6 +230,9 @@ void dvz_gpu_destroy(DvzGpu* gpu)
         vkDestroyDescriptorPool(gpu->device, gpu->dset_pool, NULL);
         gpu->dset_pool = VK_NULL_HANDLE;
     }
+
+    // Destroy the allocator.
+    vmaDestroyAllocator(gpu->allocator);
 
     // Destroy the device.
     log_trace("destroy device");

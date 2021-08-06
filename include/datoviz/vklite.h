@@ -30,6 +30,8 @@ BEGIN_INCL_NO_WARN
 #include <cglm/struct.h>
 END_INCL_NO_WARN
 
+#include "../../external/vk_mem_alloc.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,6 +41,9 @@ extern "C" {
 /*************************************************************************************************/
 /*  Constants                                                                                    */
 /*************************************************************************************************/
+
+// TODO: update
+#define DVZ_VULKAN_API VK_API_VERSION_1_0
 
 #define DVZ_MAX_BINDINGS_SIZE    32
 #define DVZ_MAX_DESCRIPTOR_SETS  1024
@@ -350,6 +355,8 @@ struct DvzGpu
 
     VkPhysicalDeviceFeatures requested_features;
     VkDevice device;
+
+    VmaAllocator allocator;
 
     DvzContext* context;
 };
