@@ -130,6 +130,7 @@ static inline VkDeviceSize _slot_size(DvzAlloc* alloc, DvzAllocSlot* slot)
     _check_offset_alignment(alloc, offset);
     size = offset - slot->offset;
     ASSERT(size > 0);
+    _check_offset_alignment(alloc, size);
     return size;
 }
 
@@ -139,7 +140,10 @@ static inline bool _is_slot_available(DvzAlloc* alloc, DvzAllocSlot* slot, VkDev
 {
     ASSERT(alloc != NULL);
     ASSERT(req_size > 0);
-    return !slot->occupied && _slot_size(alloc, slot) >= req_size;
+    _check_offset_alignment(alloc, req_size);
+    VkDeviceSize size = _slot_size(alloc, slot);
+    _check_offset_alignment(alloc, size);
+    return !slot->occupied && size >= req_size;
 }
 
 
@@ -249,6 +253,7 @@ DVZ_INLINE VkDeviceSize
 dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize* resized)
 {
     ASSERT(alloc != NULL);
+    req_size = _align(req_size, alloc->alignment);
 
     // Try to find a slot available.
     DvzAllocSlot* slot = _find_slot_available(alloc, req_size);
@@ -275,7 +280,7 @@ dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize* resized)
     if (size > req_size)
     {
         // We need to append a new empty slot after the current one.
-        _insert_slot_after(alloc, slot, _align(req_size, alloc->alignment), false);
+        _insert_slot_after(alloc, slot, slot->offset + req_size, false);
     }
 
     return slot->offset;

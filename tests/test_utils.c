@@ -269,15 +269,39 @@ int test_utils_alloc_2(TestContext* tc)
     VkDeviceSize offset = 0;
     VkDeviceSize resized = 0;
 
+    // AT(_slot_size(&alloc, _get_slot(&alloc, offset)) == 4);
+
     DvzAlloc alloc = dvz_alloc(size, alignment);
+    // [----|----|----|----|----|----|...
 
     offset = dvz_alloc_new(&alloc, 2, &resized);
     AT(offset == 0);
     AT(!resized);
+    // [XX--|----|----|----|----|----|...
 
     offset = dvz_alloc_new(&alloc, 2, &resized);
     AT(offset == 4);
     AT(!resized);
+    // [XX--|XX--|----|----|----|----|...
+
+    offset = dvz_alloc_new(&alloc, 1, &resized);
+    // [XX--|XX--|XX--|----|----|----|...
+    AT(offset == 8);
+    AT(!resized);
+
+    dvz_alloc_free(&alloc, 4);
+    // [XX--|----|XX--|----|----|----|...
+
+    offset = dvz_alloc_new(&alloc, 3, &resized);
+    // [XX--|XXX-|XX--|----|----|----|...
+    AT(offset == 4);
+    AT(!resized);
+
+    // offset = dvz_alloc_new(&alloc, 9, &resized);
+    // return 0;
+    // // [XX--|XXX-|XX--|XXXX|XXXX|X---|...
+    // AT(offset == 12);
+    // AT(!resized);
 
     dvz_alloc_destroy(&alloc);
     return 0;
