@@ -377,13 +377,14 @@ file(GLOB sources
     "external/imgui/backends/imgui_impl_vulkan.*"
 )
 
-file(GLOB imgui_sources
+file(GLOB cpp_sources
+    "external/*.c*"
     "external/imgui/*.h*" "external/imgui/*.c*"
     "external/imgui/backends/imgui_impl_glfw.*"
     "external/imgui/backends/imgui_impl_vulkan.*"
 )
 
-set_source_files_properties(${imgui_sources} PROPERTIES COMPILE_FLAGS -w)
+set_source_files_properties(${cpp_sources} PROPERTIES COMPILE_FLAGS -w)
 add_library(datoviz SHARED ${sources} ${path_shadersc} ${path_colortex} ${path_fonts})
 
 set_target_properties(datoviz PROPERTIES
