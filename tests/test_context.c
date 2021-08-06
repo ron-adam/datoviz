@@ -26,7 +26,7 @@ int test_context_buffer(TestContext* tc)
     uint8_t data[128] = {0};
     for (uint32_t i = 0; i < 128; i++)
         data[i] = i;
-    dvz_buffers_upload(br.buffer, offset, 32, data);
+    dvz_buffer_upload(br.buffer, offset, 32, data);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Resize buffer.
@@ -35,7 +35,7 @@ int test_context_buffer(TestContext* tc)
 
     // Download data.
     uint8_t data_2[32] = {0};
-    dvz_buffers_download(br.buffer, br.alignment, 32, data_2);
+    dvz_buffer_download(br.buffer, br.alignment, 32, data_2);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     for (uint32_t i = 0; i < 32; i++)
         AT(data_2[i] == i);

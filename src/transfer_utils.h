@@ -456,7 +456,7 @@ static void _process_buffer_upload(DvzDeq* deq, void* item, void* user_data)
 
     // Take offset and size into account in the staging buffer.
     // NOTE: this call blocks while the data is being copied from CPU to GPU (mapped memcpy).
-    dvz_buffers_regions_upload(&tr->br, 0, tr->offset, tr->size, tr->data);
+    dvz_buffer_regions_upload(&tr->br, 0, tr->offset, tr->size, tr->data);
 }
 
 
@@ -476,7 +476,7 @@ static void _process_buffer_download(DvzDeq* deq, void* item, void* user_data)
     // Take offset and size into account in the staging buffer.
     // NOTE: this call blocks while the data is being copied from GPU to CPU (mapped
     // memcpy).
-    dvz_buffers_regions_download(&tr->br, 0, tr->offset, tr->size, tr->data);
+    dvz_buffer_regions_download(&tr->br, 0, tr->offset, tr->size, tr->data);
 }
 
 
@@ -492,7 +492,7 @@ static void _process_buffer_copy(DvzDeq* deq, void* item, void* user_data)
 
     // Make the GPU-GPU buffer copy (block the GPU and wait for the copy to finish).
     dvz_queue_wait(ctx->gpu, DVZ_DEFAULT_QUEUE_RENDER);
-    dvz_buffers_regions_copy(&tr->src, tr->src_offset, &tr->dst, tr->dst_offset, tr->size);
+    dvz_buffer_regions_copy(&tr->src, tr->src_offset, &tr->dst, tr->dst_offset, tr->size);
     dvz_queue_wait(ctx->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 }
 

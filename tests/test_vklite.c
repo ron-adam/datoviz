@@ -466,27 +466,26 @@ int test_vklite_buffer_1(TestContext* tc)
     dvz_gpu_queue(gpu, 0, DVZ_QUEUE_RENDER);
     dvz_gpu_create(gpu, 0);
 
-    DvzBuffers buffer = dvz_buffers(gpu);
+    DvzBuffer buffer = dvz_buffer(gpu);
     const VkDeviceSize size = 256;
-    dvz_buffers_size(&buffer, size);
-    dvz_buffers_usage(
-        &buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    dvz_buffers_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
-    // dvz_buffers_memory(
+    dvz_buffer_size(&buffer, size);
+    dvz_buffer_usage(&buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
+    // dvz_buffer_memory(
     //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    dvz_buffers_queue_access(&buffer, 0);
-    dvz_buffers_create(&buffer);
+    dvz_buffer_queue_access(&buffer, 0);
+    dvz_buffer_create(&buffer);
 
     // Send some data to the GPU.
     uint8_t* data = calloc(size, 1);
     for (uint32_t i = 0; i < size; i++)
         data[i] = i;
-    dvz_buffers_upload(&buffer, 0, size, data);
+    dvz_buffer_upload(&buffer, 0, size, data);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Recover the data.
     void* data2 = calloc(size, 1);
-    dvz_buffers_download(&buffer, 0, size, data2);
+    dvz_buffer_download(&buffer, 0, size, data2);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Check that the data downloaded from the GPU is the same.
@@ -495,7 +494,7 @@ int test_vklite_buffer_1(TestContext* tc)
     FREE(data);
     FREE(data2);
 
-    dvz_buffers_destroy(&buffer);
+    dvz_buffer_destroy(&buffer);
 
     dvz_app_destroy(app);
     return 0;
@@ -510,25 +509,24 @@ int test_vklite_buffer_resize(TestContext* tc)
     dvz_gpu_queue(gpu, 0, DVZ_QUEUE_RENDER);
     dvz_gpu_create(gpu, 0);
 
-    DvzBuffers buffer = dvz_buffers(gpu);
+    DvzBuffer buffer = dvz_buffer(gpu);
     const VkDeviceSize size = 256;
-    dvz_buffers_size(&buffer, size);
-    dvz_buffers_usage(
-        &buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    // dvz_buffers_memory(
+    dvz_buffer_size(&buffer, size);
+    dvz_buffer_usage(&buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    // dvz_buffer_memory(
     //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    dvz_buffers_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
-    dvz_buffers_queue_access(&buffer, 0);
-    dvz_buffers_create(&buffer);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
+    dvz_buffer_queue_access(&buffer, 0);
+    dvz_buffer_create(&buffer);
 
     // Map the buffer.
-    buffer.mmap = dvz_buffers_map(&buffer, 0, VK_WHOLE_SIZE);
+    buffer.mmap = dvz_buffer_map(&buffer, 0, VK_WHOLE_SIZE);
 
     // Send some data to the GPU.
     uint8_t* data = calloc(size, 1);
     for (uint32_t i = 0; i < size; i++)
         data[i] = i;
-    dvz_buffers_upload(&buffer, 0, size, data);
+    dvz_buffer_upload(&buffer, 0, size, data);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     ASSERT(buffer.mmap != NULL);
     void* old_mmap = buffer.mmap;
@@ -536,14 +534,14 @@ int test_vklite_buffer_resize(TestContext* tc)
     // Resize the buffer.
     // DvzCommands cmds = dvz_commands(gpu, 0, 1);
     // NOTE: this should automatically unmap, delete, create, remap, copy old data to new.
-    dvz_buffers_resize(&buffer, 2 * size);
+    dvz_buffer_resize(&buffer, 2 * size);
     ASSERT(buffer.size == 2 * size);
     ASSERT(buffer.mmap != NULL);
     ASSERT(buffer.mmap != old_mmap);
 
     // Recover the data.
     void* data2 = calloc(size, 1);
-    dvz_buffers_download(&buffer, 0, size, data2);
+    dvz_buffer_download(&buffer, 0, size, data2);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Check that the data downloaded from the GPU is the same.
@@ -553,9 +551,9 @@ int test_vklite_buffer_resize(TestContext* tc)
     FREE(data2);
 
     // Unmap the buffer.
-    dvz_buffers_unmap(&buffer);
+    dvz_buffer_unmap(&buffer);
     buffer.mmap = NULL;
-    dvz_buffers_destroy(&buffer);
+    dvz_buffer_destroy(&buffer);
 
     dvz_app_destroy(app);
     return 0;
@@ -576,24 +574,24 @@ int test_vklite_compute(TestContext* tc)
     DvzCompute compute = dvz_compute(gpu, path);
 
     // Create the buffers
-    DvzBuffers buffer = dvz_buffers(gpu);
+    DvzBuffer buffer = dvz_buffer(gpu);
     const uint32_t n = 20;
     const VkDeviceSize size = n * sizeof(float);
-    dvz_buffers_size(&buffer, size);
-    dvz_buffers_usage(
+    dvz_buffer_size(&buffer, size);
+    dvz_buffer_usage(
         &buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    // dvz_buffers_memory(
+    // dvz_buffer_memory(
     //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    dvz_buffers_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
-    dvz_buffers_queue_access(&buffer, 0);
-    dvz_buffers_create(&buffer);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
+    dvz_buffer_queue_access(&buffer, 0);
+    dvz_buffer_create(&buffer);
 
     // Send some data to the GPU.
     float* data = calloc(n, sizeof(float));
     for (uint32_t i = 0; i < n; i++)
         data[i] = (float)i;
-    dvz_buffers_upload(&buffer, 0, size, data);
+    dvz_buffer_upload(&buffer, 0, size, data);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Create the slots.
@@ -618,7 +616,7 @@ int test_vklite_compute(TestContext* tc)
 
     // Get back the data.
     float* data2 = calloc(n, sizeof(float));
-    dvz_buffers_download(&buffer, 0, size, data2);
+    dvz_buffer_download(&buffer, 0, size, data2);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     for (uint32_t i = 0; i < n; i++)
         AT(data2[i] == 2 * data[i]);
@@ -627,7 +625,7 @@ int test_vklite_compute(TestContext* tc)
 
     dvz_bindings_destroy(&bindings);
     dvz_compute_destroy(&compute);
-    dvz_buffers_destroy(&buffer);
+    dvz_buffer_destroy(&buffer);
 
     dvz_app_destroy(app);
     return 0;
@@ -648,24 +646,24 @@ int test_vklite_push(TestContext* tc)
     DvzCompute compute = dvz_compute(gpu, path);
 
     // Create the buffers
-    DvzBuffers buffer = dvz_buffers(gpu);
+    DvzBuffer buffer = dvz_buffer(gpu);
     const uint32_t n = 20;
     const VkDeviceSize size = n * sizeof(float);
-    dvz_buffers_size(&buffer, size);
-    dvz_buffers_usage(
+    dvz_buffer_size(&buffer, size);
+    dvz_buffer_usage(
         &buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    // dvz_buffers_memory(
+    // dvz_buffer_memory(
     //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    dvz_buffers_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
-    dvz_buffers_queue_access(&buffer, 0);
-    dvz_buffers_create(&buffer);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
+    dvz_buffer_queue_access(&buffer, 0);
+    dvz_buffer_create(&buffer);
 
     // Send some data to the GPU.
     float* data = calloc(n, sizeof(float));
     for (uint32_t i = 0; i < n; i++)
         data[i] = (float)i;
-    dvz_buffers_upload(&buffer, 0, size, data);
+    dvz_buffer_upload(&buffer, 0, size, data);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Create the slots.
@@ -693,7 +691,7 @@ int test_vklite_push(TestContext* tc)
 
     // Get back the data.
     float* data2 = calloc(n, sizeof(float));
-    dvz_buffers_download(&buffer, 0, size, data2);
+    dvz_buffer_download(&buffer, 0, size, data2);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     for (uint32_t i = 0; i < n; i++)
         AT(fabs(data2[i] - pow(data[i], power)) < .01);
@@ -702,7 +700,7 @@ int test_vklite_push(TestContext* tc)
 
     dvz_bindings_destroy(&bindings);
     dvz_compute_destroy(&compute);
-    dvz_buffers_destroy(&buffer);
+    dvz_buffer_destroy(&buffer);
 
     dvz_app_destroy(app);
     return 0;
@@ -755,18 +753,18 @@ int test_vklite_sampler(TestContext* tc)
 
 
 
-static void _make_buffer(DvzBuffers* buffer)
+static void _make_buffer(DvzBuffer* buffer)
 {
     const VkDeviceSize size = 256 * sizeof(float);
-    dvz_buffers_size(buffer, size);
-    dvz_buffers_usage(
+    dvz_buffer_size(buffer, size);
+    dvz_buffer_usage(
         buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    // dvz_buffers_memory(
+    // dvz_buffer_memory(
     //     buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    dvz_buffers_vma_usage(buffer, VMA_MEMORY_USAGE_CPU_ONLY);
-    dvz_buffers_queue_access(buffer, 0);
-    dvz_buffers_create(buffer);
+    dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_CPU_ONLY);
+    dvz_buffer_queue_access(buffer, 0);
+    dvz_buffer_create(buffer);
 }
 
 int test_vklite_barrier_buffer(TestContext* tc)
@@ -777,8 +775,8 @@ int test_vklite_barrier_buffer(TestContext* tc)
     dvz_gpu_create(gpu, 0);
 
     // Buffers.
-    DvzBuffers buffer0 = dvz_buffers(gpu);
-    DvzBuffers buffer1 = dvz_buffers(gpu);
+    DvzBuffer buffer0 = dvz_buffer(gpu);
+    DvzBuffer buffer1 = dvz_buffer(gpu);
     _make_buffer(&buffer0);
     _make_buffer(&buffer1);
     const uint32_t N = 20;
@@ -789,8 +787,8 @@ int test_vklite_barrier_buffer(TestContext* tc)
     for (uint32_t i = 0; i < N; i++)
         data0[i] = (float)i;
     VkDeviceSize offset = 0;
-    dvz_buffers_upload(&buffer0, offset, size, data0);
-    dvz_buffers_upload(&buffer1, offset, size, data0);
+    dvz_buffer_upload(&buffer0, offset, size, data0);
+    dvz_buffer_upload(&buffer1, offset, size, data0);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Create the compute pipeline.
@@ -831,7 +829,7 @@ int test_vklite_barrier_buffer(TestContext* tc)
 
     // Get back the data.
     float* data1 = calloc(size, 1);
-    dvz_buffers_download(&buffer1, offset, size, data1);
+    dvz_buffer_download(&buffer1, offset, size, data1);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     for (uint32_t i = 0; i < N; i++)
         AT(data1[i] == 2 * data0[i]);
@@ -842,8 +840,8 @@ int test_vklite_barrier_buffer(TestContext* tc)
     dvz_bindings_destroy(&bindings);
     dvz_compute_destroy(&compute);
 
-    dvz_buffers_destroy(&buffer0);
-    dvz_buffers_destroy(&buffer1);
+    dvz_buffer_destroy(&buffer0);
+    dvz_buffer_destroy(&buffer1);
 
     dvz_app_destroy(app);
     return 0;
@@ -870,21 +868,21 @@ int test_vklite_barrier_image(TestContext* tc)
     dvz_images_create(&images);
 
     // Staging buffer.
-    DvzBuffers buffer = dvz_buffers(gpu);
+    DvzBuffer buffer = dvz_buffer(gpu);
     const VkDeviceSize size = img_size * img_size * 4;
-    dvz_buffers_size(&buffer, size);
-    dvz_buffers_usage(&buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    // dvz_buffers_memory(
+    dvz_buffer_size(&buffer, size);
+    dvz_buffer_usage(&buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    // dvz_buffer_memory(
     //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    dvz_buffers_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
-    dvz_buffers_queue_access(&buffer, 0);
-    dvz_buffers_create(&buffer);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
+    dvz_buffer_queue_access(&buffer, 0);
+    dvz_buffer_create(&buffer);
 
     // Send some data to the staging buffer.
     uint8_t* data = calloc(size, 1);
     for (uint32_t i = 0; i < size; i++)
         data[i] = i % 256;
-    dvz_buffers_upload(&buffer, 0, size, data);
+    dvz_buffer_upload(&buffer, 0, size, data);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     FREE(data);
 
@@ -904,7 +902,7 @@ int test_vklite_barrier_image(TestContext* tc)
     dvz_cmd_end(&cmds, 0);
     dvz_cmd_submit_sync(&cmds, 0);
 
-    dvz_buffers_destroy(&buffer);
+    dvz_buffer_destroy(&buffer);
     dvz_images_destroy(&images);
 
     dvz_app_destroy(app);
@@ -930,25 +928,25 @@ int test_vklite_submit(TestContext* tc)
     DvzCompute compute2 = dvz_compute(gpu, path);
 
     // Create the buffer
-    DvzBuffers buffer = dvz_buffers(gpu);
+    DvzBuffer buffer = dvz_buffer(gpu);
     const uint32_t n = 20;
     const VkDeviceSize size = n * sizeof(float);
-    dvz_buffers_size(&buffer, size);
-    dvz_buffers_usage(
+    dvz_buffer_size(&buffer, size);
+    dvz_buffer_usage(
         &buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    // dvz_buffers_memory(
+    // dvz_buffer_memory(
     //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    dvz_buffers_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
-    dvz_buffers_queue_access(&buffer, 0);
-    dvz_buffers_queue_access(&buffer, 1);
-    dvz_buffers_create(&buffer);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
+    dvz_buffer_queue_access(&buffer, 0);
+    dvz_buffer_queue_access(&buffer, 1);
+    dvz_buffer_create(&buffer);
 
     // Send some data to the GPU.
     float* data = calloc(n, sizeof(float));
     for (uint32_t i = 0; i < n; i++)
         data[i] = (float)i;
-    dvz_buffers_upload(&buffer, 0, size, data);
+    dvz_buffer_upload(&buffer, 0, size, data);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Create the slots.
@@ -1003,7 +1001,7 @@ int test_vklite_submit(TestContext* tc)
 
     // Get back the data.
     float* data2 = calloc(n, sizeof(float));
-    dvz_buffers_download(&buffer, 0, size, data2);
+    dvz_buffer_download(&buffer, 0, size, data2);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     for (uint32_t i = 0; i < n; i++)
         AT(data2[i] == 2 * i + 1);
@@ -1012,7 +1010,7 @@ int test_vklite_submit(TestContext* tc)
     dvz_semaphores_destroy(&semaphores);
     dvz_bindings_destroy(&bindings1);
     dvz_bindings_destroy(&bindings2);
-    dvz_buffers_destroy(&buffer);
+    dvz_buffer_destroy(&buffer);
     dvz_compute_destroy(&compute1);
     dvz_compute_destroy(&compute2);
 
