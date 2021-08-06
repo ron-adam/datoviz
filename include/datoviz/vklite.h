@@ -77,6 +77,7 @@ extern "C" {
 
 typedef struct DvzQueues DvzQueues;
 typedef struct DvzGpu DvzGpu;
+typedef struct DvzVma DvzVma;
 typedef struct DvzWindow DvzWindow;
 typedef struct DvzSwapchain DvzSwapchain;
 typedef struct DvzCommands DvzCommands;
@@ -413,6 +414,16 @@ struct DvzCommands
 
 
 
+struct DvzVma
+{
+    VmaMemoryUsage usage;
+    VmaAllocationCreateFlags flags;
+    VmaAllocationInfo info;
+    VmaAllocation alloc;
+};
+
+
+
 struct DvzBuffer
 {
     DvzObject obj;
@@ -429,10 +440,7 @@ struct DvzBuffer
     VkBufferUsageFlags usage;
 
     // VMA
-    VmaAllocation alloc;
-    VmaAllocationCreateFlags vma_flags;
-    VmaMemoryUsage vma_usage;
-    VmaAllocationInfo vma_info;
+    DvzVma vma;
 
     void* mmap;
 
@@ -481,9 +489,7 @@ struct DvzImages
     VkDeviceSize size;
 
     // VMA
-    VmaAllocation alloc;
-    VmaAllocationCreateFlags vma_flags;
-    VmaMemoryUsage vma_usage;
+    DvzVma vma;
 
     VkImage images[DVZ_MAX_IMAGES_PER_SET];
     VkImageView image_views[DVZ_MAX_IMAGES_PER_SET];
