@@ -262,6 +262,29 @@ int test_utils_alloc_1(TestContext* tc)
 
 
 
+int test_utils_alloc_2(TestContext* tc)
+{
+    VkDeviceSize size = 64;
+    VkDeviceSize alignment = 4;
+    VkDeviceSize offset = 0;
+    VkDeviceSize resized = 0;
+
+    DvzAlloc alloc = dvz_alloc(size, alignment);
+
+    offset = dvz_alloc_new(&alloc, 2, &resized);
+    AT(offset == 0);
+    AT(!resized);
+
+    offset = dvz_alloc_new(&alloc, 2, &resized);
+    AT(offset == 4);
+    AT(!resized);
+
+    dvz_alloc_destroy(&alloc);
+    return 0;
+}
+
+
+
 /*************************************************************************************************/
 /* Transform tests                                                                               */
 /*************************************************************************************************/

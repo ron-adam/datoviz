@@ -45,14 +45,9 @@ struct DvzAllocSlot
 
 struct DvzAlloc
 {
-    uint32_t alignment; // alignment
-    DvzArray items;     // each item is a pair (offset, occupied)
-    uint32_t size;      // total size
-
-    // uint32_t count;     // number of allocations
-    // uint32_t arr_count; // number of items in offsets and avail
-    // uint32_t* offsets;  // offset of each allocation, the size goes up to the next offset
-    // bool* occupied;     // whether a given allocation is occupied or free
+    VkDeviceSize alignment; // alignment, in bytes
+    DvzArray items;         // each item is a pair (offset, occupied)
+    VkDeviceSize size;      // total size, in bytes
 };
 
 
@@ -76,9 +71,19 @@ static inline uint32_t _align(uint32_t size, uint32_t alignment)
 
 
 
+static inline void _check_offset_alignment(DvzAlloc* alloc, VkDeviceSize offset)
+{
+    ASSERT(alloc != NULL);
+    if (alloc->alignment > 0)
+        ASSERT(offset % alloc->alignment == 0);
+}
+
+
+
 static inline DvzAllocSlot* _get_slot(DvzAlloc* alloc, VkDeviceSize offset)
 {
     ASSERT(alloc != NULL);
+    _check_offset_alignment(alloc, offset);
     DvzAllocSlot* slot = NULL;
     for (uint32_t i = 0; i < alloc->items.item_count; i++)
     {
@@ -115,12 +120,14 @@ static inline VkDeviceSize _slot_size(DvzAlloc* alloc, DvzAllocSlot* slot)
     {
         cur = (DvzAllocSlot*)dvz_array_item(&alloc->items, i);
         offset = cur->offset;
+        _check_offset_alignment(alloc, offset);
         if (cur->occupied != occupied)
             break;
     }
     if (offset == 0)
         offset = alloc->size;
     ASSERT(offset >= slot->offset);
+    _check_offset_alignment(alloc, offset);
     size = offset - slot->offset;
     ASSERT(size > 0);
     return size;
@@ -169,6 +176,7 @@ static inline void
 _insert_slot_after(DvzAlloc* alloc, DvzAllocSlot* slot, VkDeviceSize offset, bool occupied)
 {
     ASSERT(alloc != NULL);
+    _check_offset_alignment(alloc, offset);
     uint32_t idx = _slot_idx(alloc, slot);
     DvzAllocSlot new_slot = {.occupied = occupied, .offset = offset};
     dvz_array_insert(&alloc->items, idx + 1, 1, &new_slot);
@@ -203,6 +211,7 @@ static inline void _double_alloc_size(DvzAlloc* alloc)
     ASSERT(alloc != NULL);
     DvzAllocSlot* slot = _last_slot(alloc);
     ASSERT(slot != NULL);
+    _check_offset_alignment(alloc, alloc->size);
     // If the last slot was occupied, append an available slot at the end for the newly-created
     // space.
     if (slot->occupied)
@@ -218,30 +227,26 @@ static inline void _double_alloc_size(DvzAlloc* alloc)
 
 // TODO: docstrings
 
-DVZ_INLINE DvzAlloc dvz_alloc(uint32_t size, uint32_t alignment)
+DVZ_INLINE DvzAlloc dvz_alloc(VkDeviceSize size, VkDeviceSize alignment)
 {
     DvzAlloc alloc = {0};
-    alloc.size = size;
     alloc.alignment = alignment;
+    _check_offset_alignment(&alloc, size);
+    alloc.size = size;
     alloc.items = dvz_array_struct(1, sizeof(DvzAllocSlot));
 
     // Initially, the entire space is available.
     DvzAllocSlot* slot = (DvzAllocSlot*)dvz_array_item(&alloc.items, 0);
     slot->offset = 0;
     slot->occupied = false;
-    // alloc.count = 1;
-    // alloc.arr_count = DVZ_ALLOC_DEFAULT_COUNT;
-    // alloc.offsets = (uint32_t*)calloc(alloc.arr_count, sizeof(uint32_t));
-    // alloc.occupied = (bool*)calloc(alloc.arr_count, sizeof(bool));
-    // alloc.offsets[0] = 0;
-    // alloc.occupied[0] = false;
     return alloc;
 }
 
 
 
 // Return the offset of the allocation, and modify resized if needed with the new total size.
-DVZ_INLINE VkDeviceSize dvz_alloc_new(DvzAlloc* alloc, uint32_t req_size, uint32_t* resized)
+DVZ_INLINE VkDeviceSize
+dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize* resized)
 {
     ASSERT(alloc != NULL);
 
@@ -254,7 +259,8 @@ DVZ_INLINE VkDeviceSize dvz_alloc_new(DvzAlloc* alloc, uint32_t req_size, uint32
     {
         _double_alloc_size(alloc);
         slot = _last_slot(alloc);
-        *resized = alloc->size;
+        if (resized != NULL)
+            *resized = alloc->size;
     }
 
     // Available slot found, possibly after resize.
@@ -269,102 +275,10 @@ DVZ_INLINE VkDeviceSize dvz_alloc_new(DvzAlloc* alloc, uint32_t req_size, uint32
     if (size > req_size)
     {
         // We need to append a new empty slot after the current one.
-        _insert_slot_after(alloc, slot, req_size, false);
+        _insert_slot_after(alloc, slot, _align(req_size, alloc->alignment), false);
     }
 
     return slot->offset;
-
-    // DvzAllocSlot* next = _next_slot(slot);
-
-
-    // uint32_t offset, size = 0;
-    // uint32_t align = alloc->alignment;
-    // bool avail = false;
-    // uint32_t res = 0;
-    // uint32_t last_offset = 0;
-    // uint32_t i = 0;
-    // bool found = false;
-
-    // // Search the first available slot that is large enough to contain the requested data.
-    // for (i = 0; i < alloc->count; i++)
-    // {
-    //     offset = alloc->offsets[i]; // offset of the current slot
-    //     ASSERT(offset % align == 0);
-    //     // size of the current slot depends on the next offset
-    //     size = (i < alloc->count - 1 ? alloc->offsets[i + 1] : alloc->size) - offset;
-    //     // Is the current slot available?
-    //     avail = !alloc->occupied[i];
-    //     // Is the current slot available and large enough?
-    //     if (size >= req_size && avail)
-    //     {
-    //         // We found a slot for our allocation!
-    //         found = true;
-    //         break;
-    //     }
-    // }
-
-    // // No slot found?
-    // if (!found)
-    // {
-    //     // Keep track of the last offset, in the case we need to resize.
-    //     last_offset = alloc->offsets[alloc->count - 1] + avail ? 0 : size;
-    //     // The last offset is either the last slot's offset if that slot was available, or the
-    //     // total used size.
-
-    //     // We'll need to resize, but we already know the offset of the new slot. It's the
-    //     // aligned position just after the end of the last allocation.
-    //     offset = _align(last_offset, align);
-    //     // The index of the new slot depends on whether the last slot was occupied or not.
-    //     i = avail ? alloc->count - 1 : alloc->count;
-    // }
-
-    // // Here, the following variables are set:
-    // // - i          index of the new slot
-    // // - offset     offset of the new slot
-    // // - size       size of the new slot
-    // ASSERT(offset % align == 0);
-    // ASSERT(size % align == 0);
-
-    // // No slot? need to resize.
-    // while (!avail)
-    // {
-    //     size = 2 * alloc->size - offset; // new slot size
-    //     alloc->size *= 2;
-    //     res = alloc->size;        // signal to the caller that the allocation must be enlarged
-    //     avail = size >= req_size; // the loop will end when the new size is high enough
-    // }
-
-    // ASSERT(alloc->size > 0);
-    // ASSERT(size > 0);
-    // ASSERT(offset + size <= alloc->size);
-    // ASSERT(avail);
-    // ASSERT(size >= req_size);
-    // ASSERT(i < alloc->count);
-
-    // // We need to ensure that we can at least add 2 new elements to offsets and occupied.
-    // // We may need to increase the size of the arrays containing the allocations.
-    // if (alloc->count + 2 > alloc->arr_count)
-    // {
-    //     // HACK
-    //     void *_off = alloc->offsets, *_av = alloc->occupied;
-    //     alloc->arr_count *= 2;
-    //     REALLOC(_off, alloc->arr_count);
-    //     REALLOC(_av, alloc->arr_count);
-    //     alloc->offsets = (uint32_t*)_off;
-    //     alloc->occupied = (bool*)_av;
-    // }
-
-    // // Ensure we have enough room in offsets and avail to add a new element.
-    // ASSERT(alloc->count + 2 <= alloc->arr_count);
-
-    // ASSERT(!alloc->occupied[i]); // the existing slot should be available
-
-    // // Append
-    // alloc->occupied[i] = true;
-    // alloc->offsets[i] = offset;
-    // alloc->count++;
-
-    // return res;
 }
 
 
