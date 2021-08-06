@@ -436,13 +436,16 @@ struct DvzBuffers
     uint32_t queue_count;
     uint32_t queues[DVZ_MAX_QUEUES];
 
-    VkDeviceSize size;
-    uint32_t count;         // number of sub-buffers
-    VkDeviceSize alignment; // alignment requirement for the sub-buffers
-    VkBufferUsageFlags usage;
-
     // VMA
+    VkBufferUsageFlags usage;
     DvzVma vma;
+
+    // Sub-buffers for dynamic uniform buffers.
+    uint32_t count;            // number of sub-buffers
+    VkDeviceSize alignment;    // alignment requirement for the sub-buffers
+    VkDeviceSize size;         // size of each sub-buffer
+    VkDeviceSize aligned_size; // size of each sub-buffer + margin for alignment
+    VkDeviceSize offsets[DVZ_MAX_BUFFER_REGIONS_PER_SET];
 
     void* mmap;
 
