@@ -161,9 +161,10 @@ static TestVisual triangle_visual(
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |      //
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | //
             VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    dvz_buffer_memory(
-        &visual.buffer,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // dvz_buffer_memory(
+    //     &visual.buffer,
+    //     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_vma_usage(&visual.buffer, VMA_MEMORY_USAGE_CPU_ONLY);
     dvz_buffer_create(&visual.buffer);
 
     // Upload the triangle data.
