@@ -82,7 +82,7 @@ struct TestVisual
     DvzGraphics graphics;
     DvzCompute* compute;
     DvzBindings bindings;
-    DvzBuffer buffer;
+    DvzBuffers buffer;
     DvzBufferRegions br;
     DvzBufferRegions br_u;
     uint32_t n_vertices;

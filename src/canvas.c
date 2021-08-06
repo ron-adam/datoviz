@@ -340,7 +340,7 @@ static void _screencast_staging(DvzCanvas* canvas)
     ASSERT(ctx != NULL);
 
     canvas->render.screencast_staging = dvz_buffer(ctx->gpu);
-    DvzBuffer* buffer = &canvas->render.screencast_staging;
+    DvzBuffers* buffer = &canvas->render.screencast_staging;
     dvz_buffer_queue_access(buffer, DVZ_DEFAULT_QUEUE_TRANSFER);
     VkBufferUsageFlagBits transferable =
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -780,7 +780,7 @@ uint8_t* dvz_screenshot(DvzCanvas* canvas, bool remove_alpha)
     VkDeviceSize size = images->width * images->height * ncomp;
     uvec3 shape = {images->width, images->height, images->depth};
 
-    DvzBuffer* buf = &canvas->render.screencast_staging;
+    DvzBuffers* buf = &canvas->render.screencast_staging;
     DvzBufferRegions stg = dvz_buffer_regions(buf, 1, 0, size, 0);
 
     uint8_t* data = calloc(size, 1);

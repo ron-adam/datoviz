@@ -466,7 +466,7 @@ int test_vklite_buffer_1(TestContext* tc)
     dvz_gpu_queue(gpu, 0, DVZ_QUEUE_RENDER);
     dvz_gpu_create(gpu, 0);
 
-    DvzBuffer buffer = dvz_buffer(gpu);
+    DvzBuffers buffer = dvz_buffer(gpu);
     const VkDeviceSize size = 256;
     dvz_buffer_size(&buffer, size);
     dvz_buffer_usage(&buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -509,7 +509,7 @@ int test_vklite_buffer_resize(TestContext* tc)
     dvz_gpu_queue(gpu, 0, DVZ_QUEUE_RENDER);
     dvz_gpu_create(gpu, 0);
 
-    DvzBuffer buffer = dvz_buffer(gpu);
+    DvzBuffers buffer = dvz_buffer(gpu);
     const VkDeviceSize size = 256;
     dvz_buffer_size(&buffer, size);
     dvz_buffer_usage(&buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -574,7 +574,7 @@ int test_vklite_compute(TestContext* tc)
     DvzCompute compute = dvz_compute(gpu, path);
 
     // Create the buffers
-    DvzBuffer buffer = dvz_buffer(gpu);
+    DvzBuffers buffer = dvz_buffer(gpu);
     const uint32_t n = 20;
     const VkDeviceSize size = n * sizeof(float);
     dvz_buffer_size(&buffer, size);
@@ -646,7 +646,7 @@ int test_vklite_push(TestContext* tc)
     DvzCompute compute = dvz_compute(gpu, path);
 
     // Create the buffers
-    DvzBuffer buffer = dvz_buffer(gpu);
+    DvzBuffers buffer = dvz_buffer(gpu);
     const uint32_t n = 20;
     const VkDeviceSize size = n * sizeof(float);
     dvz_buffer_size(&buffer, size);
@@ -753,7 +753,7 @@ int test_vklite_sampler(TestContext* tc)
 
 
 
-static void _make_buffer(DvzBuffer* buffer)
+static void _make_buffer(DvzBuffers* buffer)
 {
     const VkDeviceSize size = 256 * sizeof(float);
     dvz_buffer_size(buffer, size);
@@ -775,8 +775,8 @@ int test_vklite_barrier_buffer(TestContext* tc)
     dvz_gpu_create(gpu, 0);
 
     // Buffers.
-    DvzBuffer buffer0 = dvz_buffer(gpu);
-    DvzBuffer buffer1 = dvz_buffer(gpu);
+    DvzBuffers buffer0 = dvz_buffer(gpu);
+    DvzBuffers buffer1 = dvz_buffer(gpu);
     _make_buffer(&buffer0);
     _make_buffer(&buffer1);
     const uint32_t N = 20;
@@ -868,7 +868,7 @@ int test_vklite_barrier_image(TestContext* tc)
     dvz_images_create(&images);
 
     // Staging buffer.
-    DvzBuffer buffer = dvz_buffer(gpu);
+    DvzBuffers buffer = dvz_buffer(gpu);
     const VkDeviceSize size = img_size * img_size * 4;
     dvz_buffer_size(&buffer, size);
     dvz_buffer_usage(&buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
@@ -928,7 +928,7 @@ int test_vklite_submit(TestContext* tc)
     DvzCompute compute2 = dvz_compute(gpu, path);
 
     // Create the buffer
-    DvzBuffer buffer = dvz_buffer(gpu);
+    DvzBuffers buffer = dvz_buffer(gpu);
     const uint32_t n = 20;
     const VkDeviceSize size = n * sizeof(float);
     dvz_buffer_size(&buffer, size);

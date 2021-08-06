@@ -14,10 +14,11 @@ extern "C" {
 /*************************************************************************************************/
 
 // Get the staging buffer, and make sure it can contain `size` bytes.
-static DvzBuffer* staging_buffer(DvzContext* context, VkDeviceSize size)
+static DvzBuffers* staging_buffer(DvzContext* context, VkDeviceSize size)
 {
     log_trace("requesting staging buffer of size %s", pretty_size(size));
-    DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STAGING);
+    DvzBuffers* staging =
+        (DvzBuffers*)dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STAGING);
     ASSERT(staging != NULL);
     ASSERT(staging->buffer != VK_NULL_HANDLE);
 

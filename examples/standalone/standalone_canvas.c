@@ -99,7 +99,7 @@ int main(int argc, char** argv)
     dvz_bindings_update(&bindings);
 
     // Vertex data and GPU buffer.
-    DvzBuffer buffer = dvz_buffer(gpu);
+    DvzBuffers buffer = dvz_buffer(gpu);
     {
         // We create the GPU buffer holding the vertex data.
         // NOTE: in real applications, once should use few, even a single large vertex buffer for

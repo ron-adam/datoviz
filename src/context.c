@@ -27,7 +27,7 @@ static void _context_default_buffers(DvzContext* context)
     ASSERT(context != NULL);
     ASSERT(context->gpu != NULL);
     // Create a predetermined set of buffers.
-    DvzBuffer* buffer = NULL;
+    DvzBuffers* buffer = NULL;
     for (uint32_t i = 0; i < DVZ_BUFFER_TYPE_COUNT; i++)
     {
         buffer = dvz_container_alloc(&context->buffers);
@@ -161,7 +161,7 @@ static void _destroy_resources(DvzContext* context)
     ASSERT(context != NULL);
 
     log_trace("context destroy buffers");
-    CONTAINER_DESTROY_ITEMS(DvzBuffer, context->buffers, dvz_buffer_destroy)
+    CONTAINER_DESTROY_ITEMS(DvzBuffers, context->buffers, dvz_buffer_destroy)
 
     log_trace("context destroy sets of images");
     CONTAINER_DESTROY_ITEMS(DvzImages, context->images, dvz_images_destroy)
@@ -225,7 +225,7 @@ DvzContext* dvz_context(DvzGpu* gpu)
     // Allocate memory for buffers, textures, and computes.
     {
         context->buffers =
-            dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzBuffer), DVZ_OBJECT_TYPE_BUFFER);
+            dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzBuffers), DVZ_OBJECT_TYPE_BUFFER);
         context->images =
             dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzImages), DVZ_OBJECT_TYPE_IMAGES);
         context->samplers = dvz_container(
@@ -403,7 +403,7 @@ DvzBufferRegions dvz_ctx_buffers(
 
     // Choose the first buffer with the requested type.
     DvzContainerIterator iter = dvz_container_iterator(&context->buffers);
-    DvzBuffer* buffer = NULL;
+    DvzBuffers* buffer = NULL;
     while (iter.item != NULL)
     {
         buffer = iter.item;
@@ -669,7 +669,7 @@ void dvz_texture_address_mode(
 //     ASSERT(data != NULL);
 
 //     // Take the staging buffer.
-//     DvzBuffer* staging = staging_buffer(context, size);
+//     DvzBuffers* staging = staging_buffer(context, size);
 
 //     // Memcpy into the staging buffer.
 //     dvz_buffer_upload(staging, 0, size, data);
@@ -695,7 +695,7 @@ void dvz_texture_address_mode(
 //     ASSERT(data != NULL);
 
 //     // Take the staging buffer.
-//     DvzBuffer* staging = staging_buffer(context, size);
+//     DvzBuffers* staging = staging_buffer(context, size);
 
 //     // Copy from the staging buffer to the texture.
 //     _copy_texture_to_staging(context, texture, offset, shape, size);
@@ -828,7 +828,7 @@ void dvz_texture_copy_from_buffer(
     DvzGpu* gpu = context->gpu;
     ASSERT(gpu != NULL);
 
-    DvzBuffer* buffer = br.buffer;
+    DvzBuffers* buffer = br.buffer;
     ASSERT(buffer != NULL);
     buf_offset = br.offsets[0] + buf_offset;
 
@@ -895,7 +895,7 @@ void dvz_texture_copy_to_buffer(
     DvzGpu* gpu = context->gpu;
     ASSERT(gpu != NULL);
 
-    DvzBuffer* buffer = br.buffer;
+    DvzBuffers* buffer = br.buffer;
     ASSERT(buffer != NULL);
     buf_offset = br.offsets[0] + buf_offset;
 

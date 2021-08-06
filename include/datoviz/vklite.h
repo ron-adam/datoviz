@@ -81,7 +81,7 @@ typedef struct DvzVma DvzVma;
 typedef struct DvzWindow DvzWindow;
 typedef struct DvzSwapchain DvzSwapchain;
 typedef struct DvzCommands DvzCommands;
-typedef struct DvzBuffer DvzBuffer;
+typedef struct DvzBuffers DvzBuffers;
 typedef struct DvzBufferRegions DvzBufferRegions;
 typedef struct DvzImages DvzImages;
 typedef struct DvzSampler DvzSampler;
@@ -424,7 +424,7 @@ struct DvzVma
 
 
 
-struct DvzBuffer
+struct DvzBuffers
 {
     DvzObject obj;
     DvzGpu* gpu;
@@ -455,7 +455,7 @@ struct DvzBuffer
 // TO REMOVE:
 struct DvzBufferRegions
 {
-    DvzBuffer* buffer;
+    DvzBuffers* buffer;
     uint32_t count;
     VkDeviceSize size;
     VkDeviceSize aligned_size; // NOTE: is non-null only for aligned arrays
@@ -540,7 +540,7 @@ struct DvzBindings
     DvzSlots* slots;
 
     // a Bindings struct holds multiple almost-identical copies of descriptor sets
-    // with the same layout, but possibly with the different idx in the DvzBuffer
+    // with the same layout, but possibly with the different idx in the DvzBuffers
     uint32_t dset_count;
     VkDescriptorSet dsets[DVZ_MAX_SWAPCHAIN_IMAGES];
 
@@ -1139,7 +1139,7 @@ DVZ_EXPORT void dvz_commands_destroy(DvzCommands* cmds);
  * @param gpu the GPU
  * @returns the buffer
  */
-DVZ_EXPORT DvzBuffer dvz_buffer(DvzGpu* gpu);
+DVZ_EXPORT DvzBuffers dvz_buffer(DvzGpu* gpu);
 
 /**
  * Set the buffer size.
@@ -1147,7 +1147,7 @@ DVZ_EXPORT DvzBuffer dvz_buffer(DvzGpu* gpu);
  * @param buffer the buffer
  * @param size the buffer size, in bytes
  */
-DVZ_EXPORT void dvz_buffer_size(DvzBuffer* buffer, VkDeviceSize size);
+DVZ_EXPORT void dvz_buffer_size(DvzBuffers* buffer, VkDeviceSize size);
 
 /**
  * Set the buffer type.
@@ -1155,7 +1155,7 @@ DVZ_EXPORT void dvz_buffer_size(DvzBuffer* buffer, VkDeviceSize size);
  * @param buffer the buffer
  * @param type the buffer type
  */
-DVZ_EXPORT void dvz_buffer_type(DvzBuffer* buffer, DvzBufferType type);
+DVZ_EXPORT void dvz_buffer_type(DvzBuffers* buffer, DvzBufferType type);
 
 /**
  * Set the buffer usage.
@@ -1163,7 +1163,7 @@ DVZ_EXPORT void dvz_buffer_type(DvzBuffer* buffer, DvzBufferType type);
  * @param buffer the buffer
  * @param usage the buffer usage
  */
-DVZ_EXPORT void dvz_buffer_usage(DvzBuffer* buffer, VkBufferUsageFlags usage);
+DVZ_EXPORT void dvz_buffer_usage(DvzBuffers* buffer, VkBufferUsageFlags usage);
 
 /**
  * Set the buffer VMA usage.
@@ -1171,7 +1171,7 @@ DVZ_EXPORT void dvz_buffer_usage(DvzBuffer* buffer, VkBufferUsageFlags usage);
  * @param buffer the buffer
  * @param usage the buffer usage
  */
-DVZ_EXPORT void dvz_buffer_vma_usage(DvzBuffer* buffer, VmaMemoryUsage vma_usage);
+DVZ_EXPORT void dvz_buffer_vma_usage(DvzBuffers* buffer, VmaMemoryUsage vma_usage);
 
 // TO REMOVE:
 /**
@@ -1180,7 +1180,7 @@ DVZ_EXPORT void dvz_buffer_vma_usage(DvzBuffer* buffer, VmaMemoryUsage vma_usage
  * @param buffer the buffer
  * @param memory the memory properties
  */
-DVZ_EXPORT void dvz_buffer_memory(DvzBuffer* buffer, VkMemoryPropertyFlags memory);
+DVZ_EXPORT void dvz_buffer_memory(DvzBuffers* buffer, VkMemoryPropertyFlags memory);
 
 /**
  * Set the buffer queue access.
@@ -1188,14 +1188,14 @@ DVZ_EXPORT void dvz_buffer_memory(DvzBuffer* buffer, VkMemoryPropertyFlags memor
  * @param buffer the buffer
  * @param queue_idx the queue index
  */
-DVZ_EXPORT void dvz_buffer_queue_access(DvzBuffer* buffer, uint32_t queue_idx);
+DVZ_EXPORT void dvz_buffer_queue_access(DvzBuffers* buffer, uint32_t queue_idx);
 
 /**
  * Create the buffer after it has been set.
  *
  * @param buffer the buffer
  */
-DVZ_EXPORT void dvz_buffer_create(DvzBuffer* buffer);
+DVZ_EXPORT void dvz_buffer_create(DvzBuffers* buffer);
 
 /**
  * Resize a buffer.
@@ -1203,7 +1203,7 @@ DVZ_EXPORT void dvz_buffer_create(DvzBuffer* buffer);
  * @param buffer the buffer
  * @param size the new buffer size, in bytes
  */
-DVZ_EXPORT void dvz_buffer_resize(DvzBuffer* buffer, VkDeviceSize size);
+DVZ_EXPORT void dvz_buffer_resize(DvzBuffers* buffer, VkDeviceSize size);
 
 /**
  * Memory-map a buffer.
@@ -1212,14 +1212,14 @@ DVZ_EXPORT void dvz_buffer_resize(DvzBuffer* buffer, VkDeviceSize size);
  * @param offset the offset within the buffer, in bytes
  * @param size the size to map, in bytes
  */
-DVZ_EXPORT void* dvz_buffer_map(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size);
+DVZ_EXPORT void* dvz_buffer_map(DvzBuffers* buffer, VkDeviceSize offset, VkDeviceSize size);
 
 /**
  * Unmap a buffer.
  *
  * @param buffer the buffer
  */
-DVZ_EXPORT void dvz_buffer_unmap(DvzBuffer* buffer);
+DVZ_EXPORT void dvz_buffer_unmap(DvzBuffers* buffer);
 
 /**
  * Download a buffer data to the CPU.
@@ -1236,7 +1236,7 @@ DVZ_EXPORT void dvz_buffer_unmap(DvzBuffer* buffer);
  * @param[out] data the buffer to download on (must be allocated with the appropriate size)
  */
 DVZ_EXPORT void
-dvz_buffer_download(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, void* data);
+dvz_buffer_download(DvzBuffers* buffer, VkDeviceSize offset, VkDeviceSize size, void* data);
 
 /**
  * Upload data to a GPU buffer.
@@ -1253,14 +1253,14 @@ dvz_buffer_download(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, v
  * @param data the data to upload
  */
 DVZ_EXPORT void
-dvz_buffer_upload(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, const void* data);
+dvz_buffer_upload(DvzBuffers* buffer, VkDeviceSize offset, VkDeviceSize size, const void* data);
 
 /**
  * Destroy a buffer
  *
  * @param buffer the buffer
  */
-DVZ_EXPORT void dvz_buffer_destroy(DvzBuffer* buffer);
+DVZ_EXPORT void dvz_buffer_destroy(DvzBuffers* buffer);
 
 
 
@@ -1274,7 +1274,7 @@ DVZ_EXPORT void dvz_buffer_destroy(DvzBuffer* buffer);
  * @param alignment the alignment requirement for the region offsets
  */
 DVZ_EXPORT DvzBufferRegions dvz_buffer_regions(
-    DvzBuffer* buffer, uint32_t count, //
+    DvzBuffers* buffer, uint32_t count, //
     VkDeviceSize offset, VkDeviceSize size, VkDeviceSize alignment);
 
 /**
@@ -2316,8 +2316,8 @@ DVZ_EXPORT void dvz_cmd_barrier(DvzCommands* cmds, uint32_t idx, DvzBarrier* bar
  * @param shape the texture shape
  */
 DVZ_EXPORT void dvz_cmd_copy_buffer_to_image(
-    DvzCommands* cmds, uint32_t idx,            //
-    DvzBuffer* buffer, VkDeviceSize buf_offset, //
+    DvzCommands* cmds, uint32_t idx,             //
+    DvzBuffers* buffer, VkDeviceSize buf_offset, //
     DvzImages* images, uvec3 tex_offset, uvec3 shape);
 
 /**
@@ -2334,7 +2334,7 @@ DVZ_EXPORT void dvz_cmd_copy_buffer_to_image(
 DVZ_EXPORT void dvz_cmd_copy_image_to_buffer(
     DvzCommands* cmds, uint32_t idx,                  //
     DvzImages* images, uvec3 tex_offset, uvec3 shape, //
-    DvzBuffer* buffer, VkDeviceSize buf_offset);
+    DvzBuffers* buffer, VkDeviceSize buf_offset);
 
 /**
  * Copy a GPU image to another.
@@ -2463,9 +2463,9 @@ dvz_cmd_draw_indexed_indirect(DvzCommands* cmds, uint32_t idx, DvzBufferRegions 
  * @param size the size of the region to copy, in bytes
  */
 DVZ_EXPORT void dvz_cmd_copy_buffer(
-    DvzCommands* cmds, uint32_t idx,             //
-    DvzBuffer* src_buf, VkDeviceSize src_offset, //
-    DvzBuffer* dst_buf, VkDeviceSize dst_offset, //
+    DvzCommands* cmds, uint32_t idx,              //
+    DvzBuffers* src_buf, VkDeviceSize src_offset, //
+    DvzBuffers* dst_buf, VkDeviceSize dst_offset, //
     VkDeviceSize size);
 
 /**

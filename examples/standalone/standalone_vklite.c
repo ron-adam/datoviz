@@ -207,7 +207,7 @@ int main(int argc, char** argv)
     // We create the GPU buffer holding the vertex data.
     // NOTE: in real applications, once should use few, even a single large vertex buffer for all
     // graphics pipelines in the application. Defining many small GPU buffers is bad practice.
-    DvzBuffer buffer = dvz_buffer(gpu);
+    DvzBuffers buffer = dvz_buffer(gpu);
     DvzBufferRegions vertex_buffer;
 
     // Vertex data and GPU buffer.

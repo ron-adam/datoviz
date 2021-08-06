@@ -525,7 +525,7 @@ struct DvzRender
     DvzImages pick_image;
     DvzImages pick_staging;
 
-    DvzBuffer screencast_staging;
+    DvzBuffers screencast_staging;
     DvzTexture screencast_tex;
 
     DvzFramebuffers framebuffers;

@@ -716,12 +716,12 @@ void dvz_commands_destroy(DvzCommands* cmds)
 /*  Buffers                                                                                      */
 /*************************************************************************************************/
 
-DvzBuffer dvz_buffer(DvzGpu* gpu)
+DvzBuffers dvz_buffer(DvzGpu* gpu)
 {
     ASSERT(gpu != NULL);
     ASSERT(dvz_obj_is_created(&gpu->obj));
 
-    DvzBuffer buffer = {0};
+    DvzBuffers buffer = {0};
     dvz_obj_init(&buffer.obj);
     buffer.gpu = gpu;
 
@@ -734,7 +734,7 @@ DvzBuffer dvz_buffer(DvzGpu* gpu)
 
 
 
-void dvz_buffer_size(DvzBuffer* buffer, VkDeviceSize size)
+void dvz_buffer_size(DvzBuffers* buffer, VkDeviceSize size)
 {
     ASSERT(buffer != NULL);
     buffer->size = size;
@@ -742,7 +742,7 @@ void dvz_buffer_size(DvzBuffer* buffer, VkDeviceSize size)
 
 
 
-void dvz_buffer_type(DvzBuffer* buffer, DvzBufferType type)
+void dvz_buffer_type(DvzBuffers* buffer, DvzBufferType type)
 {
     ASSERT(buffer != NULL);
     buffer->type = type;
@@ -750,7 +750,7 @@ void dvz_buffer_type(DvzBuffer* buffer, DvzBufferType type)
 
 
 
-void dvz_buffer_usage(DvzBuffer* buffer, VkBufferUsageFlags usage)
+void dvz_buffer_usage(DvzBuffers* buffer, VkBufferUsageFlags usage)
 {
     ASSERT(buffer != NULL);
     buffer->usage = usage;
@@ -758,7 +758,7 @@ void dvz_buffer_usage(DvzBuffer* buffer, VkBufferUsageFlags usage)
 
 
 
-void dvz_buffer_vma_usage(DvzBuffer* buffer, VmaMemoryUsage vma_usage)
+void dvz_buffer_vma_usage(DvzBuffers* buffer, VmaMemoryUsage vma_usage)
 {
     ASSERT(buffer != NULL);
     buffer->vma.usage = vma_usage;
@@ -766,7 +766,7 @@ void dvz_buffer_vma_usage(DvzBuffer* buffer, VmaMemoryUsage vma_usage)
 
 
 
-void dvz_buffer_memory(DvzBuffer* buffer, VkMemoryPropertyFlags memory)
+void dvz_buffer_memory(DvzBuffers* buffer, VkMemoryPropertyFlags memory)
 {
     ASSERT(buffer != NULL);
     buffer->memory = memory;
@@ -774,7 +774,7 @@ void dvz_buffer_memory(DvzBuffer* buffer, VkMemoryPropertyFlags memory)
 
 
 
-void dvz_buffer_queue_access(DvzBuffer* buffer, uint32_t queue_idx)
+void dvz_buffer_queue_access(DvzBuffers* buffer, uint32_t queue_idx)
 {
     ASSERT(buffer != NULL);
     ASSERT(buffer->gpu != NULL);
@@ -784,7 +784,7 @@ void dvz_buffer_queue_access(DvzBuffer* buffer, uint32_t queue_idx)
 
 
 
-static void _buffer_create(DvzBuffer* buffer)
+static void _buffer_create(DvzBuffers* buffer)
 {
     ASSERT(buffer != NULL);
     DvzGpu* gpu = buffer->gpu;
@@ -814,14 +814,14 @@ static void _buffer_create(DvzBuffer* buffer)
         &buffer->vma.alloc, &buffer->vma.info);
     ASSERT(buffer->buffer != VK_NULL_HANDLE);
 
-    // Get the memory flags found by VMA and store them in the DvzBuffer instance.
+    // Get the memory flags found by VMA and store them in the DvzBuffers instance.
     vmaGetMemoryTypeProperties(gpu->allocator, buffer->vma.info.memoryType, &buffer->memory);
     ASSERT(buffer->memory != 0);
 }
 
 
 
-static void _buffer_destroy(DvzBuffer* buffer)
+static void _buffer_destroy(DvzBuffers* buffer)
 {
     ASSERT(buffer != NULL);
     ASSERT(buffer->gpu != NULL);
@@ -851,10 +851,10 @@ static void _buffer_destroy(DvzBuffer* buffer)
 
 
 
-static void _buffer_copy(DvzBuffer* buffer0, DvzBuffer* buffer1)
+static void _buffer_copy(DvzBuffers* buffer0, DvzBuffers* buffer1)
 {
     // Copy the parameters of a buffer.
-    memcpy(buffer1, buffer0, sizeof(DvzBuffer));
+    memcpy(buffer1, buffer0, sizeof(DvzBuffers));
     memcpy(buffer1->queues, buffer0->queues, sizeof(buffer0->queues));
 
     // buffer1->gpu = buffer0->gpu;
@@ -873,7 +873,7 @@ static void _buffer_copy(DvzBuffer* buffer0, DvzBuffer* buffer1)
 
 
 
-void dvz_buffer_create(DvzBuffer* buffer)
+void dvz_buffer_create(DvzBuffers* buffer)
 {
     ASSERT(buffer != NULL);
     ASSERT(buffer->gpu != NULL);
@@ -892,7 +892,7 @@ void dvz_buffer_create(DvzBuffer* buffer)
 
 
 
-void dvz_buffer_resize(DvzBuffer* buffer, VkDeviceSize size)
+void dvz_buffer_resize(DvzBuffers* buffer, VkDeviceSize size)
 {
     ASSERT(buffer != NULL);
     DvzGpu* gpu = buffer->gpu;
@@ -907,7 +907,7 @@ void dvz_buffer_resize(DvzBuffer* buffer, VkDeviceSize size)
     log_debug("[SLOW] resize buffer to size %s", pretty_size(size));
 
     // Create the new buffer with the new size.
-    DvzBuffer new_buffer = dvz_buffer(gpu);
+    DvzBuffers new_buffer = dvz_buffer(gpu);
     _buffer_copy(buffer, &new_buffer);
     // Make sure we can copy to the new buffer.
     bool proceed = true;
@@ -962,7 +962,7 @@ void dvz_buffer_resize(DvzBuffer* buffer, VkDeviceSize size)
     buffer->size = new_buffer.size;
     ASSERT(buffer->size == size);
 
-    // Update the existing DvzBuffer struct with the newly-created Vulkan objects.
+    // Update the existing DvzBuffers struct with the newly-created Vulkan objects.
     buffer->buffer = new_buffer.buffer;
     // buffer->device_memory = new_buffer.device_memory;
     buffer->buffer = new_buffer.buffer;
@@ -982,7 +982,7 @@ void dvz_buffer_resize(DvzBuffer* buffer, VkDeviceSize size)
 
 
 
-void* dvz_buffer_map(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size)
+void* dvz_buffer_map(DvzBuffers* buffer, VkDeviceSize offset, VkDeviceSize size)
 {
     ASSERT(buffer != NULL);
     ASSERT(buffer->gpu != NULL);
@@ -1012,7 +1012,7 @@ void* dvz_buffer_map(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size)
 
 
 
-void dvz_buffer_unmap(DvzBuffer* buffer)
+void dvz_buffer_unmap(DvzBuffers* buffer)
 {
     ASSERT(buffer != NULL);
     ASSERT(buffer->gpu != NULL);
@@ -1030,7 +1030,8 @@ void dvz_buffer_unmap(DvzBuffer* buffer)
 
 
 
-void dvz_buffer_upload(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, const void* data)
+void dvz_buffer_upload(
+    DvzBuffers* buffer, VkDeviceSize offset, VkDeviceSize size, const void* data)
 {
     ASSERT(buffer != NULL);
     ASSERT(size > 0);
@@ -1061,7 +1062,7 @@ void dvz_buffer_upload(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size
 
 
 
-void dvz_buffer_download(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size, void* data)
+void dvz_buffer_download(DvzBuffers* buffer, VkDeviceSize offset, VkDeviceSize size, void* data)
 {
     log_trace("downloading %s from GPU buffer", pretty_size(size));
 
@@ -1084,7 +1085,7 @@ void dvz_buffer_download(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize si
 
 
 
-void dvz_buffer_destroy(DvzBuffer* buffer)
+void dvz_buffer_destroy(DvzBuffers* buffer)
 {
     ASSERT(buffer != NULL);
     if (!dvz_obj_is_created(&buffer->obj))
@@ -1104,7 +1105,7 @@ void dvz_buffer_destroy(DvzBuffer* buffer)
 /*************************************************************************************************/
 
 DvzBufferRegions dvz_buffer_regions(
-    DvzBuffer* buffer, uint32_t count, //
+    DvzBuffers* buffer, uint32_t count, //
     VkDeviceSize offset, VkDeviceSize size, VkDeviceSize alignment)
 {
     ASSERT(buffer != NULL);
@@ -1151,7 +1152,7 @@ void* dvz_buffer_regions_map(
     DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size)
 {
     ASSERT(br != NULL);
-    DvzBuffer* buffer = br->buffer;
+    DvzBuffers* buffer = br->buffer;
     ASSERT(br->offsets[idx] + offset + size <= buffer->size);
     return dvz_buffer_map(buffer, br->offsets[idx] + offset, size);
 }
@@ -1161,7 +1162,7 @@ void* dvz_buffer_regions_map(
 void dvz_buffer_regions_unmap(DvzBufferRegions* br)
 {
     ASSERT(br != NULL);
-    DvzBuffer* buffer = br->buffer;
+    DvzBuffers* buffer = br->buffer;
     ASSERT(buffer != NULL);
     dvz_buffer_unmap(buffer);
 }
@@ -1172,7 +1173,7 @@ void dvz_buffer_regions_upload(
     DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size, const void* data)
 {
     ASSERT(br != NULL);
-    DvzBuffer* buffer = br->buffer;
+    DvzBuffers* buffer = br->buffer;
 
     // VkDeviceSize size = br->size;
     // NOTE: size is now passed as an argument to the function
@@ -1209,7 +1210,7 @@ void dvz_buffer_regions_download(
     DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size, void* data)
 {
     ASSERT(br != NULL);
-    DvzBuffer* buffer = br->buffer;
+    DvzBuffers* buffer = br->buffer;
 
     // VkDeviceSize size = br->size;
     // NOTE: size is now passed as an argument to the function
@@ -1462,7 +1463,7 @@ static void _images_create(DvzImages* images)
                 &images->vma[i].alloc, &images->vma[i].info);
             ASSERT(images->images[i] != VK_NULL_HANDLE);
 
-            // Get the memory flags found by VMA and store them in the DvzBuffer instance.
+            // Get the memory flags found by VMA and store them in the DvzBuffers instance.
             vmaGetMemoryTypeProperties(
                 gpu->allocator, images->vma[i].info.memoryType, &images->memory);
             ASSERT(images->memory != 0);
@@ -3412,8 +3413,8 @@ _image_buffer_copy(DvzImages* images, VkDeviceSize buf_offset, uvec3 tex_offset,
 }
 
 void dvz_cmd_copy_buffer_to_image(
-    DvzCommands* cmds, uint32_t idx,            //
-    DvzBuffer* buffer, VkDeviceSize buf_offset, //
+    DvzCommands* cmds, uint32_t idx,             //
+    DvzBuffers* buffer, VkDeviceSize buf_offset, //
     DvzImages* images, uvec3 tex_offset, uvec3 shape)
 {
     ASSERT(cmds != NULL);
@@ -3430,7 +3431,7 @@ void dvz_cmd_copy_buffer_to_image(
 void dvz_cmd_copy_image_to_buffer(
     DvzCommands* cmds, uint32_t idx,                  //
     DvzImages* images, uvec3 tex_offset, uvec3 shape, //
-    DvzBuffer* buffer, VkDeviceSize buf_offset        //
+    DvzBuffers* buffer, VkDeviceSize buf_offset       //
 )
 {
     ASSERT(cmds != NULL);
@@ -3617,9 +3618,9 @@ void dvz_cmd_draw_indexed_indirect(DvzCommands* cmds, uint32_t idx, DvzBufferReg
 
 
 void dvz_cmd_copy_buffer(
-    DvzCommands* cmds, uint32_t idx,             //
-    DvzBuffer* src_buf, VkDeviceSize src_offset, //
-    DvzBuffer* dst_buf, VkDeviceSize dst_offset, //
+    DvzCommands* cmds, uint32_t idx,              //
+    DvzBuffers* src_buf, VkDeviceSize src_offset, //
+    DvzBuffers* dst_buf, VkDeviceSize dst_offset, //
     VkDeviceSize size)
 {
     ASSERT(cmds != NULL);
