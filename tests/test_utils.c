@@ -244,6 +244,9 @@ int test_utils_alloc_1(TestContext* tc)
     _double_alloc_size(&alloc);
     // [--------|xxxxxxxx|----------------]
 
+    // IMPORTANT: we need to get the slot pointers as the array was resized.
+    slot = _get_slot(&alloc, 0);
+    second_slot = _get_slot(&alloc, size / 2);
     DvzAllocSlot* third_slot = _get_slot(&alloc, size);
     ASSERT(third_slot != NULL);
 
