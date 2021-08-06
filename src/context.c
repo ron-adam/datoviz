@@ -31,13 +31,13 @@ static void _context_default_buffers(DvzContext* context)
     for (uint32_t i = 0; i < DVZ_BUFFER_TYPE_COUNT; i++)
     {
         buffer = dvz_container_alloc(&context->buffers);
-        *buffer = dvz_buffer(context->gpu);
+        *buffer = dvz_buffers(context->gpu);
         ASSERT(buffer != NULL);
 
         // All buffers may be accessed from these queues.
-        dvz_buffer_queue_access(buffer, DVZ_DEFAULT_QUEUE_TRANSFER);
-        dvz_buffer_queue_access(buffer, DVZ_DEFAULT_QUEUE_COMPUTE);
-        dvz_buffer_queue_access(buffer, DVZ_DEFAULT_QUEUE_RENDER);
+        dvz_buffers_queue_access(buffer, DVZ_DEFAULT_QUEUE_TRANSFER);
+        dvz_buffers_queue_access(buffer, DVZ_DEFAULT_QUEUE_COMPUTE);
+        dvz_buffers_queue_access(buffer, DVZ_DEFAULT_QUEUE_RENDER);
     }
 
     VkBufferUsageFlagBits transferable =
@@ -47,31 +47,31 @@ static void _context_default_buffers(DvzContext* context)
     {
         buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STAGING);
         ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_STAGING);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_STAGING_SIZE);
-        dvz_buffer_usage(buffer, transferable);
-        dvz_buffer_memory(
+        dvz_buffers_type(buffer, DVZ_BUFFER_TYPE_STAGING);
+        dvz_buffers_size(buffer, DVZ_BUFFER_TYPE_STAGING_SIZE);
+        dvz_buffers_usage(buffer, transferable);
+        dvz_buffers_memory(
             buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        dvz_buffer_create(buffer);
+        dvz_buffers_create(buffer);
         ASSERT(dvz_obj_is_created(&buffer->obj));
 
         // Permanently map the buffer.
-        // buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
+        // buffer->mmap = dvz_buffers_map(buffer, 0, VK_WHOLE_SIZE);
     }
 
     // Vertex buffer
     {
         buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_VERTEX);
         ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_VERTEX);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_VERTEX_SIZE);
-        dvz_buffer_usage(
+        dvz_buffers_type(buffer, DVZ_BUFFER_TYPE_VERTEX);
+        dvz_buffers_size(buffer, DVZ_BUFFER_TYPE_VERTEX_SIZE);
+        dvz_buffers_usage(
             buffer,
             transferable | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-        dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        // dvz_buffer_memory(
+        dvz_buffers_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        // dvz_buffers_memory(
         //     buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        dvz_buffer_create(buffer);
+        dvz_buffers_create(buffer);
         ASSERT(dvz_obj_is_created(&buffer->obj));
     }
 
@@ -79,11 +79,11 @@ static void _context_default_buffers(DvzContext* context)
     {
         buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_INDEX);
         ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_INDEX);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_INDEX_SIZE);
-        dvz_buffer_usage(buffer, transferable | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        dvz_buffer_create(buffer);
+        dvz_buffers_type(buffer, DVZ_BUFFER_TYPE_INDEX);
+        dvz_buffers_size(buffer, DVZ_BUFFER_TYPE_INDEX_SIZE);
+        dvz_buffers_usage(buffer, transferable | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        dvz_buffers_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        dvz_buffers_create(buffer);
         ASSERT(dvz_obj_is_created(&buffer->obj));
     }
 
@@ -91,11 +91,11 @@ static void _context_default_buffers(DvzContext* context)
     {
         buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STORAGE);
         ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_STORAGE);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_STORAGE_SIZE);
-        dvz_buffer_usage(buffer, transferable | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-        dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        dvz_buffer_create(buffer);
+        dvz_buffers_type(buffer, DVZ_BUFFER_TYPE_STORAGE);
+        dvz_buffers_size(buffer, DVZ_BUFFER_TYPE_STORAGE_SIZE);
+        dvz_buffers_usage(buffer, transferable | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+        dvz_buffers_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        dvz_buffers_create(buffer);
         ASSERT(dvz_obj_is_created(&buffer->obj));
     }
 
@@ -103,11 +103,11 @@ static void _context_default_buffers(DvzContext* context)
     {
         buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_UNIFORM);
         ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_UNIFORM);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
-        dvz_buffer_usage(buffer, transferable | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        dvz_buffer_create(buffer);
+        dvz_buffers_type(buffer, DVZ_BUFFER_TYPE_UNIFORM);
+        dvz_buffers_size(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
+        dvz_buffers_usage(buffer, transferable | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        dvz_buffers_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        dvz_buffers_create(buffer);
         ASSERT(dvz_obj_is_created(&buffer->obj));
     }
 
@@ -115,16 +115,16 @@ static void _context_default_buffers(DvzContext* context)
     {
         buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
         ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
-        dvz_buffer_usage(buffer, transferable | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        dvz_buffer_memory(
+        dvz_buffers_type(buffer, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
+        dvz_buffers_size(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
+        dvz_buffers_usage(buffer, transferable | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        dvz_buffers_memory(
             buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        dvz_buffer_create(buffer);
+        dvz_buffers_create(buffer);
         ASSERT(dvz_obj_is_created(&buffer->obj));
 
         // Permanently map the buffer.
-        buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
+        buffer->mmap = dvz_buffers_map(buffer, 0, VK_WHOLE_SIZE);
     }
 }
 
@@ -161,7 +161,7 @@ static void _destroy_resources(DvzContext* context)
     ASSERT(context != NULL);
 
     log_trace("context destroy buffers");
-    CONTAINER_DESTROY_ITEMS(DvzBuffers, context->buffers, dvz_buffer_destroy)
+    CONTAINER_DESTROY_ITEMS(DvzBuffers, context->buffers, dvz_buffers_destroy)
 
     log_trace("context destroy sets of images");
     CONTAINER_DESTROY_ITEMS(DvzImages, context->images, dvz_images_destroy)
@@ -430,7 +430,7 @@ DvzBufferRegions dvz_ctx_buffers(
         ASSERT(offset % alignment == 0); // offset should be already aligned
     }
 
-    DvzBufferRegions regions = dvz_buffer_regions(buffer, buffer_count, offset, size, alignment);
+    DvzBufferRegions regions = dvz_buffers_regions(buffer, buffer_count, offset, size, alignment);
     VkDeviceSize alsize = regions.aligned_size;
     if (alsize == 0)
         alsize = size;
@@ -456,7 +456,7 @@ DvzBufferRegions dvz_ctx_buffers(
     {
         VkDeviceSize new_size = dvz_next_pow2(offset + alsize * buffer_count);
         log_info("reallocating buffer %d to %s", buffer_type, pretty_size(new_size));
-        dvz_buffer_resize(regions.buffer, new_size);
+        dvz_buffers_resize(regions.buffer, new_size);
     }
 
     log_debug(
@@ -480,7 +480,7 @@ void dvz_ctx_buffers_resize(DvzContext* context, DvzBufferRegions* br, VkDeviceS
     ASSERT(br->count > 0);
     if (br->count > 1)
     {
-        log_error("dvz_buffer_regions_resize() currently only supports regions with buf count=1");
+        log_error("dvz_buffers_regions_resize() currently only supports regions with buf count=1");
         return;
     }
     ASSERT(br->count == 1);
@@ -501,7 +501,7 @@ void dvz_ctx_buffers_resize(DvzContext* context, DvzBufferRegions* br, VkDeviceS
         {
             VkDeviceSize bs = dvz_next_pow2(br->offsets[0] + old_size);
             log_info("reallocating buffer #%d to %s", br->buffer->type, pretty_size(bs));
-            dvz_buffer_resize(br->buffer, bs);
+            dvz_buffers_resize(br->buffer, bs);
         }
     }
 
@@ -672,7 +672,7 @@ void dvz_texture_address_mode(
 //     DvzBuffers* staging = staging_buffer(context, size);
 
 //     // Memcpy into the staging buffer.
-//     dvz_buffer_upload(staging, 0, size, data);
+//     dvz_buffers_upload(staging, 0, size, data);
 
 //     // Copy from the staging buffer to the texture.
 //     _copy_texture_from_staging(context, texture, offset, shape, size);
@@ -705,7 +705,7 @@ void dvz_texture_address_mode(
 //     dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
 //     // Memcpy into the staging buffer.
-//     dvz_buffer_download(staging, 0, size, data);
+//     dvz_buffers_download(staging, 0, size, data);
 // }
 
 

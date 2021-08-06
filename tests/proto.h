@@ -153,23 +153,23 @@ static TestVisual triangle_visual(
     dvz_graphics_create(&visual.graphics);
 
     // Create the buffer.
-    visual.buffer = dvz_buffer(gpu);
+    visual.buffer = dvz_buffers(gpu);
     VkDeviceSize size = 3 * sizeof(TestVertex);
-    dvz_buffer_size(&visual.buffer, size);
-    dvz_buffer_usage(
+    dvz_buffers_size(&visual.buffer, size);
+    dvz_buffers_usage(
         &visual.buffer,                          //
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |      //
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | //
             VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    // dvz_buffer_memory(
+    // dvz_buffers_memory(
     //     &visual.buffer,
     //     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    dvz_buffer_vma_usage(&visual.buffer, VMA_MEMORY_USAGE_CPU_ONLY);
-    dvz_buffer_create(&visual.buffer);
+    dvz_buffers_vma_usage(&visual.buffer, VMA_MEMORY_USAGE_CPU_ONLY);
+    dvz_buffers_create(&visual.buffer);
 
     // Upload the triangle data.
     TestVertex data[] = TRIANGLE_VERTICES;
-    dvz_buffer_upload(&visual.buffer, 0, size, data);
+    dvz_buffers_upload(&visual.buffer, 0, size, data);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     return visual;
@@ -228,7 +228,7 @@ static void destroy_visual(TestVisual* visual)
 {
     dvz_graphics_destroy(&visual->graphics);
     dvz_bindings_destroy(&visual->bindings);
-    dvz_buffer_destroy(&visual->buffer);
+    dvz_buffers_destroy(&visual->buffer);
     FREE(visual->user_data);
     FREE(visual->data);
 }
@@ -426,7 +426,7 @@ static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)
     TestVertex data2[3] = {0};
     dvz_download_buffer(gpu->context, visual->br, 0, size, data2);
     ASSERT(memcmp(data, data2, size) == 0);
-    // dvz_buffer_regions_upload(&visual->br, 0, 0, size, data);
+    // dvz_buffers_regions_upload(&visual->br, 0, 0, size, data);
 }
 
 

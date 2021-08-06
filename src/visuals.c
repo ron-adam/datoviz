@@ -829,7 +829,7 @@ void dvz_visual_update(
             {
                 // dvz_canvas_buffers(canvas, *br, 0, size, arr->data);
                 for (uint32_t i = 0; i < canvas->render.swapchain.img_count; i++)
-                    dvz_buffer_upload(br->buffer, br->offsets[i], size, arr->data);
+                    dvz_buffers_upload(br->buffer, br->offsets[i], size, arr->data);
             }
             else
                 dvz_upload_buffer(ctx, *br, 0, size, arr->data);

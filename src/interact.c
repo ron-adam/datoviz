@@ -85,7 +85,7 @@ void dvz_interact_destroy(DvzInteract* interact)
 
     // if (interact->mmap != NULL)
     // {
-    //     dvz_buffer_regions_unmap(&interact->br);
+    //     dvz_buffers_regions_unmap(&interact->br);
     //     interact->mmap = NULL;
     // }
 }

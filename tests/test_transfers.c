@@ -74,8 +74,8 @@ int test_transfers_buffer_large(TestContext* tc)
 
     // Allocate a staging buffer region.
     DvzBuffers* staging = (DvzBuffers*)dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_STAGING);
-    dvz_buffer_resize(staging, size);
-    DvzBufferRegions stg = dvz_buffer_regions(staging, 1, 0, size, 0);
+    dvz_buffers_resize(staging, size);
+    DvzBufferRegions stg = dvz_buffers_regions(staging, 1, 0, size, 0);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&ctx->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data);

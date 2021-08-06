@@ -99,7 +99,7 @@ int main(int argc, char** argv)
     dvz_bindings_update(&bindings);
 
     // Vertex data and GPU buffer.
-    DvzBuffers buffer = dvz_buffer(gpu);
+    DvzBuffers buffer = dvz_buffers(gpu);
     {
         // We create the GPU buffer holding the vertex data.
         // NOTE: in real applications, once should use few, even a single large vertex buffer for
@@ -108,21 +108,21 @@ int main(int argc, char** argv)
 
         // There will be three vertices for 1 triangle.
         VkDeviceSize size = 3 * sizeof(DvzVertex);
-        dvz_buffer_size(&buffer, size);
+        dvz_buffers_size(&buffer, size);
 
         // We declare that the buffer will be used as a vertex buffer.
-        dvz_buffer_usage(&buffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        dvz_buffers_usage(&buffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
         // The buffer should be accessible directly from the CPU in this example (bad practice in
         // real applications).
-        dvz_buffer_memory(
+        dvz_buffers_memory(
             &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         // Once set up, we create the GPU buffer.
-        dvz_buffer_create(&buffer);
+        dvz_buffers_create(&buffer);
 
         // We define a view (buffer region) on the entire buffer.
-        vertex_buffer = dvz_buffer_regions(&buffer, 1, 0, size, 0);
+        vertex_buffer = dvz_buffers_regions(&buffer, 1, 0, size, 0);
 
         // Define the vertex data.
         // NOTE: in this example, we don't include the common.glsl shader and we use raw Vulkan
@@ -134,7 +134,7 @@ int main(int argc, char** argv)
         };
 
         // We upload the data to the GPU vertex buffer.
-        dvz_buffer_regions_upload(&vertex_buffer, 0, 0, size, data);
+        dvz_buffers_regions_upload(&vertex_buffer, 0, 0, size, data);
     }
 
     // We set the command buffer refill callback, the function that will be called whenever the
@@ -148,7 +148,7 @@ int main(int argc, char** argv)
 
     // We need to clean up all objects handled by Datoviz at the end.
     dvz_graphics_destroy(&graphics);
-    dvz_buffer_destroy(&buffer);
+    dvz_buffers_destroy(&buffer);
     dvz_app_destroy(app);
 
     return 0;

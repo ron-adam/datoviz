@@ -339,17 +339,17 @@ static void _screencast_staging(DvzCanvas* canvas)
     DvzContext* ctx = canvas->gpu->context;
     ASSERT(ctx != NULL);
 
-    canvas->render.screencast_staging = dvz_buffer(ctx->gpu);
+    canvas->render.screencast_staging = dvz_buffers(ctx->gpu);
     DvzBuffers* buffer = &canvas->render.screencast_staging;
-    dvz_buffer_queue_access(buffer, DVZ_DEFAULT_QUEUE_TRANSFER);
+    dvz_buffers_queue_access(buffer, DVZ_DEFAULT_QUEUE_TRANSFER);
     VkBufferUsageFlagBits transferable =
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_STAGING);
-    dvz_buffer_size(buffer, 1600 * 1200 * 4); // default size
-    dvz_buffer_usage(buffer, transferable);
-    dvz_buffer_memory(
+    dvz_buffers_type(buffer, DVZ_BUFFER_TYPE_STAGING);
+    dvz_buffers_size(buffer, 1600 * 1200 * 4); // default size
+    dvz_buffers_usage(buffer, transferable);
+    dvz_buffers_memory(
         buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    dvz_buffer_create(buffer);
+    dvz_buffers_create(buffer);
     ASSERT(dvz_obj_is_created(&buffer->obj));
 
     // Also create a texture wrapper around the swapchain image so as to user the transfer API.
@@ -605,7 +605,7 @@ void dvz_canvas_recreate(DvzCanvas* canvas)
     dvz_images_create(&canvas->render.depth_image);
 
     // Need to recreate the staging image with the new size.
-    dvz_buffer_resize(&canvas->render.screencast_staging, width * height * 4);
+    dvz_buffers_resize(&canvas->render.screencast_staging, width * height * 4);
 
     if (canvas->with_pick)
     {
@@ -705,7 +705,7 @@ void dvz_canvas_buffers(
     ASSERT(br.buffer->mmap != NULL);
     uint32_t idx = canvas->render.swapchain.img_idx;
     ASSERT(idx < br.count);
-    dvz_buffer_upload(br.buffer, br.offsets[idx] + offset, size, data);
+    dvz_buffers_upload(br.buffer, br.offsets[idx] + offset, size, data);
 }
 
 
@@ -781,7 +781,7 @@ uint8_t* dvz_screenshot(DvzCanvas* canvas, bool remove_alpha)
     uvec3 shape = {images->width, images->height, images->depth};
 
     DvzBuffers* buf = &canvas->render.screencast_staging;
-    DvzBufferRegions stg = dvz_buffer_regions(buf, 1, 0, size, 0);
+    DvzBufferRegions stg = dvz_buffers_regions(buf, 1, 0, size, 0);
 
     uint8_t* data = calloc(size, 1);
 
@@ -857,7 +857,7 @@ void dvz_canvas_destroy(DvzCanvas* canvas)
     dvz_images_destroy(&canvas->render.pick_staging);
 
     // Destroy the screencast staging buffer.
-    dvz_buffer_destroy(&canvas->render.screencast_staging);
+    dvz_buffers_destroy(&canvas->render.screencast_staging);
 
     // Destroy the renderpasses.
     log_trace("canvas destroy renderpass");

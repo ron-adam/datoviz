@@ -716,137 +716,153 @@ void dvz_commands_destroy(DvzCommands* cmds)
 /*  Buffers                                                                                      */
 /*************************************************************************************************/
 
-DvzBuffers dvz_buffer(DvzGpu* gpu)
+DvzBuffers dvz_buffers(DvzGpu* gpu)
 {
     ASSERT(gpu != NULL);
     ASSERT(dvz_obj_is_created(&gpu->obj));
 
-    DvzBuffers buffer = {0};
-    dvz_obj_init(&buffer.obj);
-    buffer.gpu = gpu;
+    DvzBuffers buffers = {0};
+    dvz_obj_init(&buffers.obj);
+    buffers.gpu = gpu;
 
     // Default values.
-    // buffer.memory = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    buffer.vma.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    // buffers.memory = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    buffers.vma.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-    return buffer;
+    return buffers;
 }
 
 
 
-void dvz_buffer_size(DvzBuffers* buffer, VkDeviceSize size)
+void dvz_buffers_size(DvzBuffers* buffers, VkDeviceSize size)
 {
-    ASSERT(buffer != NULL);
-    buffer->size = size;
+    ASSERT(buffers != NULL);
+    buffers->size = size;
 }
 
 
 
-void dvz_buffer_type(DvzBuffers* buffer, DvzBufferType type)
+void dvz_buffers_type(DvzBuffers* buffers, DvzBufferType type)
 {
-    ASSERT(buffer != NULL);
-    buffer->type = type;
+    ASSERT(buffers != NULL);
+    buffers->type = type;
 }
 
 
 
-void dvz_buffer_usage(DvzBuffers* buffer, VkBufferUsageFlags usage)
+void dvz_buffers_usage(DvzBuffers* buffers, VkBufferUsageFlags usage)
 {
-    ASSERT(buffer != NULL);
-    buffer->usage = usage;
+    ASSERT(buffers != NULL);
+    buffers->usage = usage;
 }
 
 
 
-void dvz_buffer_vma_usage(DvzBuffers* buffer, VmaMemoryUsage vma_usage)
+void dvz_buffers_vma_usage(DvzBuffers* buffers, VmaMemoryUsage vma_usage)
 {
-    ASSERT(buffer != NULL);
-    buffer->vma.usage = vma_usage;
+    ASSERT(buffers != NULL);
+    buffers->vma.usage = vma_usage;
 }
 
 
 
-void dvz_buffer_memory(DvzBuffers* buffer, VkMemoryPropertyFlags memory)
+void dvz_buffers_count(DvzBuffers* buffers, uint32_t count)
 {
-    ASSERT(buffer != NULL);
-    buffer->memory = memory;
+    ASSERT(buffers != NULL);
+    buffers->count = count;
 }
 
 
 
-void dvz_buffer_queue_access(DvzBuffers* buffer, uint32_t queue_idx)
+void dvz_buffers_alignment(DvzBuffers* buffers, VkDeviceSize alignment)
 {
-    ASSERT(buffer != NULL);
-    ASSERT(buffer->gpu != NULL);
-    ASSERT(queue_idx < buffer->gpu->queues.queue_count);
-    buffer->queues[buffer->queue_count++] = queue_idx;
+    ASSERT(buffers != NULL);
+    buffers->alignment = alignment;
 }
 
 
 
-static void _buffer_create(DvzBuffers* buffer)
+void dvz_buffers_memory(DvzBuffers* buffers, VkMemoryPropertyFlags memory)
 {
-    ASSERT(buffer != NULL);
-    DvzGpu* gpu = buffer->gpu;
+    ASSERT(buffers != NULL);
+    buffers->memory = memory;
+}
+
+
+
+void dvz_buffers_queue_access(DvzBuffers* buffers, uint32_t queue_idx)
+{
+    ASSERT(buffers != NULL);
+    ASSERT(buffers->gpu != NULL);
+    ASSERT(queue_idx < buffers->gpu->queues.queue_count);
+    buffers->queues[buffers->queue_count++] = queue_idx;
+}
+
+
+
+static void _buffer_create(DvzBuffers* buffers)
+{
+    ASSERT(buffers != NULL);
+    DvzGpu* gpu = buffers->gpu;
     ASSERT(gpu != NULL);
 
     VkBufferCreateInfo buf_info = {0};
     buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buf_info.size = buffer->size;
-    buf_info.usage = buffer->usage;
+    buf_info.size = buffers->size;
+    buf_info.usage = buffers->usage;
 
     uint32_t queue_families[DVZ_MAX_QUEUE_FAMILIES];
     make_shared(
-        &gpu->queues, buffer->queue_count, buffer->queues, //
+        &gpu->queues, buffers->queue_count, buffers->queues, //
         &buf_info.sharingMode, &buf_info.queueFamilyIndexCount, queue_families);
     buf_info.pQueueFamilyIndices = queue_families;
 
     log_trace(
-        "create buffer with size %s, sharing mode %s", pretty_size(buffer->size),
+        "create buffer with size %s, sharing mode %s", pretty_size(buffers->size),
         buf_info.sharingMode == 0 ? "exclusive" : "concurrent");
 
     // Create the buffer with VMA.
     VmaAllocationCreateInfo alloc_info = {0};
-    alloc_info.flags = buffer->vma.flags;
-    alloc_info.usage = buffer->vma.usage;
+    alloc_info.flags = buffers->vma.flags;
+    alloc_info.usage = buffers->vma.usage;
     vmaCreateBuffer(
-        gpu->allocator, &buf_info, &alloc_info, &buffer->buffer, //
-        &buffer->vma.alloc, &buffer->vma.info);
-    ASSERT(buffer->buffer != VK_NULL_HANDLE);
+        gpu->allocator, &buf_info, &alloc_info, &buffers->buffer, //
+        &buffers->vma.alloc, &buffers->vma.info);
+    ASSERT(buffers->buffer != VK_NULL_HANDLE);
 
     // Get the memory flags found by VMA and store them in the DvzBuffers instance.
-    vmaGetMemoryTypeProperties(gpu->allocator, buffer->vma.info.memoryType, &buffer->memory);
-    ASSERT(buffer->memory != 0);
+    vmaGetMemoryTypeProperties(gpu->allocator, buffers->vma.info.memoryType, &buffers->memory);
+    ASSERT(buffers->memory != 0);
 }
 
 
 
-static void _buffer_destroy(DvzBuffers* buffer)
+static void _buffer_destroy(DvzBuffers* buffers)
 {
-    ASSERT(buffer != NULL);
-    ASSERT(buffer->gpu != NULL);
+    ASSERT(buffers != NULL);
+    ASSERT(buffers->gpu != NULL);
 
     // Unmap permanently-mapped buffers before destruction.
-    if (buffer->mmap != NULL)
+    if (buffers->mmap != NULL)
     {
-        dvz_buffer_unmap(buffer);
-        buffer->mmap = NULL;
+        dvz_buffers_unmap(buffers);
+        buffers->mmap = NULL;
     }
 
-    if (buffer->buffer != VK_NULL_HANDLE)
+    if (buffers->buffer != VK_NULL_HANDLE)
     {
         // vkDestroyBuffer(buffer->gpu->device, buffer->buffer, NULL);
-        vmaDestroyBuffer(buffer->gpu->allocator, buffer->buffer, buffer->vma.alloc);
-        buffer->buffer = VK_NULL_HANDLE;
+        vmaDestroyBuffer(buffers->gpu->allocator, buffers->buffer, buffers->vma.alloc);
+        buffers->buffer = VK_NULL_HANDLE;
     }
-    ASSERT(buffer->buffer == VK_NULL_HANDLE);
+    ASSERT(buffers->buffer == VK_NULL_HANDLE);
 
-    // if (buffer->device_memory != VK_NULL_HANDLE)
+    // if (buffers->device_memory != VK_NULL_HANDLE)
     // {
-    //     vkFreeMemory(buffer->gpu->device, buffer->device_memory, NULL);
-    //     buffer->device_memory = VK_NULL_HANDLE;
+    //     vkFreeMemory(buffers->gpu->device, buffers->device_memory, NULL);
+    //     buffers->device_memory = VK_NULL_HANDLE;
     // }
-    // ASSERT(buffer->device_memory == VK_NULL_HANDLE);
+    // ASSERT(buffers->device_memory == VK_NULL_HANDLE);
 }
 
 
@@ -873,42 +889,42 @@ static void _buffer_copy(DvzBuffers* buffer0, DvzBuffers* buffer1)
 
 
 
-void dvz_buffer_create(DvzBuffers* buffer)
+void dvz_buffers_create(DvzBuffers* buffers)
 {
-    ASSERT(buffer != NULL);
-    ASSERT(buffer->gpu != NULL);
-    ASSERT(buffer->gpu->device != VK_NULL_HANDLE);
-    ASSERT(buffer->size > 0);
-    ASSERT(buffer->usage != 0);
-    ASSERT(buffer->vma.usage != 0);
+    ASSERT(buffers != NULL);
+    ASSERT(buffers->gpu != NULL);
+    ASSERT(buffers->gpu->device != VK_NULL_HANDLE);
+    ASSERT(buffers->size > 0);
+    ASSERT(buffers->usage != 0);
+    ASSERT(buffers->vma.usage != 0);
 
     log_trace("starting creation of buffer...");
-    _buffer_create(buffer);
-    ASSERT(buffer->memory != VK_NULL_HANDLE);
+    _buffer_create(buffers);
+    ASSERT(buffers->memory != VK_NULL_HANDLE);
 
-    dvz_obj_created(&buffer->obj);
+    dvz_obj_created(&buffers->obj);
     log_trace("buffer created");
 }
 
 
 
-void dvz_buffer_resize(DvzBuffers* buffer, VkDeviceSize size)
+void dvz_buffers_resize(DvzBuffers* buffers, VkDeviceSize size)
 {
-    ASSERT(buffer != NULL);
-    DvzGpu* gpu = buffer->gpu;
-    if (size <= buffer->size)
+    ASSERT(buffers != NULL);
+    DvzGpu* gpu = buffers->gpu;
+    if (size <= buffers->size)
     {
         log_trace(
             "skip buffer resizing as the buffer size is large enough:"
             "(requested %s, is %s already)",
-            pretty_size(buffer->size), pretty_size(size));
+            pretty_size(buffers->size), pretty_size(size));
         return;
     }
     log_debug("[SLOW] resize buffer to size %s", pretty_size(size));
 
     // Create the new buffer with the new size.
-    DvzBuffers new_buffer = dvz_buffer(gpu);
-    _buffer_copy(buffer, &new_buffer);
+    DvzBuffers new_buffer = dvz_buffers(gpu);
+    _buffer_copy(buffers, &new_buffer);
     // Make sure we can copy to the new buffer.
     bool proceed = true;
     if ((new_buffer.usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT) == 0)
@@ -922,14 +938,14 @@ void dvz_buffer_resize(DvzBuffers* buffer, VkDeviceSize size)
     // At this point, the new buffer is empty.
 
     // Handle permanent mapping.
-    void* old_mmap = buffer->mmap;
-    if (buffer->mmap != NULL)
+    void* old_mmap = buffers->mmap;
+    if (buffers->mmap != NULL)
     {
         // Unmap the to-be-deleted buffer.
-        dvz_buffer_unmap(buffer);
+        dvz_buffers_unmap(buffers);
         // NOTE: buffer->mmap remains not NULL but invalid: it will need to be reset to a new
         // mapped region after creation of the new buffer.
-        buffer->mmap = NULL;
+        buffers->mmap = NULL;
     }
 
     // If a DvzCommands object was passed for the data transfer, transfer the data from the
@@ -943,11 +959,11 @@ void dvz_buffer_resize(DvzBuffers* buffer, VkDeviceSize size)
         uint32_t queue_idx = cmds->queue_idx;
         log_debug("copying data from the old buffer to the new one before destroying the old one");
         ASSERT(queue_idx < gpu->queues.queue_count);
-        ASSERT(size >= buffer->size);
+        ASSERT(size >= buffers->size);
 
         dvz_cmd_reset(cmds, 0);
         dvz_cmd_begin(cmds, 0);
-        dvz_cmd_copy_buffer(cmds, 0, buffer, 0, &new_buffer, 0, buffer->size);
+        dvz_cmd_copy_buffer(cmds, 0, buffers, 0, &new_buffer, 0, buffers->size);
         dvz_cmd_end(cmds, 0);
 
         VkQueue queue = gpu->queues.queues[queue_idx];
@@ -956,100 +972,100 @@ void dvz_buffer_resize(DvzBuffers* buffer, VkDeviceSize size)
     }
 
     // Delete the old buffer after the transfer has finished.
-    _buffer_destroy(buffer);
+    _buffer_destroy(buffers);
 
     // Update the existing buffer's size.
-    buffer->size = new_buffer.size;
-    ASSERT(buffer->size == size);
+    buffers->size = new_buffer.size;
+    ASSERT(buffers->size == size);
 
     // Update the existing DvzBuffers struct with the newly-created Vulkan objects.
-    buffer->buffer = new_buffer.buffer;
+    buffers->buffer = new_buffer.buffer;
     // buffer->device_memory = new_buffer.device_memory;
-    buffer->buffer = new_buffer.buffer;
-    buffer->vma = new_buffer.vma;
+    buffers->buffer = new_buffer.buffer;
+    buffers->vma = new_buffer.vma;
 
-    ASSERT(buffer->buffer != VK_NULL_HANDLE);
+    ASSERT(buffers->buffer != VK_NULL_HANDLE);
     // ASSERT(buffer->device_memory != VK_NULL_HANDLE);
 
     // If the existing buffer was already mapped, we need to remap the new buffer.
     if (old_mmap != NULL)
     {
-        buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
+        buffers->mmap = dvz_buffers_map(buffers, 0, VK_WHOLE_SIZE);
         // Make sure the permanent memmap has been updated after the buffer resize.
-        ASSERT(buffer->mmap != old_mmap);
+        ASSERT(buffers->mmap != old_mmap);
     }
 }
 
 
 
-void* dvz_buffer_map(DvzBuffers* buffer, VkDeviceSize offset, VkDeviceSize size)
+void* dvz_buffers_map(DvzBuffers* buffers, VkDeviceSize offset, VkDeviceSize size)
 {
-    ASSERT(buffer != NULL);
-    ASSERT(buffer->gpu != NULL);
-    ASSERT(buffer->gpu->device != VK_NULL_HANDLE);
-    ASSERT(dvz_obj_is_created(&buffer->obj));
+    ASSERT(buffers != NULL);
+    ASSERT(buffers->gpu != NULL);
+    ASSERT(buffers->gpu->device != VK_NULL_HANDLE);
+    ASSERT(dvz_obj_is_created(&buffers->obj));
     if (size < UINT64_MAX)
-        ASSERT(offset + size <= buffer->size);
+        ASSERT(offset + size <= buffers->size);
     ASSERT(
-        (buffer->memory & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && //
-        (buffer->memory & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
+        (buffers->memory & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && //
+        (buffers->memory & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
 
-    log_debug("memmap buffer %d", buffer->type);
-    ASSERT(buffer->mmap == NULL);
+    log_debug("memmap buffer %d", buffers->type);
+    ASSERT(buffers->mmap == NULL);
     void* cdata = NULL;
     // VK_CHECK_RESULT(
     //     vkMapMemory(buffer->gpu->device, buffer->device_memory, offset, size, 0, &cdata));
 
     if (offset != 0)
         log_warn("Buffer map offset %d not taken into account with VMA", offset);
-    if (size != buffer->size && size != VK_WHOLE_SIZE)
+    if (size != buffers->size && size != VK_WHOLE_SIZE)
         log_warn("Buffer map size %d not taken into account with VMA", size);
 
-    vmaMapMemory(buffer->gpu->allocator, buffer->vma.alloc, &cdata);
+    vmaMapMemory(buffers->gpu->allocator, buffers->vma.alloc, &cdata);
 
     return cdata;
 }
 
 
 
-void dvz_buffer_unmap(DvzBuffers* buffer)
+void dvz_buffers_unmap(DvzBuffers* buffers)
 {
-    ASSERT(buffer != NULL);
-    ASSERT(buffer->gpu != NULL);
-    ASSERT(buffer->gpu->device != VK_NULL_HANDLE);
-    ASSERT(dvz_obj_is_created(&buffer->obj));
+    ASSERT(buffers != NULL);
+    ASSERT(buffers->gpu != NULL);
+    ASSERT(buffers->gpu->device != VK_NULL_HANDLE);
+    ASSERT(dvz_obj_is_created(&buffers->obj));
 
     ASSERT(
-        (buffer->memory & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && //
-        (buffer->memory & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
+        (buffers->memory & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && //
+        (buffers->memory & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
 
-    log_debug("unmap buffer %d", buffer->type);
-    // vkUnmapMemory(buffer->gpu->device, buffer->device_memory);
-    vmaUnmapMemory(buffer->gpu->allocator, buffer->vma.alloc);
+    log_debug("unmap buffer %d", buffers->type);
+    // vkUnmapMemory(buffers->gpu->device, buffers->device_memory);
+    vmaUnmapMemory(buffers->gpu->allocator, buffers->vma.alloc);
 }
 
 
 
-void dvz_buffer_upload(
-    DvzBuffers* buffer, VkDeviceSize offset, VkDeviceSize size, const void* data)
+void dvz_buffers_upload(
+    DvzBuffers* buffers, VkDeviceSize offset, VkDeviceSize size, const void* data)
 {
-    ASSERT(buffer != NULL);
+    ASSERT(buffers != NULL);
     ASSERT(size > 0);
     ASSERT(data != NULL);
-    ASSERT(buffer->buffer != VK_NULL_HANDLE);
-    ASSERT(offset + size <= buffer->size);
+    ASSERT(buffers->buffer != VK_NULL_HANDLE);
+    ASSERT(offset + size <= buffers->size);
 
     // log_trace("uploading %s to GPU buffer", pretty_size(size));
     void* mapped = NULL;
     bool need_unmap = false;
-    if (buffer->mmap == NULL)
+    if (buffers->mmap == NULL)
     {
-        mapped = dvz_buffer_map(buffer, offset, size);
+        mapped = dvz_buffers_map(buffers, offset, size);
         need_unmap = true;
     }
     else
     {
-        mapped = (void*)((int64_t)buffer->mmap + (int64_t)offset);
+        mapped = (void*)((int64_t)buffers->mmap + (int64_t)offset);
         need_unmap = false;
     }
 
@@ -1057,45 +1073,45 @@ void dvz_buffer_upload(
     memcpy(mapped, data, size);
 
     if (need_unmap)
-        dvz_buffer_unmap(buffer);
+        dvz_buffers_unmap(buffers);
 }
 
 
 
-void dvz_buffer_download(DvzBuffers* buffer, VkDeviceSize offset, VkDeviceSize size, void* data)
+void dvz_buffers_download(DvzBuffers* buffers, VkDeviceSize offset, VkDeviceSize size, void* data)
 {
     log_trace("downloading %s from GPU buffer", pretty_size(size));
 
     void* mapped = NULL;
     bool need_unmap = false;
-    if (buffer->mmap == NULL)
+    if (buffers->mmap == NULL)
     {
-        mapped = dvz_buffer_map(buffer, offset, size);
+        mapped = dvz_buffers_map(buffers, offset, size);
         need_unmap = true;
     }
     else
     {
-        mapped = (void*)((int64_t)buffer->mmap + (int64_t)offset);
+        mapped = (void*)((int64_t)buffers->mmap + (int64_t)offset);
         need_unmap = false;
     }
     memcpy(data, mapped, size);
     if (need_unmap)
-        dvz_buffer_unmap(buffer);
+        dvz_buffers_unmap(buffers);
 }
 
 
 
-void dvz_buffer_destroy(DvzBuffers* buffer)
+void dvz_buffers_destroy(DvzBuffers* buffers)
 {
-    ASSERT(buffer != NULL);
-    if (!dvz_obj_is_created(&buffer->obj))
+    ASSERT(buffers != NULL);
+    if (!dvz_obj_is_created(&buffers->obj))
     {
         log_trace("skip destruction of already-destroyed buffer");
         return;
     }
     log_trace("destroy buffer");
-    _buffer_destroy(buffer);
-    dvz_obj_destroyed(&buffer->obj);
+    _buffer_destroy(buffers);
+    dvz_obj_destroyed(&buffers->obj);
 }
 
 
@@ -1104,18 +1120,18 @@ void dvz_buffer_destroy(DvzBuffers* buffer)
 /*  Buffer regions                                                                               */
 /*************************************************************************************************/
 
-DvzBufferRegions dvz_buffer_regions(
-    DvzBuffers* buffer, uint32_t count, //
+DvzBufferRegions dvz_buffers_regions(
+    DvzBuffers* buffers, uint32_t count, //
     VkDeviceSize offset, VkDeviceSize size, VkDeviceSize alignment)
 {
-    ASSERT(buffer != NULL);
-    ASSERT(buffer->gpu != NULL);
-    ASSERT(buffer->gpu->device != VK_NULL_HANDLE);
-    ASSERT(dvz_obj_is_created(&buffer->obj));
+    ASSERT(buffers != NULL);
+    ASSERT(buffers->gpu != NULL);
+    ASSERT(buffers->gpu->device != VK_NULL_HANDLE);
+    ASSERT(dvz_obj_is_created(&buffers->obj));
     ASSERT(count <= DVZ_MAX_BUFFER_REGIONS_PER_SET);
 
     DvzBufferRegions regions = {0};
-    regions.buffer = buffer;
+    regions.buffer = buffers;
     regions.count = count;
     regions.size = size;
     regions.alignment = alignment;
@@ -1148,37 +1164,37 @@ DvzBufferRegions dvz_buffer_regions(
 
 
 
-void* dvz_buffer_regions_map(
+void* dvz_buffers_regions_map(
     DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size)
 {
     ASSERT(br != NULL);
-    DvzBuffers* buffer = br->buffer;
-    ASSERT(br->offsets[idx] + offset + size <= buffer->size);
-    return dvz_buffer_map(buffer, br->offsets[idx] + offset, size);
+    DvzBuffers* buffers = br->buffer;
+    ASSERT(br->offsets[idx] + offset + size <= buffers->size);
+    return dvz_buffers_map(buffers, br->offsets[idx] + offset, size);
 }
 
 
 
-void dvz_buffer_regions_unmap(DvzBufferRegions* br)
+void dvz_buffers_regions_unmap(DvzBufferRegions* br)
 {
     ASSERT(br != NULL);
-    DvzBuffers* buffer = br->buffer;
-    ASSERT(buffer != NULL);
-    dvz_buffer_unmap(buffer);
+    DvzBuffers* buffers = br->buffer;
+    ASSERT(buffers != NULL);
+    dvz_buffers_unmap(buffers);
 }
 
 
 
-void dvz_buffer_regions_upload(
+void dvz_buffers_regions_upload(
     DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size, const void* data)
 {
     ASSERT(br != NULL);
-    DvzBuffers* buffer = br->buffer;
+    DvzBuffers* buffers = br->buffer;
 
     // VkDeviceSize size = br->size;
     // NOTE: size is now passed as an argument to the function
 
-    ASSERT(buffer != NULL);
+    ASSERT(buffers != NULL);
     ASSERT(size != 0);
     ASSERT(data != NULL);
 
@@ -1186,14 +1202,14 @@ void dvz_buffer_regions_upload(
 
     void* mapped = NULL;
     bool need_unmap = false;
-    if (buffer->mmap == NULL)
+    if (buffers->mmap == NULL)
     {
-        mapped = dvz_buffer_regions_map(br, idx, offset, size);
+        mapped = dvz_buffers_regions_map(br, idx, offset, size);
         need_unmap = true;
     }
     else
     {
-        mapped = buffer->mmap;
+        mapped = buffers->mmap;
         need_unmap = false;
     }
     ASSERT(mapped != NULL);
@@ -1201,21 +1217,21 @@ void dvz_buffer_regions_upload(
     memcpy(mapped, data, size);
 
     if (need_unmap)
-        dvz_buffer_regions_unmap(br);
+        dvz_buffers_regions_unmap(br);
 }
 
 
 
-void dvz_buffer_regions_download(
+void dvz_buffers_regions_download(
     DvzBufferRegions* br, uint32_t idx, VkDeviceSize offset, VkDeviceSize size, void* data)
 {
     ASSERT(br != NULL);
-    DvzBuffers* buffer = br->buffer;
+    DvzBuffers* buffers = br->buffer;
 
     // VkDeviceSize size = br->size;
     // NOTE: size is now passed as an argument to the function
 
-    ASSERT(buffer != NULL);
+    ASSERT(buffers != NULL);
     ASSERT(size != 0);
     ASSERT(data != NULL);
 
@@ -1223,14 +1239,14 @@ void dvz_buffer_regions_download(
 
     void* mapped = NULL;
     bool need_unmap = false;
-    if (buffer->mmap == NULL)
+    if (buffers->mmap == NULL)
     {
-        mapped = dvz_buffer_regions_map(br, idx, offset, size);
+        mapped = dvz_buffers_regions_map(br, idx, offset, size);
         need_unmap = true;
     }
     else
     {
-        mapped = buffer->mmap;
+        mapped = buffers->mmap;
         need_unmap = false;
     }
     ASSERT(mapped != NULL);
@@ -1238,12 +1254,12 @@ void dvz_buffer_regions_download(
     memcpy(data, mapped, size);
 
     if (need_unmap)
-        dvz_buffer_regions_unmap(br);
+        dvz_buffers_regions_unmap(br);
 }
 
 
 
-void dvz_buffer_regions_copy(
+void dvz_buffers_regions_copy(
     DvzBufferRegions* src, VkDeviceSize src_offset, //
     DvzBufferRegions* dst, VkDeviceSize dst_offset, VkDeviceSize size)
 {
@@ -3413,17 +3429,17 @@ _image_buffer_copy(DvzImages* images, VkDeviceSize buf_offset, uvec3 tex_offset,
 }
 
 void dvz_cmd_copy_buffer_to_image(
-    DvzCommands* cmds, uint32_t idx,             //
-    DvzBuffers* buffer, VkDeviceSize buf_offset, //
+    DvzCommands* cmds, uint32_t idx,              //
+    DvzBuffers* buffers, VkDeviceSize buf_offset, //
     DvzImages* images, uvec3 tex_offset, uvec3 shape)
 {
     ASSERT(cmds != NULL);
-    ASSERT(buffer != NULL);
+    ASSERT(buffers != NULL);
 
     CMD_START_CLIP(images->count)
     VkBufferImageCopy region = _image_buffer_copy(images, buf_offset, tex_offset, shape);
     vkCmdCopyBufferToImage(
-        cb, buffer->buffer, images->images[iclip], //
+        cb, buffers->buffer, images->images[iclip], //
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     CMD_END
 }
@@ -3431,17 +3447,17 @@ void dvz_cmd_copy_buffer_to_image(
 void dvz_cmd_copy_image_to_buffer(
     DvzCommands* cmds, uint32_t idx,                  //
     DvzImages* images, uvec3 tex_offset, uvec3 shape, //
-    DvzBuffers* buffer, VkDeviceSize buf_offset       //
+    DvzBuffers* buffers, VkDeviceSize buf_offset      //
 )
 {
     ASSERT(cmds != NULL);
-    ASSERT(buffer != NULL);
+    ASSERT(buffers != NULL);
 
     CMD_START_CLIP(images->count)
     VkBufferImageCopy region = _image_buffer_copy(images, buf_offset, tex_offset, shape);
     vkCmdCopyImageToBuffer(
         cb, images->images[iclip], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, //
-        buffer->buffer, 1, &region);
+        buffers->buffer, 1, &region);
     CMD_END
 }
 
