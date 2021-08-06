@@ -452,7 +452,6 @@ struct DvzBuffer
 
 
 
-// TO REMOVE:
 struct DvzBufferRegions
 {
     DvzBuffer* buffer;
@@ -1173,7 +1172,6 @@ DVZ_EXPORT void dvz_buffer_usage(DvzBuffer* buffer, VkBufferUsageFlags usage);
  */
 DVZ_EXPORT void dvz_buffer_vma_usage(DvzBuffer* buffer, VmaMemoryUsage vma_usage);
 
-// TO REMOVE:
 /**
  * Set the buffer memory properties.
  *

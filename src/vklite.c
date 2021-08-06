@@ -856,19 +856,6 @@ static void _buffer_copy(DvzBuffer* buffer0, DvzBuffer* buffer1)
     // Copy the parameters of a buffer.
     memcpy(buffer1, buffer0, sizeof(DvzBuffer));
     memcpy(buffer1->queues, buffer0->queues, sizeof(buffer0->queues));
-
-    // buffer1->gpu = buffer0->gpu;
-    // buffer1->alloc = buffer0->alloc;
-    // buffer1->obj = buffer0->obj;
-    // buffer1->queue_count = buffer0->queue_count;
-    // buffer1->size = buffer0->size;
-    // buffer1->usage = buffer0->usage;
-    // buffer1->vma.usage = buffer0->vma.usage;
-    // buffer1->vma.flags = buffer0->vma.flags;
-    // buffer1->vma.info = buffer0->vma.info;
-
-    // // TO REMOVE:
-    // buffer1->memory = buffer0->memory;
 }
 
 

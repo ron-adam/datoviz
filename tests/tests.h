@@ -38,6 +38,8 @@ int test_utils_array_cast(TestContext*);
 int test_utils_array_mvp(TestContext*);
 int test_utils_array_3D(TestContext*);
 
+int test_utils_alloc_1(TestContext*);
+
 // int test_utils_transforms_1(TestContext*);
 // int test_utils_transforms_2(TestContext*);
 // int test_utils_transforms_3(TestContext*);
@@ -214,6 +216,7 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(NONE, test_utils_deq_wait),         //
     CASE_FIXTURE(NONE, test_utils_deq_batch),        //
 
+    // Array.
     CASE_FIXTURE(NONE, test_utils_array_1),    //
     CASE_FIXTURE(NONE, test_utils_array_2),    //
     CASE_FIXTURE(NONE, test_utils_array_3),    //
@@ -224,6 +227,9 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(NONE, test_utils_array_cast), //
     CASE_FIXTURE(NONE, test_utils_array_mvp),  //
     CASE_FIXTURE(NONE, test_utils_array_3D),   //
+
+    // Alloc.
+    CASE_FIXTURE(NONE, test_utils_alloc_1), //
 
     // CASE_FIXTURE(NONE, test_utils_transforms_1),     //
     // CASE_FIXTURE(NONE, test_utils_transforms_2),     //
