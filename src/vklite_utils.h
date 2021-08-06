@@ -1320,56 +1320,6 @@ static void check_dims(VkImageType image_type, uint32_t width, uint32_t height, 
 
 
 
-// TO REMOVE:
-static void create_image(
-    VkDevice device, DvzQueues* queues, uint32_t queue_count, uint32_t* queue_indices,        //
-    VkImageType image_type, uint32_t width, uint32_t height, uint32_t depth, VkFormat format, //
-    VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,          //
-    VkPhysicalDeviceMemoryProperties memory_properties,                                       //
-    VkImage* image, VkDeviceMemory* imageMemory)                                              //
-{
-    log_trace("create image %dD %dx%dx%d", image_type + 1, width, height, depth);
-    ASSERT(width > 0);
-
-    VkImageCreateInfo info = {0};
-    info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    info.imageType = image_type;
-    info.extent.width = width;
-    info.extent.height = height;
-    info.extent.depth = depth;
-    info.mipLevels = 1;
-    info.arrayLayers = 1;
-    info.format = format;
-    info.tiling = tiling;
-    info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    info.usage = usage;
-    info.samples = VK_SAMPLE_COUNT_1_BIT;
-
-    // Sharing mode, depending on the queues that need to access the image.
-    uint32_t queue_families[DVZ_MAX_QUEUE_FAMILIES];
-    make_shared(
-        queues, queue_count, queue_indices, //
-        &info.sharingMode, &info.queueFamilyIndexCount, queue_families);
-    info.pQueueFamilyIndices = queue_families;
-
-    VK_CHECK_RESULT(vkCreateImage(device, &info, NULL, image));
-
-    VkMemoryRequirements memRequirements = {0};
-    vkGetImageMemoryRequirements(device, *image, &memRequirements);
-
-    VkMemoryAllocateInfo alloc_info = {0};
-    alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    alloc_info.allocationSize = memRequirements.size;
-    alloc_info.memoryTypeIndex =
-        find_memory_type(memRequirements.memoryTypeBits, properties, memory_properties);
-
-    VK_CHECK_RESULT(vkAllocateMemory(device, &alloc_info, NULL, imageMemory));
-
-    vkBindImageMemory(device, *image, *imageMemory, 0);
-}
-
-
-
 static void create_image_view(
     VkDevice device, VkImage image, VkImageViewType view_type, VkFormat format,
     VkImageAspectFlags aspect_flags, VkImageView* image_view)

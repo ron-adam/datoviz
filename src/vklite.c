@@ -1310,8 +1310,10 @@ DvzImages dvz_images(DvzGpu* gpu, VkImageType type, uint32_t count)
 
     // Default options.
     images.tiling = VK_IMAGE_TILING_OPTIMAL;
-    images.memory = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    // images.memory = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     images.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+    for (uint32_t i = 0; i < images.count; i++)
+        images.vma[i].usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
     return images;
 }
@@ -1364,6 +1366,15 @@ void dvz_images_usage(DvzImages* images, VkImageUsageFlags usage)
 
 
 
+void dvz_images_vma_usage(DvzImages* images, VmaMemoryUsage vma_usage)
+{
+    ASSERT(images != NULL);
+    for (uint32_t i = 0; i < images->count; i++)
+        images->vma[i].usage = vma_usage;
+}
+
+
+
 void dvz_images_memory(DvzImages* images, VkMemoryPropertyFlags memory)
 {
     ASSERT(images != NULL);
@@ -1395,7 +1406,6 @@ static void _images_create(DvzImages* images)
     VkDeviceSize size = 0;
 
     // Check whether the image format is supported.
-
     if (!images->is_swapchain)
     {
         VkImageFormatProperties props = {0};
@@ -1408,14 +1418,55 @@ static void _images_create(DvzImages* images)
         }
     }
 
+    // Create the images.
+    uint32_t width = images->width;
+    uint32_t height = images->height;
+    uint32_t depth = images->depth;
+
+    log_trace("create image %dD %dx%dx%d", images->image_type + 1, width, height, depth);
+    ASSERT(width > 0);
+
+    VkImageCreateInfo info = {0};
+    info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    info.imageType = images->image_type;
+    info.extent.width = width;
+    info.extent.height = height;
+    info.extent.depth = depth;
+    info.mipLevels = 1;
+    info.arrayLayers = 1;
+    info.format = images->format;
+    info.tiling = images->tiling;
+    info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    info.usage = images->usage;
+    info.samples = VK_SAMPLE_COUNT_1_BIT;
+
+    // Sharing mode, depending on the queues that need to access the image.
+    uint32_t queue_families[DVZ_MAX_QUEUE_FAMILIES];
+    make_shared(
+        &gpu->queues, images->queue_count, images->queues, //
+        &info.sharingMode, &info.queueFamilyIndexCount, queue_families);
+    info.pQueueFamilyIndices = queue_families;
+
+    // Create the images with VMA.
+    VmaAllocationCreateInfo alloc_info = {0};
+    // NOTE: we assume all images in the DvzImages set share the same VMA flags and usage.
+    alloc_info.flags = images->vma[0].flags;
+    alloc_info.usage = images->vma[0].usage;
+
     for (uint32_t i = 0; i < images->count; i++)
     {
         if (!images->is_swapchain)
-            create_image(
-                gpu->device, &gpu->queues, images->queue_count, images->queues, images->image_type,
-                images->width, images->height, images->depth, images->format, images->tiling,
-                images->usage, images->memory, gpu->memory_properties, &images->images[i],
-                &images->memories[i]);
+        {
+            vmaCreateImage(
+                gpu->allocator, &info, &alloc_info, &images->images[i], //
+                &images->vma[i].alloc, &images->vma[i].info);
+            ASSERT(images->images[i] != VK_NULL_HANDLE);
+
+            // Get the memory flags found by VMA and store them in the DvzBuffer instance.
+            vmaGetMemoryTypeProperties(
+                gpu->allocator, images->vma[i].info.memoryType, &images->memory);
+            ASSERT(images->memory != 0);
+        }
 
         // HACK: staging images do not require an image view
         if (images->tiling != VK_IMAGE_TILING_LINEAR)
@@ -1438,6 +1489,9 @@ static void _images_create(DvzImages* images)
 
 static void _images_destroy(DvzImages* images)
 {
+    ASSERT(images != NULL);
+    ASSERT(images->gpu != NULL);
+
     for (uint32_t i = 0; i < images->count; i++)
     {
         if (images->image_views[i] != VK_NULL_HANDLE)
@@ -1447,13 +1501,8 @@ static void _images_destroy(DvzImages* images)
         }
         if (!images->is_swapchain && images->images[i] != VK_NULL_HANDLE)
         {
-            vkDestroyImage(images->gpu->device, images->images[i], NULL);
+            vmaDestroyImage(images->gpu->allocator, images->images[i], images->vma[i].alloc);
             images->images[i] = VK_NULL_HANDLE;
-        }
-        if (images->memories[i] != VK_NULL_HANDLE)
-        {
-            vkFreeMemory(images->gpu->device, images->memories[i], NULL);
-            images->memories[i] = VK_NULL_HANDLE;
         }
     }
 }
@@ -1517,6 +1566,7 @@ static void*
 _images_download(DvzImages* images, uint32_t idx, bool has_alpha, VkSubresourceLayout* res_layout)
 {
     ASSERT(images != NULL);
+    ASSERT(images->gpu != NULL);
 
     VkImageSubresource res = {0};
     res.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1524,7 +1574,8 @@ _images_download(DvzImages* images, uint32_t idx, bool has_alpha, VkSubresourceL
 
     // Map image memory so we can start copying from it
     void* cdata = NULL;
-    vkMapMemory(images->gpu->device, images->memories[idx], 0, VK_WHOLE_SIZE, 0, &cdata);
+    // vkMapMemory(images->gpu->device, images->memories[idx], 0, VK_WHOLE_SIZE, 0, &cdata);
+    vmaMapMemory(images->gpu->allocator, images->vma[idx].alloc, &cdata);
     ASSERT(cdata != NULL);
     VkDeviceSize row_pitch = res_layout->rowPitch;
     ASSERT(row_pitch > 0);
@@ -1542,7 +1593,8 @@ _images_download(DvzImages* images, uint32_t idx, bool has_alpha, VkSubresourceL
     // First, memcopy from the GPU to the CPU.
     void* image = calloc(row_pitch * h, 1);
     memcpy(image, cdata, size);
-    vkUnmapMemory(images->gpu->device, images->memories[idx]);
+    vmaUnmapMemory(images->gpu->allocator, images->vma[idx].alloc);
+    // vkUnmapMemory(images->gpu->device, images->memories[idx]);
 
     return image;
 }

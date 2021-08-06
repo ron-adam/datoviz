@@ -489,7 +489,7 @@ struct DvzImages
     VkDeviceSize size;
 
     // VMA
-    DvzVma vma;
+    DvzVma vma[DVZ_MAX_IMAGES_PER_SET];
 
     VkImage images[DVZ_MAX_IMAGES_PER_SET];
     VkImageView image_views[DVZ_MAX_IMAGES_PER_SET];
@@ -1390,6 +1390,14 @@ DVZ_EXPORT void dvz_images_tiling(DvzImages* images, VkImageTiling tiling);
  * @param usage the image usage
  */
 DVZ_EXPORT void dvz_images_usage(DvzImages* images, VkImageUsageFlags usage);
+
+/**
+ * Set the images VMA usage.
+ *
+ * @param images the images
+ * @param usage the memory usage
+ */
+DVZ_EXPORT void dvz_images_vma_usage(DvzImages* images, VmaMemoryUsage vma_usage);
 
 /**
  * Set the images memory properties.

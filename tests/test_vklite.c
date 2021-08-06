@@ -127,8 +127,9 @@ static void* screenshot(DvzImages* images, VkDeviceSize bytes_per_component)
     dvz_images_tiling(staging, VK_IMAGE_TILING_LINEAR);
     dvz_images_usage(staging, VK_IMAGE_USAGE_TRANSFER_DST_BIT);
     dvz_images_layout(staging, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    dvz_images_memory(
-        staging, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // dvz_images_memory(
+    //     staging, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_images_vma_usage(staging, VMA_MEMORY_USAGE_CPU_ONLY);
     dvz_images_create(staging);
 
     // Start the image transition command buffers.
