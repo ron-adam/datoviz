@@ -469,8 +469,9 @@ int test_vklite_buffer_1(TestContext* tc)
     const VkDeviceSize size = 256;
     dvz_buffer_size(&buffer, size);
     dvz_buffer_usage(&buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    dvz_buffer_memory(
-        &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
+    // dvz_buffer_memory(
+    //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     dvz_buffer_queue_access(&buffer, 0);
     dvz_buffer_create(&buffer);
 
@@ -511,8 +512,9 @@ int test_vklite_buffer_resize(TestContext* tc)
     const VkDeviceSize size = 256;
     dvz_buffer_size(&buffer, size);
     dvz_buffer_usage(&buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    dvz_buffer_memory(
-        &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // dvz_buffer_memory(
+    //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
     dvz_buffer_queue_access(&buffer, 0);
     dvz_buffer_create(&buffer);
 
@@ -578,8 +580,9 @@ int test_vklite_compute(TestContext* tc)
     dvz_buffer_usage(
         &buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    dvz_buffer_memory(
-        &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // dvz_buffer_memory(
+    //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
     dvz_buffer_queue_access(&buffer, 0);
     dvz_buffer_create(&buffer);
 
@@ -649,8 +652,9 @@ int test_vklite_push(TestContext* tc)
     dvz_buffer_usage(
         &buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    dvz_buffer_memory(
-        &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // dvz_buffer_memory(
+    //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
     dvz_buffer_queue_access(&buffer, 0);
     dvz_buffer_create(&buffer);
 
@@ -755,8 +759,9 @@ static void _make_buffer(DvzBuffer* buffer)
     dvz_buffer_usage(
         buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    dvz_buffer_memory(
-        buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // dvz_buffer_memory(
+    //     buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_CPU_ONLY);
     dvz_buffer_queue_access(buffer, 0);
     dvz_buffer_create(buffer);
 }
@@ -780,7 +785,7 @@ int test_vklite_barrier_buffer(TestContext* tc)
     float* data0 = calloc(size, 1);
     for (uint32_t i = 0; i < N; i++)
         data0[i] = (float)i;
-    VkDeviceSize offset = 32;
+    VkDeviceSize offset = 0;
     dvz_buffer_upload(&buffer0, offset, size, data0);
     dvz_buffer_upload(&buffer1, offset, size, data0);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
@@ -866,8 +871,9 @@ int test_vklite_barrier_image(TestContext* tc)
     const VkDeviceSize size = img_size * img_size * 4;
     dvz_buffer_size(&buffer, size);
     dvz_buffer_usage(&buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    dvz_buffer_memory(
-        &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // dvz_buffer_memory(
+    //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
     dvz_buffer_queue_access(&buffer, 0);
     dvz_buffer_create(&buffer);
 
@@ -928,8 +934,9 @@ int test_vklite_submit(TestContext* tc)
     dvz_buffer_usage(
         &buffer, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    dvz_buffer_memory(
-        &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    // dvz_buffer_memory(
+    //     &buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_vma_usage(&buffer, VMA_MEMORY_USAGE_CPU_ONLY);
     dvz_buffer_queue_access(&buffer, 0);
     dvz_buffer_queue_access(&buffer, 1);
     dvz_buffer_create(&buffer);

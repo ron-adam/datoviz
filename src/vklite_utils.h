@@ -1250,6 +1250,7 @@ static void make_shared(
 
 
 
+// TO REMOVE:
 static void create_buffer(
     VkDevice device, DvzQueues* queues, uint32_t queue_count, uint32_t* queue_indices, //
     VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
@@ -1319,6 +1320,7 @@ static void check_dims(VkImageType image_type, uint32_t width, uint32_t height, 
 
 
 
+// TO REMOVE:
 static void create_image(
     VkDevice device, DvzQueues* queues, uint32_t queue_count, uint32_t* queue_indices,        //
     VkImageType image_type, uint32_t width, uint32_t height, uint32_t depth, VkFormat format, //

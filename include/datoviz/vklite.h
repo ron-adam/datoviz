@@ -420,22 +420,31 @@ struct DvzBuffer
 
     DvzBufferType type;
     VkBuffer buffer;
-    VkDeviceMemory device_memory;
 
     // Queues that need access to the buffer.
     uint32_t queue_count;
     uint32_t queues[DVZ_MAX_QUEUES];
 
     VkDeviceSize size;
-    VkDeviceSize allocated_size;
     VkBufferUsageFlags usage;
-    VkMemoryPropertyFlags memory;
+
+    // VMA
+    VmaAllocation alloc;
+    VmaAllocationCreateFlags vma_flags;
+    VmaMemoryUsage vma_usage;
+    VmaAllocationInfo vma_info;
 
     void* mmap;
+
+    // TO REMOVE:
+    VkMemoryPropertyFlags memory;
+    VkDeviceMemory device_memory;
+    VkDeviceSize allocated_size;
 };
 
 
 
+// TO REMOVE:
 struct DvzBufferRegions
 {
     DvzBuffer* buffer;
@@ -471,9 +480,16 @@ struct DvzImages
     VkImageAspectFlags aspect;
     VkDeviceSize size;
 
+    // VMA
+    VmaAllocation alloc;
+    VmaAllocationCreateFlags vma_flags;
+    VmaMemoryUsage vma_usage;
+
     VkImage images[DVZ_MAX_IMAGES_PER_SET];
-    VkDeviceMemory memories[DVZ_MAX_IMAGES_PER_SET];
     VkImageView image_views[DVZ_MAX_IMAGES_PER_SET];
+
+    // TO REMOVE:
+    VkDeviceMemory memories[DVZ_MAX_IMAGES_PER_SET];
 };
 
 
@@ -1143,6 +1159,15 @@ DVZ_EXPORT void dvz_buffer_type(DvzBuffer* buffer, DvzBufferType type);
  */
 DVZ_EXPORT void dvz_buffer_usage(DvzBuffer* buffer, VkBufferUsageFlags usage);
 
+/**
+ * Set the buffer VMA usage.
+ *
+ * @param buffer the buffer
+ * @param usage the buffer usage
+ */
+DVZ_EXPORT void dvz_buffer_vma_usage(DvzBuffer* buffer, VmaMemoryUsage vma_usage);
+
+// TO REMOVE:
 /**
  * Set the buffer memory properties.
  *

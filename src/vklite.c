@@ -140,13 +140,13 @@ void dvz_gpu_create(DvzGpu* gpu, VkSurfaceKHR surface)
     create_descriptor_pool(gpu->device, &gpu->dset_pool);
 
     // Create allocator.
-    VmaAllocatorCreateInfo allocatorInfo = {0};
-    allocatorInfo.vulkanApiVersion = DVZ_VULKAN_API;
-    allocatorInfo.physicalDevice = gpu->physical_device;
-    allocatorInfo.device = gpu->device;
-    allocatorInfo.instance = gpu->app->instance;
-    VmaAllocator allocator = {0};
-    vmaCreateAllocator(&allocatorInfo, &allocator);
+    VmaAllocatorCreateInfo alloc_info = {0};
+    alloc_info.vulkanApiVersion = DVZ_VULKAN_API;
+    alloc_info.physicalDevice = gpu->physical_device;
+    alloc_info.device = gpu->device;
+    alloc_info.instance = gpu->app->instance;
+    vmaCreateAllocator(&alloc_info, &gpu->allocator);
+    ASSERT(gpu->allocator != VK_NULL_HANDLE);
 
     dvz_obj_created(&gpu->obj);
     log_trace("GPU #%d created", gpu->idx);
@@ -232,6 +232,7 @@ void dvz_gpu_destroy(DvzGpu* gpu)
     }
 
     // Destroy the allocator.
+    ASSERT(gpu->allocator != VK_NULL_HANDLE);
     vmaDestroyAllocator(gpu->allocator);
 
     // Destroy the device.
@@ -721,11 +722,12 @@ DvzBuffer dvz_buffer(DvzGpu* gpu)
     ASSERT(dvz_obj_is_created(&gpu->obj));
 
     DvzBuffer buffer = {0};
-    buffer.obj.status = DVZ_OBJECT_STATUS_INIT;
+    dvz_obj_init(&buffer.obj);
     buffer.gpu = gpu;
 
     // Default values.
-    buffer.memory = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    // buffer.memory = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    buffer.vma_usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
     return buffer;
 }
@@ -756,6 +758,14 @@ void dvz_buffer_usage(DvzBuffer* buffer, VkBufferUsageFlags usage)
 
 
 
+void dvz_buffer_vma_usage(DvzBuffer* buffer, VmaMemoryUsage vma_usage)
+{
+    ASSERT(buffer != NULL);
+    buffer->vma_usage = vma_usage;
+}
+
+
+
 void dvz_buffer_memory(DvzBuffer* buffer, VkMemoryPropertyFlags memory)
 {
     ASSERT(buffer != NULL);
@@ -776,17 +786,46 @@ void dvz_buffer_queue_access(DvzBuffer* buffer, uint32_t queue_idx)
 
 static void _buffer_create(DvzBuffer* buffer)
 {
-    create_buffer(
-        buffer->gpu->device,                                           //
-        &buffer->gpu->queues, buffer->queue_count, buffer->queues,     //
-        buffer->usage, buffer->memory, buffer->gpu->memory_properties, //
-        buffer->size, &buffer->buffer, &buffer->device_memory);
+    ASSERT(buffer != NULL);
+    DvzGpu* gpu = buffer->gpu;
+    ASSERT(gpu != NULL);
+
+    VkBufferCreateInfo buf_info = {0};
+    buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buf_info.size = buffer->size;
+    buf_info.usage = buffer->usage;
+
+    uint32_t queue_families[DVZ_MAX_QUEUE_FAMILIES];
+    make_shared(
+        &gpu->queues, buffer->queue_count, buffer->queues, //
+        &buf_info.sharingMode, &buf_info.queueFamilyIndexCount, queue_families);
+    buf_info.pQueueFamilyIndices = queue_families;
+
+    log_trace(
+        "create buffer with size %s, sharing mode %s", pretty_size(buffer->size),
+        buf_info.sharingMode == 0 ? "exclusive" : "concurrent");
+
+    // Create the buffer with VMA.
+    VmaAllocationCreateInfo alloc_info = {0};
+    alloc_info.flags = buffer->vma_flags;
+    alloc_info.usage = buffer->vma_usage;
+    vmaCreateBuffer(
+        gpu->allocator, &buf_info, &alloc_info, &buffer->buffer, //
+        &buffer->alloc, &buffer->vma_info);
+    ASSERT(buffer->buffer != VK_NULL_HANDLE);
+
+    // Get the memory flags found by VMA and store them in the DvzBuffer instance.
+    vmaGetMemoryTypeProperties(gpu->allocator, buffer->vma_info.memoryType, &buffer->memory);
+    ASSERT(buffer->memory != 0);
 }
 
 
 
 static void _buffer_destroy(DvzBuffer* buffer)
 {
+    ASSERT(buffer != NULL);
+    ASSERT(buffer->gpu != NULL);
+
     // Unmap permanently-mapped buffers before destruction.
     if (buffer->mmap != NULL)
     {
@@ -796,17 +835,18 @@ static void _buffer_destroy(DvzBuffer* buffer)
 
     if (buffer->buffer != VK_NULL_HANDLE)
     {
-        vkDestroyBuffer(buffer->gpu->device, buffer->buffer, NULL);
+        // vkDestroyBuffer(buffer->gpu->device, buffer->buffer, NULL);
+        vmaDestroyBuffer(buffer->gpu->allocator, buffer->buffer, buffer->alloc);
         buffer->buffer = VK_NULL_HANDLE;
     }
-    if (buffer->device_memory != VK_NULL_HANDLE)
-    {
-        vkFreeMemory(buffer->gpu->device, buffer->device_memory, NULL);
-        buffer->device_memory = VK_NULL_HANDLE;
-    }
-
     ASSERT(buffer->buffer == VK_NULL_HANDLE);
-    ASSERT(buffer->device_memory == VK_NULL_HANDLE);
+
+    // if (buffer->device_memory != VK_NULL_HANDLE)
+    // {
+    //     vkFreeMemory(buffer->gpu->device, buffer->device_memory, NULL);
+    //     buffer->device_memory = VK_NULL_HANDLE;
+    // }
+    // ASSERT(buffer->device_memory == VK_NULL_HANDLE);
 }
 
 
@@ -814,13 +854,21 @@ static void _buffer_destroy(DvzBuffer* buffer)
 static void _buffer_copy(DvzBuffer* buffer0, DvzBuffer* buffer1)
 {
     // Copy the parameters of a buffer.
-    buffer1->gpu = buffer0->gpu;
-    buffer1->obj = buffer0->obj;
-    buffer1->queue_count = buffer0->queue_count;
+    memcpy(buffer1, buffer0, sizeof(DvzBuffer));
     memcpy(buffer1->queues, buffer0->queues, sizeof(buffer0->queues));
-    buffer1->size = buffer0->size;
-    buffer1->usage = buffer0->usage;
-    buffer1->memory = buffer0->memory;
+
+    // buffer1->gpu = buffer0->gpu;
+    // buffer1->alloc = buffer0->alloc;
+    // buffer1->obj = buffer0->obj;
+    // buffer1->queue_count = buffer0->queue_count;
+    // buffer1->size = buffer0->size;
+    // buffer1->usage = buffer0->usage;
+    // buffer1->vma_usage = buffer0->vma_usage;
+    // buffer1->vma_flags = buffer0->vma_flags;
+    // buffer1->vma_info = buffer0->vma_info;
+
+    // // TO REMOVE:
+    // buffer1->memory = buffer0->memory;
 }
 
 
@@ -831,11 +879,12 @@ void dvz_buffer_create(DvzBuffer* buffer)
     ASSERT(buffer->gpu != NULL);
     ASSERT(buffer->gpu->device != VK_NULL_HANDLE);
     ASSERT(buffer->size > 0);
-    ASSERT(buffer->usage != VK_NULL_HANDLE);
-    ASSERT(buffer->memory != VK_NULL_HANDLE);
+    ASSERT(buffer->usage != 0);
+    ASSERT(buffer->vma_usage != 0);
 
     log_trace("starting creation of buffer...");
     _buffer_create(buffer);
+    ASSERT(buffer->memory != VK_NULL_HANDLE);
 
     dvz_obj_created(&buffer->obj);
     log_trace("buffer created");
@@ -915,9 +964,14 @@ void dvz_buffer_resize(DvzBuffer* buffer, VkDeviceSize size)
 
     // Update the existing DvzBuffer struct with the newly-created Vulkan objects.
     buffer->buffer = new_buffer.buffer;
-    buffer->device_memory = new_buffer.device_memory;
+    // buffer->device_memory = new_buffer.device_memory;
+    buffer->buffer = new_buffer.buffer;
+    buffer->alloc = new_buffer.alloc;
+    buffer->vma_info = new_buffer.vma_info;
+    buffer->memory = new_buffer.memory;
+
     ASSERT(buffer->buffer != VK_NULL_HANDLE);
-    ASSERT(buffer->device_memory != VK_NULL_HANDLE);
+    // ASSERT(buffer->device_memory != VK_NULL_HANDLE);
 
     // If the existing buffer was already mapped, we need to remap the new buffer.
     if (old_mmap != NULL)
@@ -945,8 +999,16 @@ void* dvz_buffer_map(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size)
     log_debug("memmap buffer %d", buffer->type);
     ASSERT(buffer->mmap == NULL);
     void* cdata = NULL;
-    VK_CHECK_RESULT(
-        vkMapMemory(buffer->gpu->device, buffer->device_memory, offset, size, 0, &cdata));
+    // VK_CHECK_RESULT(
+    //     vkMapMemory(buffer->gpu->device, buffer->device_memory, offset, size, 0, &cdata));
+
+    if (offset != 0)
+        log_warn("Buffer map offset %d not taken into account with VMA", offset);
+    if (size != buffer->size && size != VK_WHOLE_SIZE)
+        log_warn("Buffer map size %d not taken into account with VMA", size);
+
+    vmaMapMemory(buffer->gpu->allocator, buffer->alloc, &cdata);
+
     return cdata;
 }
 
@@ -964,7 +1026,8 @@ void dvz_buffer_unmap(DvzBuffer* buffer)
         (buffer->memory & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT));
 
     log_debug("unmap buffer %d", buffer->type);
-    vkUnmapMemory(buffer->gpu->device, buffer->device_memory);
+    // vkUnmapMemory(buffer->gpu->device, buffer->device_memory);
+    vmaUnmapMemory(buffer->gpu->allocator, buffer->alloc);
 }
 
 
@@ -1238,7 +1301,7 @@ DvzImages dvz_images(DvzGpu* gpu, VkImageType type, uint32_t count)
     ASSERT(dvz_obj_is_created(&gpu->obj));
 
     DvzImages images = {0};
-    images.obj.status = DVZ_OBJECT_STATUS_INIT;
+    dvz_obj_init(&images.obj);
 
     images.gpu = gpu;
     images.image_type = type;
@@ -1586,7 +1649,7 @@ DvzSampler dvz_sampler(DvzGpu* gpu)
     ASSERT(dvz_obj_is_created(&gpu->obj));
 
     DvzSampler sampler = {0};
-    sampler.obj.status = DVZ_OBJECT_STATUS_INIT;
+    dvz_obj_init(&sampler.obj);
     sampler.gpu = gpu;
 
     return sampler;
@@ -1881,7 +1944,7 @@ DvzCompute dvz_compute(DvzGpu* gpu, const char* shader_path)
     ASSERT(dvz_obj_is_created(&gpu->obj));
 
     DvzCompute compute = {0};
-    compute.obj.status = DVZ_OBJECT_STATUS_INIT;
+    dvz_obj_init(&compute.obj);
 
     compute.gpu = gpu;
     if (shader_path != NULL)
