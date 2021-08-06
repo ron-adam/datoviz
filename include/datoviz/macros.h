@@ -45,7 +45,8 @@
                         _Pragma("clang diagnostic ignored \"-Wswitch-default\"")                  \
                             _Pragma("clang diagnostic ignored \"-Wcast-align\"")                  \
                                 _Pragma("clang diagnostic ignored \"-Wundef\"")                   \
-                                    _Pragma("clang diagnostic ignored \"-Wmissing-braces\"")
+                                    _Pragma("clang diagnostic ignored \"-Wmissing-braces\"")\
+                                        _Pragma("clang diagnostic ignored \"-Wnullability-extension\"")
 
 #define END_INCL_NO_WARN _Pragma("clang diagnostic pop")
 

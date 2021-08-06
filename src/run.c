@@ -414,7 +414,7 @@ DvzRun* dvz_run(DvzApp* app)
     // HACK: callback before the REFILL user callbacks are called, that is used to wait on the
     // relevant GPUs so that we can safely refill the canvas command buffers.
     dvz_deq_proc_batch_callback(
-        &run->deq, DVZ_RUN_DEQ_REFILL, DVZ_DEQ_PROC_CALLBACK_PRE, _refill_callback_wait, app);
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_DEQ_PROC_CALLBACK_PRE, _refill_callback_wait, app);
     run->state = DVZ_RUN_STATE_PAUSED;
 
     return run;

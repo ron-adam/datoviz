@@ -28,9 +28,8 @@
 
 BEGIN_INCL_NO_WARN
 #include <cglm/struct.h>
-END_INCL_NO_WARN
-
 #include "../../external/vk_mem_alloc.h"
+END_INCL_NO_WARN
 
 #ifdef __cplusplus
 extern "C" {
