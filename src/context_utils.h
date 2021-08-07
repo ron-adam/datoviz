@@ -14,10 +14,10 @@ extern "C" {
 /*************************************************************************************************/
 
 // Get the staging buffer, and make sure it can contain `size` bytes.
-static DvzBuffer* staging_buffer(DvzContext* context, VkDeviceSize size)
+static DvzBuffer* staging_buffer(DvzContext* ctx, VkDeviceSize size)
 {
     log_trace("requesting staging buffer of size %s", pretty_size(size));
-    DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STAGING);
+    DvzBuffer* staging = (DvzBuffer*)dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_STAGING);
     ASSERT(staging != NULL);
     ASSERT(staging->buffer != VK_NULL_HANDLE);
 
@@ -40,14 +40,14 @@ static DvzBuffer* staging_buffer(DvzContext* context, VkDeviceSize size)
 /*  Default resources                                                                            */
 /*************************************************************************************************/
 
-static DvzTexture* _default_transfer_texture(DvzContext* context)
+static DvzTexture* _default_transfer_texture(DvzContext* ctx)
 {
-    ASSERT(context != NULL);
-    DvzGpu* gpu = context->gpu;
+    ASSERT(ctx != NULL);
+    DvzGpu* gpu = ctx->gpu;
     ASSERT(gpu != NULL);
 
     uvec3 shape = {256, 1, 1};
-    DvzTexture* texture = dvz_ctx_texture(context, 1, shape, VK_FORMAT_R32_SFLOAT);
+    DvzTexture* texture = dvz_ctx_texture(ctx, 1, shape, VK_FORMAT_R32_SFLOAT);
     float* tex_data = (float*)calloc(256, sizeof(float));
     for (uint32_t i = 0; i < 256; i++)
         tex_data[i] = i / 255.0;

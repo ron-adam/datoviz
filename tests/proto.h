@@ -266,9 +266,9 @@ static void _glfw_event_loop(GLFWwindow* w)
 /*  Test textures                                                                                */
 /*************************************************************************************************/
 
-static DvzTexture* _earth_texture(DvzContext* context)
+static DvzTexture* _earth_texture(DvzContext* ctx)
 {
-    DvzGpu* gpu = context->gpu;
+    DvzGpu* gpu = ctx->gpu;
     char path[1024];
     snprintf(path, sizeof(path), "%s/textures/earth.jpg", DATA_DIR);
     int width, height, depth;
@@ -285,13 +285,13 @@ static DvzTexture* _earth_texture(DvzContext* context)
 
 
 
-static DvzTexture* _synthetic_texture(DvzContext* context)
+static DvzTexture* _synthetic_texture(DvzContext* ctx)
 {
-    ASSERT(context != NULL);
+    ASSERT(ctx != NULL);
 
     // Texture.
     const uint32_t S = 1024;
-    DvzTexture* texture = dvz_ctx_texture(context, 2, (uvec3){S, S, 1}, VK_FORMAT_R32_SFLOAT);
+    DvzTexture* texture = dvz_ctx_texture(ctx, 2, (uvec3){S, S, 1}, VK_FORMAT_R32_SFLOAT);
     VkDeviceSize size = S * S * sizeof(float);
 
     float* tex_data = malloc(size);
@@ -317,11 +317,11 @@ static DvzTexture* _synthetic_texture(DvzContext* context)
 
 
 
-static DvzTexture* _mock_texture(DvzContext* context)
+static DvzTexture* _mock_texture(DvzContext* ctx)
 {
-    ASSERT(context != NULL);
+    ASSERT(ctx != NULL);
 
-    DvzTexture* texture = dvz_ctx_texture(context, 2, (uvec3){2, 2, 1}, VK_FORMAT_R8G8B8A8_UNORM);
+    DvzTexture* texture = dvz_ctx_texture(ctx, 2, (uvec3){2, 2, 1}, VK_FORMAT_R8G8B8A8_UNORM);
     cvec4 tex_data[] = {
         {255, 0, 0, 255}, //
         {0, 255, 0, 255},
@@ -336,11 +336,11 @@ static DvzTexture* _mock_texture(DvzContext* context)
 
 
 
-static DvzTexture* _volume_texture(DvzContext* context, int kind)
+static DvzTexture* _volume_texture(DvzContext* ctx, int kind)
 {
     const uint32_t S = 64;
     VkDeviceSize size = S * S * S * sizeof(uint8_t);
-    DvzTexture* texture = dvz_ctx_texture(context, 3, (uvec3){S, S, S}, VK_FORMAT_R8_UNORM);
+    DvzTexture* texture = dvz_ctx_texture(ctx, 3, (uvec3){S, S, S}, VK_FORMAT_R8_UNORM);
     uint8_t* tex_data = calloc(S * S * S, sizeof(uint8_t));
     uint32_t l = 0;
     double x, y, z, w;

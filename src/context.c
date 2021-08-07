@@ -239,61 +239,61 @@ static VkDeviceSize _allocate_dat(DvzContext* ctx, DvzBufferType type, VkDeviceS
 
 
 
-static void _default_buffers(DvzContext* context)
+static void _default_buffers(DvzContext* ctx)
 {
-    ASSERT(context != NULL);
-    ASSERT(context->gpu != NULL);
+    ASSERT(ctx != NULL);
+    ASSERT(ctx->gpu != NULL);
 
     // Create a predetermined set of buffers.
     for (uint32_t i = 0; i < DVZ_BUFFER_TYPE_COUNT; i++)
     {
         // IMPORTANT: buffer #i should have buffer type i
-        _make_new_buffer(context);
+        _make_new_buffer(ctx);
     }
 
     DvzBuffer* buffer = NULL;
 
     // Staging buffer
-    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STAGING);
+    buffer = dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_STAGING);
     _make_staging_buffer(buffer, DVZ_BUFFER_TYPE_STAGING_SIZE);
-    _make_allocator(context, DVZ_BUFFER_TYPE_STAGING, DVZ_BUFFER_TYPE_STAGING_SIZE);
+    _make_allocator(ctx, DVZ_BUFFER_TYPE_STAGING, DVZ_BUFFER_TYPE_STAGING_SIZE);
     // Permanently map the buffer.
     // buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
 
     // Vertex buffer
-    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_VERTEX);
+    buffer = dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_VERTEX);
     _make_vertex_buffer(buffer, DVZ_BUFFER_TYPE_VERTEX_SIZE);
-    _make_allocator(context, DVZ_BUFFER_TYPE_VERTEX, DVZ_BUFFER_TYPE_VERTEX_SIZE);
+    _make_allocator(ctx, DVZ_BUFFER_TYPE_VERTEX, DVZ_BUFFER_TYPE_VERTEX_SIZE);
 
     // Index buffer
-    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_INDEX);
+    buffer = dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_INDEX);
     _make_index_buffer(buffer, DVZ_BUFFER_TYPE_INDEX_SIZE);
-    _make_allocator(context, DVZ_BUFFER_TYPE_INDEX, DVZ_BUFFER_TYPE_INDEX_SIZE);
+    _make_allocator(ctx, DVZ_BUFFER_TYPE_INDEX, DVZ_BUFFER_TYPE_INDEX_SIZE);
 
     // Storage buffer
-    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STORAGE);
+    buffer = dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_STORAGE);
     _make_storage_buffer(buffer, DVZ_BUFFER_TYPE_STORAGE_SIZE);
-    _make_allocator(context, DVZ_BUFFER_TYPE_STORAGE, DVZ_BUFFER_TYPE_STORAGE_SIZE);
+    _make_allocator(ctx, DVZ_BUFFER_TYPE_STORAGE, DVZ_BUFFER_TYPE_STORAGE_SIZE);
 
     // Uniform buffer
-    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_UNIFORM);
+    buffer = dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_UNIFORM);
     _make_uniform_buffer(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
-    _make_allocator(context, DVZ_BUFFER_TYPE_UNIFORM, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
+    _make_allocator(ctx, DVZ_BUFFER_TYPE_UNIFORM, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
 
     // Mappable uniform buffer
-    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_MAPPABLE);
+    buffer = dvz_container_get(&ctx->buffers, DVZ_BUFFER_TYPE_MAPPABLE);
     _make_mappable_buffer(buffer, DVZ_BUFFER_TYPE_MAPPABLE_SIZE);
-    _make_allocator(context, DVZ_BUFFER_TYPE_MAPPABLE, DVZ_BUFFER_TYPE_MAPPABLE_SIZE);
+    _make_allocator(ctx, DVZ_BUFFER_TYPE_MAPPABLE, DVZ_BUFFER_TYPE_MAPPABLE_SIZE);
 }
 
 
 
-static void _default_resources(DvzContext* context)
+static void _default_resources(DvzContext* ctx)
 {
-    ASSERT(context != NULL);
+    ASSERT(ctx != NULL);
 
     // Create the default buffers.
-    _default_buffers(context);
+    _default_buffers(ctx);
 
     // TODO
     // // Create the font atlas and assign it to the context.
@@ -317,47 +317,46 @@ static void _default_resources(DvzContext* context)
 
 
 
-static void _create_resources(DvzContext* context)
+static void _create_resources(DvzContext* ctx)
 {
-    ASSERT(context != NULL);
+    ASSERT(ctx != NULL);
 
-    context->buffers =
+    ctx->buffers =
         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzBuffer), DVZ_OBJECT_TYPE_BUFFER);
-    context->dats =
-        dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzDat), DVZ_OBJECT_TYPE_BUFFER);
-    context->images =
+    ctx->dats = dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzDat), DVZ_OBJECT_TYPE_BUFFER);
+    ctx->images =
         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzImages), DVZ_OBJECT_TYPE_IMAGES);
-    context->samplers =
+    ctx->samplers =
         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzSampler), DVZ_OBJECT_TYPE_SAMPLER);
-    context->textures =
+    ctx->textures =
         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzTexture), DVZ_OBJECT_TYPE_TEXTURE);
-    context->computes =
+    ctx->computes =
         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzCompute), DVZ_OBJECT_TYPE_COMPUTE);
 }
 
 
 
-static void _destroy_resources(DvzContext* context)
+static void _destroy_resources(DvzContext* ctx)
 {
-    ASSERT(context != NULL);
+    ASSERT(ctx != NULL);
 
     log_trace("context destroy buffers");
-    CONTAINER_DESTROY_ITEMS(DvzBuffer, context->buffers, dvz_buffer_destroy)
+    CONTAINER_DESTROY_ITEMS(DvzBuffer, ctx->buffers, dvz_buffer_destroy)
 
     log_trace("context destroy dats");
-    CONTAINER_DESTROY_ITEMS(DvzDat, context->dats, dvz_dat_destroy)
+    CONTAINER_DESTROY_ITEMS(DvzDat, ctx->dats, dvz_dat_destroy)
 
     log_trace("context destroy sets of images");
-    CONTAINER_DESTROY_ITEMS(DvzImages, context->images, dvz_images_destroy)
+    CONTAINER_DESTROY_ITEMS(DvzImages, ctx->images, dvz_images_destroy)
 
     log_trace("context destroy samplers");
-    CONTAINER_DESTROY_ITEMS(DvzSampler, context->samplers, dvz_sampler_destroy)
+    CONTAINER_DESTROY_ITEMS(DvzSampler, ctx->samplers, dvz_sampler_destroy)
 
     log_trace("context destroy textures");
-    CONTAINER_DESTROY_ITEMS(DvzTexture, context->textures, dvz_texture_destroy)
+    CONTAINER_DESTROY_ITEMS(DvzTexture, ctx->textures, dvz_texture_destroy)
 
     log_trace("context destroy computes");
-    CONTAINER_DESTROY_ITEMS(DvzCompute, context->computes, dvz_compute_destroy)
+    CONTAINER_DESTROY_ITEMS(DvzCompute, ctx->computes, dvz_compute_destroy)
 }
 
 
@@ -475,12 +474,12 @@ DvzContext* dvz_context(DvzGpu* gpu)
     ASSERT(dvz_obj_is_created(&gpu->obj));
     log_trace("creating context");
 
-    DvzContext* context = calloc(1, sizeof(DvzContext));
-    ASSERT(context != NULL);
-    context->gpu = gpu;
+    DvzContext* ctx = calloc(1, sizeof(DvzContext));
+    ASSERT(ctx != NULL);
+    ctx->gpu = gpu;
 
     // Allocate memory for buffers, textures, and computes.
-    _create_resources(context);
+    _create_resources(ctx);
 
     // Transfer dequeues.
     // _create_transfers(context);
@@ -490,22 +489,22 @@ DvzContext* dvz_context(DvzGpu* gpu)
     ASSERT(DVZ_DEFAULT_QUEUE_TRANSFER == 0);
 
     // Create the context.
-    gpu->context = context;
-    dvz_obj_created(&context->obj);
+    gpu->context = ctx;
+    dvz_obj_created(&ctx->obj);
 
     // Create the default resources.
-    _default_resources(context);
+    _default_resources(ctx);
 
-    return context;
+    return ctx;
 }
 
 
 
-void dvz_context_colormap(DvzContext* context)
+void dvz_context_colormap(DvzContext* ctx)
 {
-    ASSERT(context != NULL);
-    ASSERT(context->color_texture.texture != NULL);
-    ASSERT(context->color_texture.arr != NULL);
+    ASSERT(ctx != NULL);
+    ASSERT(ctx->color_texture.texture != NULL);
+    ASSERT(ctx->color_texture.arr != NULL);
 
     // TODO
     // dvz_upload_texture(
@@ -516,47 +515,47 @@ void dvz_context_colormap(DvzContext* context)
 
 
 
-void dvz_context_reset(DvzContext* context)
+void dvz_context_reset(DvzContext* ctx)
 {
-    ASSERT(context != NULL);
+    ASSERT(ctx != NULL);
     log_trace("reset the context");
-    _destroy_resources(context);
-    _default_resources(context);
+    _destroy_resources(ctx);
+    _default_resources(ctx);
 }
 
 
 
-void dvz_context_destroy(DvzContext* context)
+void dvz_context_destroy(DvzContext* ctx)
 {
-    if (context == NULL)
+    if (ctx == NULL)
     {
         log_error("skip destruction of null context");
         return;
     }
     log_trace("destroying context");
-    ASSERT(context != NULL);
-    ASSERT(context->gpu != NULL);
+    ASSERT(ctx != NULL);
+    ASSERT(ctx->gpu != NULL);
 
     // Destroy the font atlas.
     // TODO
     // dvz_font_atlas_destroy(&context->font_atlas);
 
     // Destroy the buffers, images, samplers, textures, computes.
-    _destroy_resources(context);
+    _destroy_resources(ctx);
 
     // Destroy the transfers queue.
     // _destroy_transfers(context);
 
     // Destroy the DvzDat allocators.
     for (uint32_t i = 0; i < DVZ_BUFFER_TYPE_COUNT; i++)
-        dvz_alloc_destroy(&context->allocators[i]);
+        dvz_alloc_destroy(&ctx->allocators[i]);
 
     // Free the allocated memory.
-    dvz_container_destroy(&context->buffers);
-    dvz_container_destroy(&context->images);
-    dvz_container_destroy(&context->samplers);
-    dvz_container_destroy(&context->textures);
-    dvz_container_destroy(&context->computes);
+    dvz_container_destroy(&ctx->buffers);
+    dvz_container_destroy(&ctx->images);
+    dvz_container_destroy(&ctx->samplers);
+    dvz_container_destroy(&ctx->textures);
+    dvz_container_destroy(&ctx->computes);
 }
 
 
@@ -722,16 +721,16 @@ void dvz_ctx_clear(DvzContext* ctx)
 /*************************************************************************************************/
 
 DvzBufferRegions dvz_ctx_buffers(
-    DvzContext* context, DvzBufferType buffer_type, uint32_t buffer_count, VkDeviceSize size)
+    DvzContext* ctx, DvzBufferType buffer_type, uint32_t buffer_count, VkDeviceSize size)
 {
-    ASSERT(context != NULL);
-    ASSERT(context->gpu != NULL);
+    ASSERT(ctx != NULL);
+    ASSERT(ctx->gpu != NULL);
     ASSERT(buffer_count > 0);
     ASSERT(size > 0);
     ASSERT(buffer_type < DVZ_BUFFER_TYPE_COUNT);
 
     // Choose the first buffer with the requested type.
-    DvzContainerIterator iter = dvz_container_iterator(&context->buffers);
+    DvzContainerIterator iter = dvz_container_iterator(&ctx->buffers);
     DvzBuffer* buffer = NULL;
     while (iter.item != NULL)
     {
@@ -755,7 +754,7 @@ DvzBufferRegions dvz_ctx_buffers(
         buffer_type == DVZ_BUFFER_TYPE_UNIFORM || buffer_type == DVZ_BUFFER_TYPE_MAPPABLE;
     if (needs_align)
     {
-        alignment = context->gpu->device_properties.limits.minUniformBufferOffsetAlignment;
+        alignment = ctx->gpu->device_properties.limits.minUniformBufferOffsetAlignment;
         ASSERT(offset % alignment == 0); // offset should be already aligned
     }
 
@@ -800,7 +799,7 @@ DvzBufferRegions dvz_ctx_buffers(
 
 
 
-void dvz_ctx_buffers_resize(DvzContext* context, DvzBufferRegions* br, VkDeviceSize new_size)
+void dvz_ctx_buffers_resize(DvzContext* ctx, DvzBufferRegions* br, VkDeviceSize new_size)
 {
     // NOTE: this function tries to resize a buffer region in-place, which only works if
     // it is the last allocated region in the buffer. Otherwise a brand new region is allocated,
@@ -838,7 +837,7 @@ void dvz_ctx_buffers_resize(DvzContext* context, DvzBufferRegions* br, VkDeviceS
     else
     {
         log_debug("failed to resize the buffer region in-place, allocating a new region");
-        *br = dvz_ctx_buffers(context, br->buffer->type, 1, new_size);
+        *br = dvz_ctx_buffers(ctx, br->buffer->type, 1, new_size);
     }
 }
 
@@ -848,13 +847,13 @@ void dvz_ctx_buffers_resize(DvzContext* context, DvzBufferRegions* br, VkDeviceS
 /*  Compute                                                                                      */
 /*************************************************************************************************/
 
-DvzCompute* dvz_ctx_compute(DvzContext* context, const char* shader_path)
+DvzCompute* dvz_ctx_compute(DvzContext* ctx, const char* shader_path)
 {
-    ASSERT(context != NULL);
+    ASSERT(ctx != NULL);
     ASSERT(shader_path != NULL);
 
-    DvzCompute* compute = dvz_container_alloc(&context->computes);
-    *compute = dvz_compute(context->gpu, shader_path);
+    DvzCompute* compute = dvz_container_alloc(&ctx->computes);
+    *compute = dvz_compute(ctx->gpu, shader_path);
     return compute;
 }
 
@@ -887,20 +886,20 @@ static VkImageType image_type_from_dims(uint32_t dims)
 
 
 
-DvzTexture* dvz_ctx_texture(DvzContext* context, uint32_t dims, uvec3 size, VkFormat format)
+DvzTexture* dvz_ctx_texture(DvzContext* ctx, uint32_t dims, uvec3 size, VkFormat format)
 {
-    ASSERT(context != NULL);
+    ASSERT(ctx != NULL);
     ASSERT(1 <= dims && dims <= 3);
     log_debug(
         "creating %dD texture with shape %dx%dx%d and format %d", //
         dims, size[0], size[1], size[2], format);
 
-    DvzTexture* texture = dvz_container_alloc(&context->textures);
-    DvzImages* image = dvz_container_alloc(&context->images);
+    DvzTexture* texture = dvz_container_alloc(&ctx->textures);
+    DvzImages* image = dvz_container_alloc(&ctx->images);
     // DvzSampler* sampler = dvz_container_alloc(&context->samplers);
 
-    texture->context = context;
-    *image = dvz_images(context->gpu, image_type_from_dims(dims), 1);
+    texture->context = ctx;
+    *image = dvz_images(ctx->gpu, image_type_from_dims(dims), 1);
     // *sampler = dvz_sampler(context->gpu);
 
     texture->dims = dims;
