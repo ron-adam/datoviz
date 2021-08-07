@@ -65,7 +65,7 @@ static DvzImages* _font_image(DvzContext* ctx, DvzFontAtlas* fa)
     uvec3 shape = {(uint32_t)fa->width, (uint32_t)fa->height, 1};
 
     // NOTE: the font texture must have LINEAR filter! otherwise no antialiasing
-    DvzImages* img = _standalone_image(gpu, DVZ_TEX_2D, shape, VK_FORMAT_R8G8B8A8_UNORM);
+    DvzImages* img = dvz_resources_image(&ctx->res, DVZ_TEX_2D, shape, VK_FORMAT_R8G8B8A8_UNORM);
     VkDeviceSize size = fa->width * fa->height * 4;
     dvz_upload_image(&ctx->transfers, img, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, fa->font_data);
 
@@ -114,7 +114,7 @@ static void dvz_font_atlas_destroy(DvzFontAtlas* fa)
     ASSERT(fa->font_data != NULL);
     stbi_image_free(fa->font_data);
 
-    _destroy_image(fa->img);
+    // _destroy_image(fa->img);
 }
 
 

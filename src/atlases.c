@@ -22,7 +22,7 @@ static DvzImages* _transfer_atlas(DvzContext* ctx)
     for (uint32_t i = 0; i < 256; i++)
         tex_data[i] = i / 255.0;
 
-    DvzImages* img = _standalone_image(gpu, DVZ_TEX_1D, shape, VK_FORMAT_R32_SFLOAT);
+    DvzImages* img = dvz_resources_image(&ctx->res, DVZ_TEX_1D, shape, VK_FORMAT_R32_SFLOAT);
     dvz_upload_image(&ctx->transfers, img, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, tex_data);
 
     FREE(tex_data);
@@ -58,7 +58,7 @@ void dvz_atlases(DvzContext* ctx, DvzAtlases* atlases)
     DvzColormapAtlas* cmap_atlas = &atlases->cmap_atlas;
     cmap_atlas->arr = _load_colormaps();
     uvec3 shape = {256, 256, 1};
-    cmap_atlas->img = _standalone_image(gpu, DVZ_TEX_2D, shape, VK_FORMAT_R8G8B8A8_UNORM);
+    cmap_atlas->img = dvz_resources_image(&ctx->res, DVZ_TEX_2D, shape, VK_FORMAT_R8G8B8A8_UNORM);
     dvz_upload_image(
         &ctx->transfers, cmap_atlas->img, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, 256 * 256 * 4,
         cmap_atlas->arr);
@@ -76,6 +76,7 @@ void dvz_atlases_destroy(DvzAtlases* atlases)
     ASSERT(atlases != NULL);
     dvz_font_atlas_destroy(&atlases->font_atlas);
 
-    _destroy_image(atlases->cmap_atlas.img);
-    _destroy_image(atlases->transfer_atlas);
+    // No need to destroy images manually: this is taken care of by the resources destruction.
+    // _destroy_image(atlases->cmap_atlas.img);
+    // _destroy_image(atlases->transfer_atlas);
 }
