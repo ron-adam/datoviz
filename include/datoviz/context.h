@@ -24,12 +24,6 @@ extern "C" {
 #define DVZ_DEFAULT_WIDTH  800
 #define DVZ_DEFAULT_HEIGHT 600
 
-#define DVZ_BUFFER_TYPE_STAGING_SIZE (16 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_VERTEX_SIZE  (16 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_INDEX_SIZE   (16 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_STORAGE_SIZE (16 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_UNIFORM_SIZE (4 * 1024 * 1024)
-
 #define DVZ_ZERO_OFFSET                                                                           \
     (uvec3) { 0, 0, 0 }
 
@@ -76,7 +70,10 @@ typedef enum
 // Dat flags.
 typedef enum
 {
-    DVZ_DAT_FLAGS_NONE,
+    DVZ_DAT_FLAGS_SHARED,     // by default, the Dat is allocated from the big buffer
+    DVZ_DAT_FLAGS_STANDALONE, // standalone DvzBuffer
+
+    // the following are unused, may be removed
     DVZ_DAT_FLAGS_DYNAMIC,   // will change often
     DVZ_DAT_FLAGS_RESIZABLE, // can be resized
 } DvzDatFlags;

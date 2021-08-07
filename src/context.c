@@ -8,10 +8,24 @@
 
 
 /*************************************************************************************************/
+/*  Constants                                                                                    */
+/*************************************************************************************************/
+
+#define TRANSFERABLE (VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT)
+
+#define DVZ_BUFFER_TYPE_STAGING_SIZE (4 * 1024 * 1024)
+#define DVZ_BUFFER_TYPE_VERTEX_SIZE  (4 * 1024 * 1024)
+#define DVZ_BUFFER_TYPE_INDEX_SIZE   (4 * 1024 * 1024)
+#define DVZ_BUFFER_TYPE_STORAGE_SIZE (1 * 1024 * 1024)
+#define DVZ_BUFFER_TYPE_UNIFORM_SIZE (1 * 1024 * 1024)
+
+
+
+/*************************************************************************************************/
 /*  Context                                                                                      */
 /*************************************************************************************************/
 
-static void _context_default_queues(DvzGpu* gpu, bool has_present_queue)
+static void _default_queues(DvzGpu* gpu, bool has_present_queue)
 {
     dvz_gpu_queue(gpu, DVZ_DEFAULT_QUEUE_TRANSFER, DVZ_QUEUE_TRANSFER);
     dvz_gpu_queue(gpu, DVZ_DEFAULT_QUEUE_COMPUTE, DVZ_QUEUE_COMPUTE);
@@ -22,7 +36,88 @@ static void _context_default_queues(DvzGpu* gpu, bool has_present_queue)
 
 
 
-static void _context_default_buffers(DvzContext* context)
+static void _make_staging_buffer(DvzBuffer* buffer)
+{
+    ASSERT(buffer != NULL);
+    dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_STAGING);
+    dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_STAGING_SIZE);
+    dvz_buffer_usage(buffer, TRANSFERABLE);
+    dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_CPU_ONLY);
+    // dvz_buffer_memory(
+    //     buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_create(buffer);
+    ASSERT(dvz_obj_is_created(&buffer->obj));
+}
+
+static void _make_vertex_buffer(DvzBuffer* buffer)
+{
+    ASSERT(buffer != NULL);
+    dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_VERTEX);
+    dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_VERTEX_SIZE);
+    dvz_buffer_usage(
+        buffer,
+        TRANSFERABLE | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    // dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_GPU_ONLY);
+    dvz_buffer_create(buffer);
+    ASSERT(dvz_obj_is_created(&buffer->obj));
+}
+
+static void _make_index_buffer(DvzBuffer* buffer)
+{
+    ASSERT(buffer != NULL);
+    dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_INDEX);
+    dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_INDEX_SIZE);
+    dvz_buffer_usage(buffer, TRANSFERABLE | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    // dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_GPU_ONLY);
+    dvz_buffer_create(buffer);
+    ASSERT(dvz_obj_is_created(&buffer->obj));
+}
+
+static void _make_storage_buffer(DvzBuffer* buffer)
+{
+    ASSERT(buffer != NULL);
+    dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_STORAGE);
+    dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_STORAGE_SIZE);
+    dvz_buffer_usage(buffer, TRANSFERABLE | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    // dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_GPU_ONLY);
+    dvz_buffer_create(buffer);
+    ASSERT(dvz_obj_is_created(&buffer->obj));
+}
+
+static void _make_uniform_buffer(DvzBuffer* buffer)
+{
+    ASSERT(buffer != NULL);
+    dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_UNIFORM);
+    dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
+    dvz_buffer_usage(buffer, TRANSFERABLE | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    // dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_GPU_ONLY);
+    dvz_buffer_create(buffer);
+    ASSERT(dvz_obj_is_created(&buffer->obj));
+}
+
+static void _make_mappable_buffer(DvzBuffer* buffer)
+{
+    ASSERT(buffer != NULL);
+    dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
+    dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
+    dvz_buffer_usage(buffer, TRANSFERABLE | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    // dvz_buffer_memory(
+    //     buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    dvz_buffer_create(buffer);
+    ASSERT(dvz_obj_is_created(&buffer->obj));
+
+    // Permanently map the buffer.
+    buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
+}
+
+
+
+static void _default_buffers(DvzContext* context)
 {
     ASSERT(context != NULL);
     ASSERT(context->gpu != NULL);
@@ -40,106 +135,41 @@ static void _context_default_buffers(DvzContext* context)
         dvz_buffer_queue_access(buffer, DVZ_DEFAULT_QUEUE_RENDER);
     }
 
-    VkBufferUsageFlagBits transferable =
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
     // Staging buffer
-    {
-        buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STAGING);
-        ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_STAGING);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_STAGING_SIZE);
-        dvz_buffer_usage(buffer, transferable);
-        dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_CPU_ONLY);
-        // dvz_buffer_memory(
-        //     buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        dvz_buffer_create(buffer);
-        ASSERT(dvz_obj_is_created(&buffer->obj));
-
-        // Permanently map the buffer.
-        // buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
-    }
+    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STAGING);
+    _make_staging_buffer(buffer);
+    // Permanently map the buffer.
+    // buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
 
     // Vertex buffer
-    {
-        buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_VERTEX);
-        ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_VERTEX);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_VERTEX_SIZE);
-        dvz_buffer_usage(
-            buffer,
-            transferable | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-        // dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_GPU_ONLY);
-        dvz_buffer_create(buffer);
-        ASSERT(dvz_obj_is_created(&buffer->obj));
-    }
+    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_VERTEX);
+    _make_vertex_buffer(buffer);
 
     // Index buffer
-    {
-        buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_INDEX);
-        ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_INDEX);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_INDEX_SIZE);
-        dvz_buffer_usage(buffer, transferable | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        // dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_GPU_ONLY);
-        dvz_buffer_create(buffer);
-        ASSERT(dvz_obj_is_created(&buffer->obj));
-    }
+    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_INDEX);
+    _make_index_buffer(buffer);
 
     // Storage buffer
-    {
-        buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STORAGE);
-        ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_STORAGE);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_STORAGE_SIZE);
-        dvz_buffer_usage(buffer, transferable | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-        // dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_GPU_ONLY);
-        dvz_buffer_create(buffer);
-        ASSERT(dvz_obj_is_created(&buffer->obj));
-    }
+    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STORAGE);
+    _make_storage_buffer(buffer);
 
     // Uniform buffer
-    {
-        buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_UNIFORM);
-        ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_UNIFORM);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
-        dvz_buffer_usage(buffer, transferable | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        // dvz_buffer_memory(buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_GPU_ONLY);
-        dvz_buffer_create(buffer);
-        ASSERT(dvz_obj_is_created(&buffer->obj));
-    }
+    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_UNIFORM);
+    _make_uniform_buffer(buffer);
 
     // Mappable uniform buffer
-    {
-        buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
-        ASSERT(buffer != NULL);
-        dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
-        dvz_buffer_size(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
-        dvz_buffer_usage(buffer, transferable | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        // dvz_buffer_memory(
-        //     buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        dvz_buffer_vma_usage(buffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
-        dvz_buffer_create(buffer);
-        ASSERT(dvz_obj_is_created(&buffer->obj));
-
-        // Permanently map the buffer.
-        buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
-    }
+    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
+    _make_mappable_buffer(buffer);
 }
 
 
 
-static void _context_default_resources(DvzContext* context)
+static void _default_resources(DvzContext* context)
 {
     ASSERT(context != NULL);
 
     // Create the default buffers.
-    _context_default_buffers(context);
+    _default_buffers(context);
 
     // TODO
     // // Create the font atlas and assign it to the context.
@@ -221,7 +251,7 @@ void dvz_gpu_default(DvzGpu* gpu, DvzWindow* window)
     ASSERT(gpu != NULL);
 
     // Specify the default queues.
-    _context_default_queues(gpu, window != NULL);
+    _default_queues(gpu, window != NULL);
 
     // Default features
     _gpu_default_features(gpu);
@@ -340,7 +370,7 @@ DvzContext* dvz_context(DvzGpu* gpu)
     dvz_obj_created(&context->obj);
 
     // Create the default resources.
-    _context_default_resources(context);
+    _default_resources(context);
 
     return context;
 }
@@ -367,7 +397,7 @@ void dvz_context_reset(DvzContext* context)
     ASSERT(context != NULL);
     log_trace("reset the context");
     _destroy_resources(context);
-    _context_default_resources(context);
+    _default_resources(context);
 }
 
 
