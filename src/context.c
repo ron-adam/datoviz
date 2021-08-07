@@ -581,15 +581,15 @@ DvzTexture* dvz_ctx_texture(DvzContext* context, uint32_t dims, uvec3 size, VkFo
 
     DvzTexture* texture = dvz_container_alloc(&context->textures);
     DvzImages* image = dvz_container_alloc(&context->images);
-    DvzSampler* sampler = dvz_container_alloc(&context->samplers);
+    // DvzSampler* sampler = dvz_container_alloc(&context->samplers);
 
     texture->context = context;
     *image = dvz_images(context->gpu, image_type_from_dims(dims), 1);
-    *sampler = dvz_sampler(context->gpu);
+    // *sampler = dvz_sampler(context->gpu);
 
     texture->dims = dims;
     texture->image = image;
-    texture->sampler = sampler;
+    // texture->sampler = sampler;
 
     // Create the image.
     dvz_images_format(image, format);
@@ -606,13 +606,14 @@ DvzTexture* dvz_ctx_texture(DvzContext* context, uint32_t dims, uvec3 size, VkFo
     dvz_images_queue_access(image, DVZ_DEFAULT_QUEUE_RENDER);
     dvz_images_create(image);
 
-    // Create the sampler.
-    dvz_sampler_min_filter(sampler, VK_FILTER_NEAREST);
-    dvz_sampler_mag_filter(sampler, VK_FILTER_NEAREST);
-    dvz_sampler_address_mode(sampler, DVZ_TEXTURE_AXIS_U, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-    dvz_sampler_address_mode(sampler, DVZ_TEXTURE_AXIS_V, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-    dvz_sampler_address_mode(sampler, DVZ_TEXTURE_AXIS_V, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-    dvz_sampler_create(sampler);
+    // // Create the sampler.
+    // dvz_sampler_min_filter(sampler, VK_FILTER_NEAREST);
+    // dvz_sampler_mag_filter(sampler, VK_FILTER_NEAREST);
+    // dvz_sampler_address_mode(sampler, DVZ_TEXTURE_AXIS_U,
+    // VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE); dvz_sampler_address_mode(sampler,
+    // DVZ_TEXTURE_AXIS_V, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    // dvz_sampler_address_mode(sampler, DVZ_TEXTURE_AXIS_V,
+    // VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE); dvz_sampler_create(sampler);
 
     dvz_obj_created(&texture->obj);
 
@@ -637,22 +638,22 @@ void dvz_texture_resize(DvzTexture* texture, uvec3 size)
 void dvz_texture_filter(DvzTexture* texture, DvzFilterType type, VkFilter filter)
 {
     ASSERT(texture != NULL);
-    ASSERT(texture->sampler != NULL);
+    // ASSERT(texture->sampler != NULL);
 
-    switch (type)
-    {
-    case DVZ_FILTER_MIN:
-        dvz_sampler_min_filter(texture->sampler, filter);
-        break;
-    case DVZ_FILTER_MAG:
-        dvz_sampler_mag_filter(texture->sampler, filter);
-        break;
-    default:
-        log_error("invalid filter type %d", type);
-        break;
-    }
-    dvz_sampler_destroy(texture->sampler);
-    dvz_sampler_create(texture->sampler);
+    // switch (type)
+    // {
+    // case DVZ_FILTER_MIN:
+    //     dvz_sampler_min_filter(texture->sampler, filter);
+    //     break;
+    // case DVZ_FILTER_MAG:
+    //     dvz_sampler_mag_filter(texture->sampler, filter);
+    //     break;
+    // default:
+    //     log_error("invalid filter type %d", type);
+    //     break;
+    // }
+    // dvz_sampler_destroy(texture->sampler);
+    // dvz_sampler_create(texture->sampler);
 }
 
 
@@ -661,12 +662,12 @@ void dvz_texture_address_mode(
     DvzTexture* texture, DvzTextureAxis axis, VkSamplerAddressMode address_mode)
 {
     ASSERT(texture != NULL);
-    ASSERT(texture->sampler != NULL);
+    // ASSERT(texture->sampler != NULL);
 
-    dvz_sampler_address_mode(texture->sampler, axis, address_mode);
+    // dvz_sampler_address_mode(texture->sampler, axis, address_mode);
 
-    dvz_sampler_destroy(texture->sampler);
-    dvz_sampler_create(texture->sampler);
+    // dvz_sampler_destroy(texture->sampler);
+    // dvz_sampler_create(texture->sampler);
 }
 
 
@@ -992,9 +993,9 @@ void dvz_texture_destroy(DvzTexture* texture)
 {
     ASSERT(texture != NULL);
     dvz_images_destroy(texture->image);
-    dvz_sampler_destroy(texture->sampler);
+    // dvz_sampler_destroy(texture->sampler);
 
     texture->image = NULL;
-    texture->sampler = NULL;
+    // texture->sampler = NULL;
     dvz_obj_destroyed(&texture->obj);
 }

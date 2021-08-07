@@ -1911,13 +1911,14 @@ void dvz_bindings_buffer(DvzBindings* bindings, uint32_t idx, DvzBufferRegions b
 
 
 
-void dvz_bindings_texture(DvzBindings* bindings, uint32_t idx, DvzTexture* texture)
+void dvz_bindings_texture(
+    DvzBindings* bindings, uint32_t idx, DvzTexture* texture, DvzSampler* sampler)
 {
     ASSERT(bindings != NULL);
     ASSERT(texture != NULL);
 
     DvzImages* images = texture->image;
-    DvzSampler* sampler = texture->sampler;
+    // DvzSampler* sampler = sampler;
 
     ASSERT(images != NULL);
     ASSERT(sampler != NULL);

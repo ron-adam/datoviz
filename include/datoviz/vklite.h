@@ -27,8 +27,8 @@
 #include "common.h"
 
 BEGIN_INCL_NO_WARN
-#include <cglm/struct.h>
 #include "../../external/vk_mem_alloc.h"
+#include <cglm/struct.h>
 END_INCL_NO_WARN
 
 #ifdef __cplusplus
@@ -795,7 +795,7 @@ struct DvzTexture
     DvzContext* context;
 
     DvzImages* image;
-    DvzSampler* sampler;
+    // DvzSampler* sampler;
 };
 
 
@@ -1607,7 +1607,8 @@ DVZ_EXPORT void dvz_bindings_buffer(DvzBindings* bindings, uint32_t idx, DvzBuff
  * @param idx the slot index
  * @param br the texture to bind to that slot
  */
-DVZ_EXPORT void dvz_bindings_texture(DvzBindings* bindings, uint32_t idx, DvzTexture* texture);
+DVZ_EXPORT void dvz_bindings_texture(
+    DvzBindings* bindings, uint32_t idx, DvzTexture* texture, DvzSampler* sampler);
 
 /**
  * Update the bindings after the buffers/textures have been set up.
