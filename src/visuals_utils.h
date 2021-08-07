@@ -343,7 +343,7 @@ static void _create_source_buffer(DvzCanvas* canvas, DvzSource* source, VkDevice
         type = DVZ_BUFFER_TYPE_INDEX;
         break;
     case DVZ_SOURCE_KIND_UNIFORM:
-        type = mappable ? DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE : DVZ_BUFFER_TYPE_UNIFORM;
+        type = mappable ? DVZ_BUFFER_TYPE_MAPPABLE : DVZ_BUFFER_TYPE_UNIFORM;
         break;
     case DVZ_SOURCE_KIND_STORAGE:
         type = DVZ_BUFFER_TYPE_STORAGE;

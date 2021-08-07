@@ -5,6 +5,7 @@
 #ifndef DVZ_CONTEXT_HEADER
 #define DVZ_CONTEXT_HEADER
 
+#include "alloc.h"
 #include "colormaps.h"
 #include "common.h"
 #include "fifo.h"
@@ -157,6 +158,7 @@ struct DvzContext
 
     DvzContainer buffers;
     DvzContainer dats;
+    DvzAlloc allocators[DVZ_BUFFER_TYPE_COUNT]; // one dat allocator for each buffer
 
     DvzContainer images;
     DvzContainer textures; // TODO: rename to texs?

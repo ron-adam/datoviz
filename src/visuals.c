@@ -825,7 +825,7 @@ void dvz_visual_update(
                 "%d #%d", //
                 arr->item_count, br->size, source->source_type, source->source_idx);
 
-            if (br->buffer->type == DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE)
+            if (br->buffer->type == DVZ_BUFFER_TYPE_MAPPABLE)
             {
                 // dvz_canvas_buffers(canvas, *br, 0, size, arr->data);
                 for (uint32_t i = 0; i < canvas->render.swapchain.img_count; i++)

@@ -16,7 +16,7 @@ int test_context_buffer(TestContext* tc)
     ASSERT(gpu != NULL);
 
     // Allocate buffers.
-    DvzBufferRegions br = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, 1, 1024);
+    DvzBufferRegions br = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_MAPPABLE, 1, 1024);
     VkDeviceSize offset = br.alignment;
     // AT(br.aligned_size == 128);
     AT(br.count == 1);

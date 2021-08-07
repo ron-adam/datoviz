@@ -114,8 +114,7 @@ static void _graphics_bindings(TestGraphics* tg)
 
     // Binding resources.
     tg->br_mvp = dvz_ctx_buffers(
-        context, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, canvas->render.swapchain.img_count,
-        sizeof(DvzMVP));
+        context, DVZ_BUFFER_TYPE_MAPPABLE, canvas->render.swapchain.img_count, sizeof(DvzMVP));
     tg->br_viewport = dvz_ctx_buffers(context, DVZ_BUFFER_TYPE_UNIFORM, 1, sizeof(DvzViewport));
 
     // Viewport.

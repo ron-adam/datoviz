@@ -697,7 +697,7 @@ void dvz_canvas_buffers(
     ASSERT(data != NULL);
     ASSERT(br.buffer != NULL);
     ASSERT(br.count == canvas->render.swapchain.img_count);
-    if (br.buffer->type != DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE)
+    if (br.buffer->type != DVZ_BUFFER_TYPE_MAPPABLE)
     {
         log_error("dvz_canvas_buffers() can only be used on mappable buffers.");
         return;

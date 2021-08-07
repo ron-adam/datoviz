@@ -266,7 +266,7 @@ DvzPanel* dvz_panel(DvzGrid* grid, uint32_t row, uint32_t col)
 
     // MVP uniform buffer.
     uint32_t n = canvas->render.swapchain.img_count;
-    panel->br_mvp = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE, n, sizeof(DvzMVP));
+    panel->br_mvp = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_MAPPABLE, n, sizeof(DvzMVP));
     // Initialize with identity matrices. Will be later updated by the scene controllers at every
     // frame.
     // dvz_canvas_buffers(canvas, panel->br_mvp, 0, panel->br_mvp.size, &MVP_ID);

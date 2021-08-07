@@ -1,5 +1,4 @@
 #include "../include/datoviz/context.h"
-#include "../include/datoviz/alloc.h"
 #include "../include/datoviz/atlas.h"
 #include "context_utils.h"
 #include "transfer_utils.h"
@@ -14,11 +13,12 @@
 
 #define TRANSFERABLE (VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT)
 
-#define DVZ_BUFFER_TYPE_STAGING_SIZE (4 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_VERTEX_SIZE  (4 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_INDEX_SIZE   (4 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_STORAGE_SIZE (1 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_UNIFORM_SIZE (1 * 1024 * 1024)
+#define DVZ_BUFFER_TYPE_STAGING_SIZE  (4 * 1024 * 1024)
+#define DVZ_BUFFER_TYPE_VERTEX_SIZE   (4 * 1024 * 1024)
+#define DVZ_BUFFER_TYPE_INDEX_SIZE    (4 * 1024 * 1024)
+#define DVZ_BUFFER_TYPE_STORAGE_SIZE  (1 * 1024 * 1024)
+#define DVZ_BUFFER_TYPE_UNIFORM_SIZE  (1 * 1024 * 1024)
+#define DVZ_BUFFER_TYPE_MAPPABLE_SIZE DVZ_BUFFER_TYPE_UNIFORM_SIZE
 
 
 
@@ -118,7 +118,7 @@ static void _make_uniform_buffer(DvzBuffer* buffer, VkDeviceSize size)
 static void _make_mappable_buffer(DvzBuffer* buffer, VkDeviceSize size)
 {
     ASSERT(buffer != NULL);
-    dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
+    dvz_buffer_type(buffer, DVZ_BUFFER_TYPE_MAPPABLE);
     dvz_buffer_size(buffer, size);
     dvz_buffer_usage(buffer, TRANSFERABLE | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
     // dvz_buffer_memory(
@@ -139,7 +139,7 @@ static VkDeviceSize _find_alignment(DvzContext* ctx, DvzBufferType type)
     ASSERT(type < DVZ_BUFFER_TYPE_COUNT);
 
     VkDeviceSize alignment = 0;
-    bool needs_align = type == DVZ_BUFFER_TYPE_UNIFORM || type == DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE;
+    bool needs_align = type == DVZ_BUFFER_TYPE_UNIFORM || type == DVZ_BUFFER_TYPE_MAPPABLE;
     if (needs_align)
         alignment = ctx->gpu->device_properties.limits.minUniformBufferOffsetAlignment;
     return alignment;
@@ -182,7 +182,7 @@ static DvzBuffer* _get_standalone_buffer(DvzContext* ctx, DvzBufferType type, Vk
         _make_uniform_buffer(buffer, size);
         break;
 
-    case DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE:
+    case DVZ_BUFFER_TYPE_MAPPABLE:
         _make_mappable_buffer(buffer, size);
         break;
 
@@ -192,6 +192,18 @@ static DvzBuffer* _get_standalone_buffer(DvzContext* ctx, DvzBufferType type, Vk
     }
 
     return buffer;
+}
+
+
+
+static DvzAlloc* _make_allocator(DvzContext* ctx, DvzBufferType type, VkDeviceSize size)
+{
+    ASSERT(ctx != NULL);
+    ASSERT((uint32_t)type < DVZ_BUFFER_TYPE_COUNT);
+    DvzAlloc* alloc = &ctx->allocators[(uint32_t)type];
+    VkDeviceSize alignment = _find_alignment(ctx, type);
+    *alloc = dvz_alloc(size, alignment);
+    return alloc;
 }
 
 
@@ -213,28 +225,34 @@ static void _default_buffers(DvzContext* context)
     // Staging buffer
     buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STAGING);
     _make_staging_buffer(buffer, DVZ_BUFFER_TYPE_STAGING_SIZE);
+    _make_allocator(context, DVZ_BUFFER_TYPE_STAGING, DVZ_BUFFER_TYPE_STAGING_SIZE);
     // Permanently map the buffer.
     // buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
 
     // Vertex buffer
     buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_VERTEX);
     _make_vertex_buffer(buffer, DVZ_BUFFER_TYPE_VERTEX_SIZE);
+    _make_allocator(context, DVZ_BUFFER_TYPE_VERTEX, DVZ_BUFFER_TYPE_VERTEX_SIZE);
 
     // Index buffer
     buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_INDEX);
     _make_index_buffer(buffer, DVZ_BUFFER_TYPE_INDEX_SIZE);
+    _make_allocator(context, DVZ_BUFFER_TYPE_INDEX, DVZ_BUFFER_TYPE_INDEX_SIZE);
 
     // Storage buffer
     buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_STORAGE);
     _make_storage_buffer(buffer, DVZ_BUFFER_TYPE_STORAGE_SIZE);
+    _make_allocator(context, DVZ_BUFFER_TYPE_STORAGE, DVZ_BUFFER_TYPE_STORAGE_SIZE);
 
     // Uniform buffer
     buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_UNIFORM);
     _make_uniform_buffer(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
+    _make_allocator(context, DVZ_BUFFER_TYPE_UNIFORM, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
 
     // Mappable uniform buffer
-    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE);
-    _make_mappable_buffer(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
+    buffer = dvz_container_get(&context->buffers, DVZ_BUFFER_TYPE_MAPPABLE);
+    _make_mappable_buffer(buffer, DVZ_BUFFER_TYPE_MAPPABLE_SIZE);
+    _make_allocator(context, DVZ_BUFFER_TYPE_MAPPABLE, DVZ_BUFFER_TYPE_MAPPABLE_SIZE);
 }
 
 
@@ -498,6 +516,10 @@ void dvz_context_destroy(DvzContext* context)
     // Destroy the transfers queue.
     _destroy_transfers(context);
 
+    // Destroy the DvzDat allocators.
+    for (uint32_t i = 0; i < DVZ_BUFFER_TYPE_COUNT; i++)
+        dvz_alloc_destroy(&context->allocators[i]);
+
     // Free the allocated memory.
     dvz_container_destroy(&context->buffers);
     dvz_container_destroy(&context->images);
@@ -554,6 +576,7 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
         buffer = _get_shared_buffer(ctx, type);
 
         // Allocate a DvzDat from it.
+        // TODO
     }
 
     // Standalone buffer.
@@ -677,7 +700,7 @@ DvzBufferRegions dvz_ctx_buffers(
     VkDeviceSize alignment = 0;
     VkDeviceSize offset = buffer->allocated_size;
     bool needs_align =
-        buffer_type == DVZ_BUFFER_TYPE_UNIFORM || buffer_type == DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE;
+        buffer_type == DVZ_BUFFER_TYPE_UNIFORM || buffer_type == DVZ_BUFFER_TYPE_MAPPABLE;
     if (needs_align)
     {
         alignment = context->gpu->device_properties.limits.minUniformBufferOffsetAlignment;
