@@ -24,6 +24,7 @@ typedef enum
 {
     TEST_FIXTURE_NONE,
     TEST_FIXTURE_APP,
+    TEST_FIXTURE_TRANSFERS,
     TEST_FIXTURE_CONTEXT,
     TEST_FIXTURE_CANVAS,
 } TestFixture;
@@ -56,6 +57,7 @@ struct TestContext
 
     DvzApp* app;
     DvzContext* context;
+    DvzTransfers* transfers;
     DvzCanvas* canvas;
 
     bool debug;
@@ -134,6 +136,23 @@ static void _fixture_app(TestContext* tc)
     tc->app->n_errors = 0;
 }
 
+static void _fixture_transfers(TestContext* tc)
+{
+    ASSERT(tc != NULL);
+    ASSERT(tc->app != NULL);
+
+    // Select the GPU.
+    DvzGpu* gpu = dvz_gpu_best(tc->app);
+    ASSERT(gpu != NULL);
+
+    // Ensure the transfers is created.
+    ASSERT(tc->transfers == NULL);
+
+    // Recreate the GPU and transfers.
+    dvz_gpu_default(gpu, NULL);
+    tc->transfers = dvz_transfers(gpu);
+}
+
 static void _fixture_context(TestContext* tc)
 {
     ASSERT(tc != NULL);
@@ -183,6 +202,12 @@ static void _fixture_begin(TestContext* tc, TestCase* test_case)
         _fixture_app(tc);
         break;
 
+        // Transfers fixture.
+    case TEST_FIXTURE_TRANSFERS:
+        _fixture_app(tc);
+        _fixture_transfers(tc);
+        break;
+
         // Context fixture.
     case TEST_FIXTURE_CONTEXT:
         _fixture_app(tc);
@@ -213,6 +238,13 @@ static void _fixture_end(TestContext* tc, TestCase* test_case)
 
         // App fixture.
     case TEST_FIXTURE_APP:
+        break;
+
+        // Transfers fixture.
+    case TEST_FIXTURE_TRANSFERS:
+        ASSERT(tc->transfers);
+        dvz_gpu_destroy(tc->transfers->gpu);
+        tc->transfers = NULL;
         break;
 
         // Context fixture.

@@ -1,4 +1,4 @@
-#include "../include/datoviz/context.h"
+#include "../include/datoviz/transfers.h"
 #include "../src/transfer_utils.h"
 #include "proto.h"
 #include "tests.h"
@@ -19,7 +19,7 @@ static void _dl_done(DvzDeq* deq, void* item, void* user_data)
 
 int test_transfers_buffer_mappable(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->context;
+    DvzTransfers* transfers = tc->transfers;
     ASSERT(transfers != NULL);
 
     // Callback for when the download has finished.
@@ -62,7 +62,7 @@ int test_transfers_buffer_mappable(TestContext* tc)
 
 int test_transfers_buffer_large(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->context;
+    DvzTransfers* transfers = tc->transfers;
     ASSERT(transfers != NULL);
 
     uint64_t size = 32 * 1024 * 1024; // MB
@@ -113,7 +113,7 @@ int test_transfers_buffer_large(TestContext* tc)
 
 int test_transfers_buffer_copy(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->context;
+    DvzTransfers* transfers = tc->transfers;
     ASSERT(transfers != NULL);
 
     // Callback for when the download has finished.
@@ -156,7 +156,7 @@ int test_transfers_buffer_copy(TestContext* tc)
 
 int test_transfers_image_buffer(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->context;
+    DvzTransfers* transfers = tc->transfers;
     ASSERT(transfers != NULL);
 
     uvec3 shape_full = {16, 48, 1};
@@ -211,7 +211,7 @@ int test_transfers_image_buffer(TestContext* tc)
 
 int test_transfers_direct_buffer(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->context;
+    DvzTransfers* transfers = tc->transfers;
     ASSERT(transfers != NULL);
 
     // Create a data array.
@@ -244,7 +244,7 @@ int test_transfers_direct_buffer(TestContext* tc)
 
 int test_transfers_direct_texture(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->context;
+    DvzTransfers* transfers = tc->transfers;
     ASSERT(transfers != NULL);
 
     uvec3 shape_full = {16, 48, 1};

@@ -1,8 +1,6 @@
 #include "../include/datoviz/transfers.h"
 #include "../include/datoviz/canvas.h"
-// #include "../include/datoviz/context.h"
 #include "../include/datoviz/fifo.h"
-// #include "context_utils.h"
 #include "transfer_utils.h"
 
 

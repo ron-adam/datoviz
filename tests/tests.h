@@ -279,18 +279,19 @@ static TestCase TEST_CASES[] = {
 
 
 
+    // // Transfers.
+    // CASE_FIXTURE(TRANSFERS, test_transfers_buffer_mappable), //
+    // CASE_FIXTURE(TRANSFERS, test_transfers_buffer_large),    //
+    // CASE_FIXTURE(TRANSFERS, test_transfers_buffer_copy),     //
+    // CASE_FIXTURE(TRANSFERS, test_transfers_image_buffer),  //
+    // CASE_FIXTURE(TRANSFERS, test_transfers_direct_buffer),   //
+    // CASE_FIXTURE(TRANSFERS, test_transfers_direct_texture),  //
+
     // // Context.
     // CASE_FIXTURE(CONTEXT, test_context_buffer),          //
     // CASE_FIXTURE(CONTEXT, test_context_compute),         //
     // CASE_FIXTURE(CONTEXT, test_context_texture),         //
     // CASE_FIXTURE(CONTEXT, test_context_colormap_custom), //
-
-    // CASE_FIXTURE(CONTEXT, test_transfers_buffer_mappable), //
-    // CASE_FIXTURE(CONTEXT, test_transfers_buffer_large),    //
-    // CASE_FIXTURE(CONTEXT, test_transfers_buffer_copy),     //
-    // CASE_FIXTURE(CONTEXT, test_transfers_image_buffer),  //
-    // CASE_FIXTURE(CONTEXT, test_transfers_direct_buffer),   //
-    // CASE_FIXTURE(CONTEXT, test_transfers_direct_texture),  //
 
     // // Canvas.
     // CASE_FIXTURE(APP, test_canvas_window),   //

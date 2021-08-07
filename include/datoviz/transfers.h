@@ -153,7 +153,7 @@ DVZ_EXPORT DvzTransfers* dvz_transfers(DvzGpu* gpu);
 
 
 /*************************************************************************************************/
-/*  Convenient but slow transfer functions, essentially used in testing or offscreen contexts    */
+/*  Convenient but slow transfer functions, essentially used in testing or offscreen settings    */
 /*************************************************************************************************/
 
 /**
