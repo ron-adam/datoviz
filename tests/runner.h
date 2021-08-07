@@ -57,7 +57,7 @@ struct TestContext
 
     DvzApp* app;
     DvzContext* context;
-    DvzTransfers* transfers;
+    DvzTransfers transfers;
     DvzCanvas* canvas;
 
     bool debug;
@@ -146,11 +146,11 @@ static void _fixture_transfers(TestContext* tc)
     ASSERT(gpu != NULL);
 
     // Ensure the transfers is created.
-    ASSERT(tc->transfers == NULL);
+    ASSERT(!dvz_obj_is_created(&tc->transfers.obj));
 
     // Recreate the GPU and transfers.
     dvz_gpu_default(gpu, NULL);
-    tc->transfers = dvz_transfers(gpu);
+    dvz_transfers(gpu, &tc->transfers);
 }
 
 static void _fixture_context(TestContext* tc)
@@ -242,9 +242,8 @@ static void _fixture_end(TestContext* tc, TestCase* test_case)
 
         // Transfers fixture.
     case TEST_FIXTURE_TRANSFERS:
-        ASSERT(tc->transfers);
-        dvz_gpu_destroy(tc->transfers->gpu);
-        tc->transfers = NULL;
+        dvz_transfers_destroy(&tc->transfers);
+        dvz_gpu_destroy(tc->context->gpu);
         break;
 
         // Context fixture.

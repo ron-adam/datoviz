@@ -81,29 +81,36 @@ static void _create_transfers(DvzTransfers* transfers)
 /*  Transfers struct                                                                             */
 /*************************************************************************************************/
 
-DvzTransfers* dvz_transfers(DvzGpu* gpu)
+void dvz_transfers(DvzGpu* gpu, DvzTransfers* transfers)
 {
+
     ASSERT(gpu != NULL);
     ASSERT(dvz_obj_is_created(&gpu->obj));
+    ASSERT(transfers != NULL);
+    ASSERT(!dvz_obj_is_created(&transfers->obj));
+    // NOTE: this function should only be called once, at context creation.
+
     log_trace("creating transfers");
 
-    DvzTransfers* transfers = calloc(1, sizeof(DvzTransfers));
-    ASSERT(transfers != NULL);
-
-    // Create the transfers.
+    // Create the resources.
     transfers->gpu = gpu;
     _create_transfers(transfers);
-    dvz_obj_created(&transfers->obj);
 
-    gpu->transfers = transfers;
-    return transfers;
+    dvz_obj_created(&transfers->obj);
 }
 
 
 
 void dvz_transfers_destroy(DvzTransfers* transfers)
 {
+    if (transfers == NULL)
+    {
+        log_error("skip destruction of null transfers");
+        return;
+    }
+    log_trace("destroying transfers");
     ASSERT(transfers != NULL);
+    ASSERT(transfers->gpu != NULL);
 
     // Enqueue a STOP task to stop the UL and DL threads.
     dvz_deq_enqueue(&transfers->deq, DVZ_TRANSFER_DEQ_UL, 0, NULL);
@@ -112,7 +119,11 @@ void dvz_transfers_destroy(DvzTransfers* transfers)
     // Join the UL and DL threads.
     dvz_thread_join(&transfers->thread);
 
+    // Destroy the deq.
     dvz_deq_destroy(&transfers->deq);
+
+    // Mark the object as destroyed.
+    dvz_obj_destroyed(&transfers->obj);
 }
 
 

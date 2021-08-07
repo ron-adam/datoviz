@@ -360,8 +360,10 @@ struct DvzGpu
 
     VmaAllocator allocator;
 
+    // DvzTransfers* transfers;
+    // DvzTransfers* resources;
+    // // TODO: allocs
     DvzContext* context;
-    DvzTransfers* transfers;
 };
 
 
@@ -790,6 +792,7 @@ struct DvzSubmit
 
 
 
+// TODO: rename to DvzTex, and move to resources.h
 struct DvzTexture
 {
     DvzObject obj;
@@ -2496,13 +2499,6 @@ DVZ_EXPORT void dvz_cmd_push(
  * @param context the context
  */
 DVZ_EXPORT void dvz_context_destroy(DvzContext* context);
-
-/**
- * Destroy a transfers object.
- *
- * @param transfers the DvzTransfers object
- */
-DVZ_EXPORT void dvz_transfers_destroy(DvzTransfers* transfers);
 
 
 

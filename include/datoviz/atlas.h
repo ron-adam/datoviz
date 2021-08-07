@@ -53,22 +53,24 @@ static void _font_atlas_glyph_size(DvzFontAtlas* atlas, float size, vec2 glyph_s
 
 static DvzTexture* _font_texture(DvzContext* ctx, DvzFontAtlas* atlas)
 {
-    ASSERT(ctx != NULL);
-    ASSERT(atlas != NULL);
-    ASSERT(atlas->font_texture != NULL);
+    return NULL;
 
-    uvec3 shape = {(uint32_t)atlas->width, (uint32_t)atlas->height, 1};
-    DvzTexture* texture = dvz_ctx_texture(ctx, 2, shape, VK_FORMAT_R8G8B8A8_UNORM);
-    // NOTE: the font texture must have LINEAR filter! otherwise no antialiasing
-    dvz_texture_filter(texture, DVZ_FILTER_MAG, VK_FILTER_LINEAR);
-    dvz_texture_filter(texture, DVZ_FILTER_MIN, VK_FILTER_LINEAR);
+    // // TODO
+    // ASSERT(ctx != NULL);
+    // ASSERT(atlas != NULL);
+    // ASSERT(atlas->font_texture != NULL);
 
-    // TODO
+    // uvec3 shape = {(uint32_t)atlas->width, (uint32_t)atlas->height, 1};
+    // DvzTexture* texture = dvz_ctx_texture(ctx, 2, shape, VK_FORMAT_R8G8B8A8_UNORM);
+    // // NOTE: the font texture must have LINEAR filter! otherwise no antialiasing
+    // dvz_texture_filter(texture, DVZ_FILTER_MAG, VK_FILTER_LINEAR);
+    // dvz_texture_filter(texture, DVZ_FILTER_MIN, VK_FILTER_LINEAR);
+
     // dvz_upload_texture(
     //     ctx, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET,
     //     (uint32_t)(atlas->width * atlas->height * 4), atlas->font_texture);
 
-    return texture;
+    // return texture;
 }
 
 
@@ -100,7 +102,8 @@ static DvzFontAtlas dvz_font_atlas(DvzContext* ctx)
     atlas.glyph_width = atlas.width / (float)atlas.cols;
     atlas.glyph_height = atlas.height / (float)atlas.rows;
 
-    atlas.texture = _font_texture(ctx, &atlas);
+    // TODO
+    // atlas.texture = _font_texture(ctx, &atlas);
 
     return atlas;
 }

@@ -365,8 +365,11 @@ file(GLOB sources
     "src/input.c"
     "src/context.c"
 
-    "src/canvas.c"
+    "src/resources.c"
     "src/transfers.c"
+    "src/allocs.c"
+
+    "src/canvas.c"
     # "src/run.c"
 
     "external/*.c*"

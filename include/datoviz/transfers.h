@@ -148,7 +148,14 @@ struct DvzTransfers
 
 // TODO: docstrings
 
-DVZ_EXPORT DvzTransfers* dvz_transfers(DvzGpu* gpu);
+DVZ_EXPORT void dvz_transfers(DvzGpu* gpu, DvzTransfers* transfers);
+
+/**
+ * Destroy a transfers object.
+ *
+ * @param transfers the DvzTransfers pointer
+ */
+DVZ_EXPORT void dvz_transfers_destroy(DvzTransfers* transfers);
 
 
 
