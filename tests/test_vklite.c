@@ -742,7 +742,7 @@ int test_vklite_sampler(TestContext* tc)
     DvzSampler sampler = dvz_sampler(gpu);
     dvz_sampler_min_filter(&sampler, VK_FILTER_LINEAR);
     dvz_sampler_mag_filter(&sampler, VK_FILTER_LINEAR);
-    dvz_sampler_address_mode(&sampler, DVZ_TEXTURE_AXIS_U, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    dvz_sampler_address_mode(&sampler, DVZ_SAMPLER_AXIS_U, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
     dvz_sampler_create(&sampler);
 
     dvz_sampler_destroy(&sampler);

@@ -57,25 +57,12 @@ typedef enum
 
 
 
-// Filter type.
-typedef enum
-{
-    DVZ_FILTER_MIN,
-    DVZ_FILTER_MAG,
-} DvzFilterType;
-
-
-
 /*************************************************************************************************/
 /*  Typedefs                                                                                     */
 /*************************************************************************************************/
 
 typedef struct DvzDat DvzDat;
 typedef struct DvzTex DvzTex;
-
-typedef struct DvzFontAtlas DvzFontAtlas;
-typedef struct DvzColormapAtlas DvzColormapAtlas;
-
 typedef struct DvzResources DvzResources;
 
 
@@ -108,31 +95,6 @@ struct DvzTex
 
 
 /*************************************************************************************************/
-/*  Common resources                                                                             */
-/*************************************************************************************************/
-
-struct DvzFontAtlas
-{
-    const char* name;
-    uint32_t width, height;
-    uint32_t cols, rows;
-    uint8_t* font_data;
-    float glyph_width, glyph_height;
-    const char* font_str;
-    DvzImages* img;
-};
-
-
-
-struct DvzColormapAtlas
-{
-    unsigned char* arr;
-    DvzImages* img;
-};
-
-
-
-/*************************************************************************************************/
 /*  Resources                                                                                    */
 /*************************************************************************************************/
 
@@ -147,11 +109,6 @@ struct DvzResources
     DvzContainer texs;
     DvzContainer samplers;
     DvzContainer computes;
-
-    // Common resources.
-    DvzFontAtlas font_atlas;
-    DvzColormapAtlas cmap_atlas;
-    DvzImages* transfer_img; // Default linear 1D texture
 };
 
 
@@ -175,9 +132,12 @@ DVZ_EXPORT void dvz_resources(DvzGpu* gpu, DvzResources* res);
  */
 DVZ_EXPORT void dvz_resources_destroy(DvzResources* res);
 
+
+
 DVZ_EXPORT void dvz_dat_destroy(DvzDat* dat);
 
 DVZ_EXPORT void dvz_tex_destroy(DvzTex* tex);
+
 
 
 #ifdef __cplusplus

@@ -363,11 +363,11 @@ file(GLOB sources
     "src/spirv.c"
     "src/vklite.c"
     "src/input.c"
-    "src/context.c"
-
     "src/resources.c"
     "src/transfers.c"
     "src/allocs.c"
+    "src/context.c"
+    "src/atlases.c"
 
     "src/canvas.c"
     # "src/run.c"

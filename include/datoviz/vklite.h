@@ -203,10 +203,19 @@ typedef enum
 // Texture axis.
 typedef enum
 {
-    DVZ_TEXTURE_AXIS_U,
-    DVZ_TEXTURE_AXIS_V,
-    DVZ_TEXTURE_AXIS_W,
+    DVZ_SAMPLER_AXIS_U,
+    DVZ_SAMPLER_AXIS_V,
+    DVZ_SAMPLER_AXIS_W,
 } DvzSamplerAxis;
+
+
+
+// Filter type.
+typedef enum
+{
+    DVZ_SAMPLER_FILTER_MIN,
+    DVZ_SAMPLER_FILTER_MAG,
+} DvzSamplerFilter;
 
 
 

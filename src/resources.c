@@ -31,9 +31,6 @@ void dvz_resources(DvzGpu* gpu, DvzResources* res)
     // Allocate memory for buffers, textures, and computes.
     _create_resources(res);
 
-    // Create the default resources.
-    _default_resources(res);
-
     dvz_obj_created(&res->obj);
 }
 
@@ -49,10 +46,6 @@ void dvz_resources_destroy(DvzResources* res)
     log_trace("destroying resources");
     ASSERT(res != NULL);
     ASSERT(res->gpu != NULL);
-
-    // Destroy the font atlas.
-    // TODO
-    // dvz_font_atlas_destroy(&resources->font_atlas);
 
     // Destroy the resources.
     _destroy_resources(res);

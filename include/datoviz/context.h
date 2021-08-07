@@ -6,6 +6,7 @@
 #define DVZ_CONTEXT_HEADER
 
 #include "allocs.h"
+#include "atlases.h"
 #include "colormaps.h"
 #include "common.h"
 #include "fifo.h"
@@ -58,6 +59,7 @@ struct DvzContext
     DvzTransfers transfers;
     DvzResources res;
     DvzAllocs allocs;
+    DvzAtlases atlases;
 };
 
 

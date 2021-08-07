@@ -1,11 +1,9 @@
 #include "../include/datoviz/context.h"
+#include "../include/datoviz/atlases.h"
 #include "allocs_utils.h"
-#include "context_utils.h"
-#include "font_atlas.h"
 #include "resources_utils.h"
 #include "transfer_utils.h"
 #include "vklite_utils.h"
-#include <stdlib.h>
 
 
 
@@ -100,6 +98,9 @@ DvzContext* dvz_context(DvzGpu* gpu)
     gpu->context = ctx;
     dvz_obj_created(&ctx->obj);
 
+    // Create the atlases.
+    dvz_atlases(ctx, &ctx->atlases);
+
     return ctx;
 }
 
@@ -110,7 +111,7 @@ void dvz_context_reset(DvzContext* ctx)
     ASSERT(ctx != NULL);
     log_trace("reset the context");
     _destroy_resources(&ctx->res);
-    _default_resources(&ctx->res);
+    dvz_atlases(ctx, &ctx->atlases);
 }
 
 
@@ -149,6 +150,7 @@ void dvz_context_destroy(DvzContext* ctx)
     dvz_transfers_destroy(&ctx->transfers);
     dvz_resources_destroy(&ctx->res);
     dvz_allocs_destroy(&ctx->allocs);
+    dvz_atlases_destroy(&ctx->atlases);
 }
 
 

@@ -1,5 +1,5 @@
 /*************************************************************************************************/
-/*  Simple monospace font fa                                                                  */
+/*  Simple monospace font atlas                                                                  */
 /*************************************************************************************************/
 
 #ifndef DVZ_FONT_ATLAS_HEADER
@@ -17,7 +17,7 @@ END_INCL_NO_WARN
 
 
 /*************************************************************************************************/
-/*  Font fa                                                                                   */
+/*  Font atlas                                                                                   */
 /*************************************************************************************************/
 
 static const char DVZ_FONT_ATLAS_STRING[] =
@@ -113,6 +113,8 @@ static void dvz_font_atlas_destroy(DvzFontAtlas* fa)
     ASSERT(fa != NULL);
     ASSERT(fa->font_data != NULL);
     stbi_image_free(fa->font_data);
+
+    _destroy_image(fa->img);
 }
 
 

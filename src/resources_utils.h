@@ -372,35 +372,6 @@ static void _destroy_resources(DvzResources* res)
 
 
 
-static void _default_resources(DvzResources* res)
-{
-    ASSERT(res != NULL);
-
-    // TODO
-    // // Create the default buffers.
-    // _default_buffers(res);
-
-    // // Create the font atlas and assign it to the context.
-    // context->font_atlas = dvz_font_atlas(context);
-
-    // // Color texture.
-    // context->cmap_atlas.arr = _load_colormaps();
-    // context->cmap_atlas.texture =
-    //     dvz_ctx_texture(context, 2, (uvec3){256, 256, 1}, VK_FORMAT_R8G8B8A8_UNORM);
-    // dvz_texture_address_mode(
-    //     context->cmap_atlas.texture, DVZ_TEXTURE_AXIS_U,
-    //     VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-    // dvz_texture_address_mode(
-    //     context->cmap_atlas.texture, DVZ_TEXTURE_AXIS_V,
-    //     VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-    // dvz_context_colormap(context);
-
-    // // Default 1D texture, for transfer functions.
-    // context->transfer_texture = _default_transfer_texture(context);
-}
-
-
-
 #ifdef __cplusplus
 }
 #endif
