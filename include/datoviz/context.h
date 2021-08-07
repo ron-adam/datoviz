@@ -61,12 +61,47 @@ typedef enum
 
 
 
+// Dat type.
+typedef enum
+{
+    DVZ_DAT_TYPE_NONE,
+    DVZ_DAT_TYPE_STAGING,
+    DVZ_DAT_TYPE_VERTEX,
+    DVZ_DAT_TYPE_UNIFORM,
+    DVZ_DAT_TYPE_STORAGE,
+} DvzDatType;
+
+
+
+// Dat flags.
+typedef enum
+{
+    DVZ_DAT_FLAGS_NONE,
+    DVZ_DAT_FLAGS_DYNAMIC,   // will change often
+    DVZ_DAT_FLAGS_RESIZABLE, // can be resized
+} DvzDatFlags;
+
+
+
+// Tex dims.
+typedef enum
+{
+    DVZ_TEX_NONE,
+    DVZ_TEX_1D,
+    DVZ_TEX_2D,
+    DVZ_TEX_3D,
+} DvzTexDims;
+
+
+
 /*************************************************************************************************/
 /*  Typedefs                                                                                     */
 /*************************************************************************************************/
 
 typedef struct DvzFontAtlas DvzFontAtlas;
 typedef struct DvzColorTexture DvzColorTexture;
+typedef struct DvzDat DvzDat;
+typedef struct DvzTex DvzTex;
 
 
 
@@ -91,6 +126,27 @@ struct DvzColorTexture
 {
     unsigned char* arr;
     DvzTexture* texture;
+};
+
+
+
+struct DvzDat
+{
+    DvzObject obj;
+    DvzContext* context;
+    DvzBufferRegions br;
+    int flags;
+};
+
+
+
+struct DvzTex
+{
+    DvzObject obj;
+    DvzContext* context;
+    DvzImages* images;
+    DvzTexDims dims;
+    int flags;
 };
 
 
@@ -160,6 +216,43 @@ DVZ_EXPORT void dvz_app_reset(DvzApp* app);
  * @param context the context
  */
 DVZ_EXPORT void dvz_context_colormap(DvzContext* context);
+
+
+
+/*************************************************************************************************/
+/*  Dats and texs                                                                                */
+/*************************************************************************************************/
+
+DVZ_EXPORT DvzDat* dvz_dat(DvzContext* ctx, DvzDatType type, VkDeviceSize size, int flags);
+// choose an existing DvzBuffer, or create a new one
+// allocate a buffer region
+
+DVZ_EXPORT void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data);
+// if staging
+//     allocate staging buffer if there isn't already one
+// enqueue a buffer upload transfer
+// the copy to staging will be done in a background thread automatically
+// need the caller to call dvz_ctx_frame()
+//     dequeue all pending copies, with hard gpu sync
+
+DVZ_EXPORT void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data);
+
+DVZ_EXPORT void dvz_dat_free(DvzDat* dat);
+// free the region in the buffer
+
+DVZ_EXPORT DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, int flags);
+// create a new image
+
+DVZ_EXPORT void
+dvz_tex_upload(DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
+
+DVZ_EXPORT void
+dvz_tex_download(DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
+
+DVZ_EXPORT void dvz_tex_destroy(DvzTex* tex);
+
+DVZ_EXPORT void dvz_ctx_clear(DvzContext* ctx);
+// free all buffers, delete all images
 
 
 
