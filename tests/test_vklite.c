@@ -1086,7 +1086,7 @@ int test_vklite_shader(TestContext* tc)
 /*  Tests with window                                                                            */
 /*************************************************************************************************/
 
-int test_vklite_surface(TestContext* context)
+int test_vklite_surface(TestContext* tc)
 {
     DvzApp* app = dvz_app(DVZ_BACKEND_GLFW);
     OFFSCREEN_SKIP
@@ -1107,7 +1107,7 @@ int test_vklite_surface(TestContext* context)
 
 
 
-int test_vklite_window(TestContext* context)
+int test_vklite_window(TestContext* tc)
 {
     DvzApp* app = dvz_app(DVZ_BACKEND_GLFW);
     OFFSCREEN_SKIP
@@ -1125,7 +1125,7 @@ int test_vklite_window(TestContext* context)
 
 
 
-int test_vklite_swapchain(TestContext* context)
+int test_vklite_swapchain(TestContext* tc)
 {
     DvzApp* app = dvz_app(DVZ_BACKEND_GLFW);
     OFFSCREEN_SKIP
@@ -1154,7 +1154,7 @@ int test_vklite_swapchain(TestContext* context)
 /*  Tests canvas                                                                                 */
 /*************************************************************************************************/
 
-int test_vklite_graphics(TestContext* context)
+int test_vklite_graphics(TestContext* tc)
 {
     DvzApp* app = dvz_app(DVZ_BACKEND_GLFW);
     DvzGpu* gpu = dvz_gpu_best(app);
@@ -1196,7 +1196,7 @@ int test_vklite_graphics(TestContext* context)
 
 
 
-int test_vklite_canvas_blank(TestContext* context)
+int test_vklite_canvas_blank(TestContext* tc)
 {
     DvzApp* app = dvz_app(DVZ_BACKEND_GLFW);
     OFFSCREEN_SKIP
@@ -1229,7 +1229,7 @@ static void _fill_triangle(TestCanvas* canvas, DvzCommands* cmds, uint32_t idx)
         canvas->graphics, canvas->bindings, canvas->br);
 }
 
-int test_vklite_canvas_triangle(TestContext* context)
+int test_vklite_canvas_triangle(TestContext* tc)
 {
     DvzApp* app = dvz_app(DVZ_BACKEND_GLFW);
     OFFSCREEN_SKIP

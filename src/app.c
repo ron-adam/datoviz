@@ -176,7 +176,8 @@ int dvz_app_destroy(DvzApp* app)
     // Destroy the run.
     if (app->run != NULL)
     {
-        dvz_run_destroy(app->run);
+        // TODO 8/7: uncomment
+        // dvz_run_destroy(app->run);
     }
 
     // Backend-specific termination code.

@@ -357,21 +357,19 @@ file(GLOB sources
     # "src/*.h*" "src/*.c*"
 
     "src/app.c"
-    "src/canvas.c"
     "src/common.c"
     "src/fifo.c"
     "src/log.c"
     "src/spirv.c"
-    "src/context.c"
-    "src/transfers.c"
     "src/vklite.c"
     "src/input.c"
-    "src/run.c"
+    "src/context.c"
 
-    # "external/*.h*"
+    "src/canvas.c"
+    "src/transfers.c"
+    # "src/run.c"
+
     "external/*.c*"
-
-    # "external/imgui/*.h*"
     "external/imgui/*.c*"
     "external/imgui/backends/imgui_impl_glfw.*"
     "external/imgui/backends/imgui_impl_vulkan.*"
@@ -444,11 +442,12 @@ if (DATOVIZ_WITH_CLI)
         "tests/test_array.c"
         "tests/test_ticks.c"
         "tests/test_vklite.c"
-        "tests/test_context.c"
-        "tests/test_transfers.c"
         "tests/test_input.c"
-        "tests/test_canvas.c"
-        "tests/test_run.c"
+        "tests/test_context.c"
+
+        # "tests/test_canvas.c"
+        # "tests/test_transfers.c"
+        # "tests/test_run.c"
     )
 
     add_executable(datovizcli ${cli})
