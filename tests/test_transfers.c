@@ -1,4 +1,5 @@
 #include "../include/datoviz/transfers.h"
+#include "../src/resources_utils.h"
 #include "../src/transfer_utils.h"
 #include "proto.h"
 #include "tests.h"
@@ -17,9 +18,31 @@ static void _dl_done(DvzDeq* deq, void* item, void* user_data)
 
 
 
+static DvzBufferRegions _staging_buffer(DvzGpu* gpu, VkDeviceSize size)
+{
+    ASSERT(gpu != NULL);
+    DvzBuffer* buffer = (DvzBuffer*)calloc(1, sizeof(DvzBuffer));
+    *buffer = dvz_buffer(gpu);
+    _make_staging_buffer(buffer, size);
+    DvzBufferRegions stg = dvz_buffer_regions(buffer, 1, 0, 1024, 0);
+    return stg;
+}
+
+
+
 int test_transfers_buffer_mappable(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->transfers;
+    // ASSERT(tc->app != NULL);
+    // DvzGpu* gpu = dvz_gpu_best(tc->app);
+    // ASSERT(gpu != NULL);
+    // dvz_gpu_default(gpu, NULL);
+    // dvz_transfers(gpu, &tc->transfers);
+    // dvz_transfers_destroy(&tc->transfers);
+    // dvz_gpu_destroy(gpu);
+
+
+
+    DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
 
     // Callback for when the download has finished.
@@ -27,12 +50,12 @@ int test_transfers_buffer_mappable(TestContext* tc)
     dvz_deq_callback(
         &transfers->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_DOWNLOAD_DONE, _dl_done, &res);
 
-    // uint8_t data[128] = {0};
-    // for (uint32_t i = 0; i < 128; i++)
-    //     data[i] = i;
+    uint8_t data[128] = {0};
+    for (uint32_t i = 0; i < 128; i++)
+        data[i] = i;
 
-    // // Allocate a staging buffer region.
-    // DvzBufferRegions stg = dvz_ctx_buffers(transfers, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
+    // Allocate a staging buffer region.
+    // DvzBufferRegions stg = dvz_buffer_regions(transfers, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
 
     // // Enqueue an upload transfer task.
     // _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data);
@@ -55,14 +78,14 @@ int test_transfers_buffer_mappable(TestContext* tc)
     // AT(memcmp(data2, data, 128) == 0);
     // AT(res == 42);
 
-    return 0;
+    return res;
 }
 
 
 
 int test_transfers_buffer_large(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->transfers;
+    DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
 
     uint64_t size = 32 * 1024 * 1024; // MB
@@ -114,7 +137,7 @@ int test_transfers_buffer_large(TestContext* tc)
 
 int test_transfers_buffer_copy(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->transfers;
+    DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
 
     // // Callback for when the download has finished.
@@ -157,7 +180,7 @@ int test_transfers_buffer_copy(TestContext* tc)
 
 int test_transfers_image_buffer(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->transfers;
+    DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
 
     // uvec3 shape_full = {16, 48, 1};
@@ -212,7 +235,7 @@ int test_transfers_image_buffer(TestContext* tc)
 
 int test_transfers_direct_buffer(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->transfers;
+    DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
 
     // // Create a data array.
@@ -245,7 +268,7 @@ int test_transfers_direct_buffer(TestContext* tc)
 
 int test_transfers_direct_texture(TestContext* tc)
 {
-    DvzTransfers* transfers = tc->transfers;
+    DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
 
     // uvec3 shape_full = {16, 48, 1};

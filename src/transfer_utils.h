@@ -5,7 +5,7 @@
 #ifndef DVZ_TRANSFERS_UTILS_HEADER
 #define DVZ_TRANSFERS_UTILS_HEADER
 
-// #include "../include/datoviz/conimgt.h"
+#include "../include/datoviz/context.h"
 #include "../include/datoviz/transfers.h"
 #include "../include/datoviz/vklite.h"
 

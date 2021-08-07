@@ -243,7 +243,7 @@ static void _fixture_end(TestContext* tc, TestCase* test_case)
         // Transfers fixture.
     case TEST_FIXTURE_TRANSFERS:
         dvz_transfers_destroy(&tc->transfers);
-        dvz_gpu_destroy(tc->context->gpu);
+        dvz_gpu_destroy(tc->transfers.gpu);
         break;
 
         // Context fixture.

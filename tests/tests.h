@@ -81,18 +81,23 @@ int test_vklite_graphics(TestContext*);
 int test_vklite_canvas_blank(TestContext*);
 int test_vklite_canvas_triangle(TestContext*);
 
-// Test context.
-int test_context_buffer(TestContext*);
-int test_context_texture(TestContext*);
-int test_context_compute(TestContext*);
-int test_context_colormap_custom(TestContext*);
-
+// Test transfers.
 int test_transfers_buffer_mappable(TestContext*);
 int test_transfers_buffer_large(TestContext*);
 int test_transfers_buffer_copy(TestContext*);
 int test_transfers_image_buffer(TestContext*);
 int test_transfers_direct_buffer(TestContext*);
 int test_transfers_direct_texture(TestContext*);
+
+// Test resources.
+
+// Test allocs.
+
+// Test context.
+int test_context_buffer(TestContext*);
+int test_context_texture(TestContext*);
+int test_context_compute(TestContext*);
+int test_context_colormap_custom(TestContext*);
 
 // Test input.
 int test_input_mouse_raw(TestContext*);
@@ -279,13 +284,17 @@ static TestCase TEST_CASES[] = {
 
 
 
-    // // Transfers.
-    // CASE_FIXTURE(TRANSFERS, test_transfers_buffer_mappable), //
+    // Transfers.
+    CASE_FIXTURE(TRANSFERS, test_transfers_buffer_mappable), //
     // CASE_FIXTURE(TRANSFERS, test_transfers_buffer_large),    //
     // CASE_FIXTURE(TRANSFERS, test_transfers_buffer_copy),     //
     // CASE_FIXTURE(TRANSFERS, test_transfers_image_buffer),  //
     // CASE_FIXTURE(TRANSFERS, test_transfers_direct_buffer),   //
     // CASE_FIXTURE(TRANSFERS, test_transfers_direct_texture),  //
+
+
+    // Resources.
+    // Allocs.
 
     // // Context.
     // CASE_FIXTURE(CONTEXT, test_context_buffer),          //
