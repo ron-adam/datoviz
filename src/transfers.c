@@ -1,8 +1,8 @@
 #include "../include/datoviz/transfers.h"
 #include "../include/datoviz/canvas.h"
-#include "../include/datoviz/context.h"
+// #include "../include/datoviz/context.h"
 #include "../include/datoviz/fifo.h"
-#include "context_utils.h"
+// #include "context_utils.h"
 #include "transfer_utils.h"
 
 
@@ -14,9 +14,9 @@
 // Process for the deq proc #0, which encompasses the two queues UPLOAD and DOWNLOAD.
 static void* _thread_transfers(void* user_data)
 {
-    DvzContext* ctx = (DvzContext*)user_data;
-    ASSERT(ctx != NULL);
-    dvz_deq_dequeue_loop(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+    DvzTransfers* transfers = (DvzTransfers*)user_data;
+    ASSERT(transfers != NULL);
+    dvz_deq_dequeue_loop(&transfers->deq, DVZ_TRANSFER_PROC_UD);
     return NULL;
 }
 
@@ -59,19 +59,19 @@ static void _create_transfers(DvzTransfers* transfers)
 
     dvz_deq_callback(
         &transfers->deq, DVZ_TRANSFER_DEQ_COPY, //
-        DVZ_TRANSFER_TEXTURE_COPY,              //
-        _process_texture_copy, transfers);
+        DVZ_TRANSFER_IMAGE_COPY,                //
+        _process_image_copy, transfers);
 
-    // Buffer/texture copies.
+    // Buffer/image copies.
     dvz_deq_callback(
         &transfers->deq, DVZ_TRANSFER_DEQ_COPY, //
-        DVZ_TRANSFER_TEXTURE_BUFFER,            //
-        _process_texture_buffer, transfers);
+        DVZ_TRANSFER_IMAGE_BUFFER,              //
+        _process_image_buffer, transfers);
 
     dvz_deq_callback(
         &transfers->deq, DVZ_TRANSFER_DEQ_COPY, //
-        DVZ_TRANSFER_BUFFER_TEXTURE,            //
-        _process_buffer_texture, transfers);
+        DVZ_TRANSFER_BUFFER_IMAGE,              //
+        _process_buffer_image, transfers);
 
     // Transfer thread.
     transfers->thread = dvz_thread(_thread_transfers, transfers);
@@ -127,147 +127,155 @@ void dvz_transfers_destroy(DvzTransfers* transfers)
 /*************************************************************************************************/
 
 void dvz_upload_buffer(
-    DvzContext* ctx, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size, void* data)
+    DvzTransfers* transfers, DvzBufferRegions br, //
+    VkDeviceSize offset, VkDeviceSize size, void* data)
 {
-    ASSERT(ctx != NULL);
+    ASSERT(transfers != NULL);
     ASSERT(br.buffer != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
     log_debug("upload %s to a buffer", pretty_size(size));
 
-    // TODO: better staging buffer allocation
-    DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
+    // TODO
+    DvzBufferRegions stg = {0}; // dvz_ctx_buffers(transfers, DVZ_BUFFER_TYPE_STAGING, 1, size);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_upload(&ctx->deq, br, offset, stg, 0, size, data);
+    _enqueue_buffer_upload(&transfers->deq, br, offset, stg, 0, size, data);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
-    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
-    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
 }
 
 
 
 void dvz_download_buffer(
-    DvzContext* ctx, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size, void* data)
+    DvzTransfers* transfers, DvzBufferRegions br, //
+    VkDeviceSize offset, VkDeviceSize size, void* data)
 {
-    ASSERT(ctx != NULL);
+    ASSERT(transfers != NULL);
     ASSERT(br.buffer != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
     log_debug("download %s from a buffer", pretty_size(size));
 
-    // TODO: better staging buffer allocation
-    DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
+    // TODO
+    DvzBufferRegions stg = {0}; // dvz_ctx_buffers(transfers, DVZ_BUFFER_TYPE_STAGING, 1, size);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_download(&ctx->deq, br, offset, stg, 0, size, data);
+    _enqueue_buffer_download(&transfers->deq, br, offset, stg, 0, size, data);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
-    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
-    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
 
     // Wait until the download is done.
-    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
-    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_EV);
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_EV);
 }
 
 
 
 void dvz_copy_buffer(
-    DvzContext* ctx, DvzBufferRegions src, VkDeviceSize src_offset, //
-    DvzBufferRegions dst, VkDeviceSize dst_offset, VkDeviceSize size)
+    DvzTransfers* transfers,                       //
+    DvzBufferRegions src, VkDeviceSize src_offset, //
+    DvzBufferRegions dst, VkDeviceSize dst_offset, //
+    VkDeviceSize size)
 {
-    ASSERT(ctx != NULL);
+    ASSERT(transfers != NULL);
     ASSERT(src.buffer != NULL);
     ASSERT(dst.buffer != NULL);
     ASSERT(size > 0);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_copy(&ctx->deq, src, src_offset, dst, dst_offset, size);
+    _enqueue_buffer_copy(&transfers->deq, src, src_offset, dst, dst_offset, size);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
-    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
-    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
 }
 
 
 
 /*************************************************************************************************/
-/*  Texture transfers                                                                            */
+/*  Images transfers                                                                            */
 /*************************************************************************************************/
 
-static void _full_tex_shape(DvzTexture* tex, uvec3 shape)
+static void _full_tex_shape(DvzImages* img, uvec3 shape)
 {
-    ASSERT(tex != NULL);
+    ASSERT(img != NULL);
     if (shape[0] == 0)
-        shape[0] = tex->image->width;
+        shape[0] = img->width;
     if (shape[1] == 0)
-        shape[1] = tex->image->height;
+        shape[1] = img->height;
     if (shape[2] == 0)
-        shape[2] = tex->image->depth;
+        shape[2] = img->depth;
 }
 
 
 
-void dvz_upload_texture(
-    DvzContext* ctx, DvzTexture* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
+void dvz_upload_image(
+    DvzTransfers* transfers, DvzImages* img, //
+    uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
 {
-    ASSERT(ctx != NULL);
-    ASSERT(tex != NULL);
+    ASSERT(transfers != NULL);
+    ASSERT(img != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
-    _full_tex_shape(tex, shape);
+    _full_tex_shape(img, shape);
     ASSERT(shape[0] > 0);
     ASSERT(shape[1] > 0);
     ASSERT(shape[2] > 0);
 
-    // TODO: better alloc, mark unused alloc as done
-    DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
-    _enqueue_texture_upload(&ctx->deq, tex, offset, shape, stg, 0, size, data);
+    // TODO
+    DvzBufferRegions stg = {0}; // dvz_ctx_buffers(transfers, DVZ_BUFFER_TYPE_STAGING, 1, size);
+    _enqueue_image_upload(&transfers->deq, img, offset, shape, stg, 0, size, data);
 
-    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
-    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
 }
 
 
 
-void dvz_download_texture(
-    DvzContext* ctx, DvzTexture* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
+void dvz_download_image(
+    DvzTransfers* transfers, DvzImages* img, //
+    uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
 {
-    ASSERT(ctx != NULL);
-    ASSERT(tex != NULL);
+    ASSERT(transfers != NULL);
+    ASSERT(img != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
-    _full_tex_shape(tex, shape);
+    _full_tex_shape(img, shape);
     ASSERT(shape[0] > 0);
     ASSERT(shape[1] > 0);
     ASSERT(shape[2] > 0);
 
-    // TODO: better alloc, mark unused alloc as done
-    DvzBufferRegions stg = dvz_ctx_buffers(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size);
-    _enqueue_texture_download(&ctx->deq, tex, offset, shape, stg, 0, size, data);
+    // TODO
+    DvzBufferRegions stg = {0}; // dvz_ctx_buffers(transfers, DVZ_BUFFER_TYPE_STAGING, 1, size);
+    _enqueue_image_download(&transfers->deq, img, offset, shape, stg, 0, size, data);
 
-    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
-    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
 
     // Wait until the download is done.
-    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
-    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_EV);
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_EV);
 }
 
 
 
-void dvz_copy_texture(
-    DvzContext* ctx, DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset,
+void dvz_copy_image(
+    DvzTransfers* transfers,          //
+    DvzImages* src, uvec3 src_offset, //
+    DvzImages* dst, uvec3 dst_offset, //
     uvec3 shape, VkDeviceSize size)
 {
-    _enqueue_texture_copy(&ctx->deq, src, src_offset, dst, dst_offset, shape);
+    _enqueue_image_copy(&transfers->deq, src, src_offset, dst, dst_offset, shape);
 
-    dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
-    dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
 }

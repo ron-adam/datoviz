@@ -5,7 +5,6 @@
 #ifndef DVZ_TRANSFERS_HEADER
 #define DVZ_TRANSFERS_HEADER
 
-// #include "../include/datoviz/context.h"
 #include "../include/datoviz/fifo.h"
 #include "../include/datoviz/vklite.h"
 
@@ -39,9 +38,9 @@ typedef enum
     DVZ_TRANSFER_BUFFER_DOWNLOAD,
     DVZ_TRANSFER_BUFFER_COPY,
 
-    DVZ_TRANSFER_TEXTURE_COPY,
-    DVZ_TRANSFER_TEXTURE_BUFFER,
-    DVZ_TRANSFER_BUFFER_TEXTURE,
+    DVZ_TRANSFER_IMAGE_COPY,
+    DVZ_TRANSFER_IMAGE_BUFFER,
+    DVZ_TRANSFER_BUFFER_IMAGE,
 
     DVZ_TRANSFER_DOWNLOAD_DONE, // download is only possible from a buffer
 } DvzDataTransferType;
@@ -55,8 +54,8 @@ typedef enum
 typedef struct DvzTransfer DvzTransfer;
 typedef struct DvzTransferBuffer DvzTransferBuffer;
 typedef struct DvzTransferBufferCopy DvzTransferBufferCopy;
-typedef struct DvzTransferBufferTexture DvzTransferBufferTexture;
-typedef struct DvzTransferTextureCopy DvzTransferTextureCopy;
+typedef struct DvzTransferBufferImage DvzTransferBufferImage;
+typedef struct DvzTransferImageCopy DvzTransferImageCopy;
 typedef struct DvzTransferDownload DvzTransferDownload;
 typedef union DvzTransferUnion DvzTransferUnion;
 typedef struct DvzTransfers DvzTransfers;
@@ -85,19 +84,19 @@ struct DvzTransferBufferCopy
 
 
 
-struct DvzTransferTextureCopy
+struct DvzTransferImageCopy
 {
-    DvzTexture *src, *dst;
+    DvzImages *src, *dst;
     uvec3 src_offset, dst_offset, shape;
     VkDeviceSize size;
 };
 
 
 
-struct DvzTransferBufferTexture
+struct DvzTransferBufferImage
 {
-    DvzTexture* tex;
-    uvec3 tex_offset, shape;
+    DvzImages* img;
+    uvec3 img_offset, shape;
     DvzBufferRegions br;
     VkDeviceSize buf_offset;
     VkDeviceSize size;
@@ -117,8 +116,8 @@ union DvzTransferUnion
 {
     DvzTransferBuffer buf;
     DvzTransferBufferCopy buf_copy;
-    DvzTransferTextureCopy tex_copy;
-    DvzTransferBufferTexture buf_tex;
+    DvzTransferImageCopy img_copy;
+    DvzTransferBufferImage buf_img;
     DvzTransferDownload download;
 };
 
@@ -160,33 +159,35 @@ DVZ_EXPORT DvzTransfers* dvz_transfers(DvzGpu* gpu);
 /**
  * Upload data to 1 or N buffer regions on the GPU.
  *
- * @param canvas the canvas
+ * @param transfers the DvzTransfers pointer
  * @param br the buffer regions to update
  * @param offset the offset within the buffer regions, in bytes
  * @param size the size of the data to upload, in bytes
  * @param data pointer to the data to upload to the GPU
  */
 DVZ_EXPORT void dvz_upload_buffer(
-    DvzContext* ctx, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size, void* data);
+    DvzTransfers* transfers, DvzBufferRegions br, //
+    VkDeviceSize offset, VkDeviceSize size, void* data);
 
 /**
  * Download data from a buffer region to the CPU.
  *
- * @param canvas the canvas
+ * @param transfers the DvzTransfers pointer
  * @param br the buffer regions to update
  * @param offset the offset within the buffer regions, in bytes
  * @param size the size of the data to upload, in bytes
  * @param[out] data pointer to a buffer already allocated to contain `size` bytes
  */
 DVZ_EXPORT void dvz_download_buffer(
-    DvzContext* ctx, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size, void* data);
+    DvzTransfers* transfers, DvzBufferRegions br, //
+    VkDeviceSize offset, VkDeviceSize size, void* data);
 
 /**
  * Copy data between two GPU buffer regions.
  *
  * This function does not involve GPU-CPU data transfers.
  *
- * @param canvas the canvas
+ * @param transfers the DvzTransfers pointer
  * @param src the buffer region to copy from
  * @param src_offset the offset within the source buffer region
  * @param dst the buffer region to copy to
@@ -194,52 +195,56 @@ DVZ_EXPORT void dvz_download_buffer(
  * @param size the size of the data to copy
  */
 DVZ_EXPORT void dvz_copy_buffer(
-    DvzContext* ctx, DvzBufferRegions src, VkDeviceSize src_offset, //
+    DvzTransfers* transfers, DvzBufferRegions src, VkDeviceSize src_offset, //
     DvzBufferRegions dst, VkDeviceSize dst_offset, VkDeviceSize size);
 
 
 
 /**
- * Upload data to a texture.
+ * Upload data to a image.
  *
- * @param canvas the canvas
- * @param texture the texture to update
- * @param offset the offset within the texture
- * @param shape the shape of the region to update within the texture
+ * @param transfers the DvzTransfers pointer
+ * @param img the image to update
+ * @param offset the offset within the image
+ * @param shape the shape of the region to update within the image
  * @param size the size of the uploaded data, in bytes
  * @param data pointer to the data to upload to the GPU
  */
-DVZ_EXPORT void dvz_upload_texture(
-    DvzContext* ctx, DvzTexture* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
+DVZ_EXPORT void dvz_upload_image(
+    DvzTransfers* transfers, DvzImages* img, //
+    uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
 
 /**
- * Download data from a texture.
+ * Download data from a image.
  *
- * @param canvas the canvas
- * @param texture the texture to download from
- * @param offset the offset within the texture
- * @param shape the shape of the region to update within the texture
+ * @param transfers the DvzTransfers pointer
+ * @param img the image to download from
+ * @param offset the offset within the image
+ * @param shape the shape of the region to update within the image
  * @param size the size of the downloaded data, in bytes
  * @param[out] data pointer to the buffer that will hold the downloaded data
  */
-DVZ_EXPORT void dvz_download_texture(
-    DvzContext* ctx, DvzTexture* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
+DVZ_EXPORT void dvz_download_image(
+    DvzTransfers* transfers, DvzImages* img, //
+    uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
 
 /**
- * Copy part of a texture to another.
+ * Copy part of a image to another.
  *
  * This function does not involve GPU-CPU data transfers.
  *
- * @param canvas the canvas
- * @param src the source texture
- * @param src_offset the offset within the source texture
- * @param dst the target texture
- * @param dst_offset the offset within the target texture
- * @param shape the shape of the part of the texture to copy
+ * @param transfers the DvzTransfers pointer
+ * @param src the source image
+ * @param src_offset the offset within the source image
+ * @param dst the target image
+ * @param dst_offset the offset within the target image
+ * @param shape the shape of the part of the image to copy
  * @param size the corresponding size of that part, in bytes
  */
-DVZ_EXPORT void dvz_copy_texture(
-    DvzContext* ctx, DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset,
+DVZ_EXPORT void dvz_copy_image(
+    DvzTransfers* transfers,          //
+    DvzImages* src, uvec3 src_offset, //
+    DvzImages* dst, uvec3 dst_offset, //
     uvec3 shape, VkDeviceSize size);
 
 

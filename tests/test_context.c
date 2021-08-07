@@ -25,7 +25,8 @@ int test_context_buffer(TestContext* tc)
     uint8_t data[128] = {0};
     for (uint32_t i = 0; i < 128; i++)
         data[i] = i;
-    dvz_buffer_upload(br.buffer, offset, 32, data);
+    // TODO
+    // dvz_buffer_upload(br.buffer, offset, 32, data);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Resize buffer.
@@ -34,7 +35,8 @@ int test_context_buffer(TestContext* tc)
 
     // Download data.
     uint8_t data_2[32] = {0};
-    dvz_buffer_download(br.buffer, br.alignment, 32, data_2);
+    // TODO
+    // dvz_buffer_download(br.buffer, br.alignment, 32, data_2);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     for (uint32_t i = 0; i < 32; i++)
         AT(data_2[i] == i);
@@ -87,12 +89,14 @@ int test_context_texture(TestContext* tc)
     uint8_t data[256] = {0};
     for (uint32_t i = 0; i < 256; i++)
         data[i] = i;
-    dvz_upload_texture(ctx, tex, offset, shape, 256, data);
+    // TODO
+    // dvz_upload_image(ctx, tex, offset, shape, 256, data);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Download data.
     uint8_t data_2[256] = {0};
-    dvz_download_texture(ctx, tex, offset, shape, 256, data_2);
+    // TODO
+    // dvz_download_image(ctx, tex, offset, shape, 256, data_2);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     for (uint32_t i = 0; i < 256; i++)
         AT(data_2[i] == i);
@@ -100,12 +104,14 @@ int test_context_texture(TestContext* tc)
     // Second texture.
     log_debug("copy texture");
     DvzTexture* tex_2 = dvz_ctx_texture(ctx, 2, shape, format);
-    dvz_texture_copy(tex, offset, tex_2, DVZ_ZERO_OFFSET, shape);
+    // TODO
+    // dvz_image_copy(tex, offset, tex_2, DVZ_ZERO_OFFSET, shape);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     // Download data.
     memset(data_2, 0, 256);
-    dvz_download_texture(ctx, tex, offset, shape, 256, data_2);
+    // TODO
+    // dvz_download_image(ctx, tex, offset, shape, 256, data_2);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     for (uint32_t i = 0; i < 256; i++)
         AT(data_2[i] == i);
@@ -114,7 +120,8 @@ int test_context_texture(TestContext* tc)
     // NOTE: for now, the texture data is LOST when resizing.
     size[1] = 64;
     dvz_texture_resize(tex, size);
-    dvz_download_texture(ctx, tex, offset, shape, 256, data_2);
+    // TODO
+    // dvz_download_image(ctx, tex, offset, shape, 256, data_2);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     // for (uint32_t i = 0; i < 256; i++)
     //     AT(data_2[i] == i);
@@ -160,9 +167,10 @@ int test_context_colormap_custom(TestContext* tc)
 
     // Check that the GPU texture has been updated.
     cvec4* arr = calloc(256 * 256, sizeof(cvec4));
-    dvz_download_texture(
-        ctx, ctx->color_texture.texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, //
-        256 * 256 * sizeof(cvec4), arr);
+    // TODO
+    // dvz_download_image(
+    //     ctx, ctx->color_texture.texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, //
+    //     256 * 256 * sizeof(cvec4), arr);
     dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     cvec2 ij = {0};
     dvz_colormap_idx(cmap, 0, ij);

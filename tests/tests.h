@@ -90,7 +90,7 @@ int test_context_colormap_custom(TestContext*);
 int test_transfers_buffer_mappable(TestContext*);
 int test_transfers_buffer_large(TestContext*);
 int test_transfers_buffer_copy(TestContext*);
-int test_transfers_texture_buffer(TestContext*);
+int test_transfers_image_buffer(TestContext*);
 int test_transfers_direct_buffer(TestContext*);
 int test_transfers_direct_texture(TestContext*);
 
@@ -288,7 +288,7 @@ static TestCase TEST_CASES[] = {
     // CASE_FIXTURE(CONTEXT, test_transfers_buffer_mappable), //
     // CASE_FIXTURE(CONTEXT, test_transfers_buffer_large),    //
     // CASE_FIXTURE(CONTEXT, test_transfers_buffer_copy),     //
-    // CASE_FIXTURE(CONTEXT, test_transfers_texture_buffer),  //
+    // CASE_FIXTURE(CONTEXT, test_transfers_image_buffer),  //
     // CASE_FIXTURE(CONTEXT, test_transfers_direct_buffer),   //
     // CASE_FIXTURE(CONTEXT, test_transfers_direct_texture),  //
 

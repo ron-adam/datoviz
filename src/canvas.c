@@ -785,7 +785,8 @@ uint8_t* dvz_screenshot(DvzCanvas* canvas, bool remove_alpha)
 
     uint8_t* data = calloc(size, 1);
 
-    _enqueue_texture_download(&ctx->deq, tex, (uvec3){0}, shape, stg, 0, size, data);
+    // TODO
+    // _enqueue_image_download(&ctx->deq, tex, (uvec3){0}, shape, stg, 0, size, data);
 
     dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
     dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);

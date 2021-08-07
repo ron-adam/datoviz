@@ -54,7 +54,8 @@ static DvzTexture* _default_transfer_texture(DvzContext* context)
     dvz_texture_address_mode(texture, DVZ_TEXTURE_AXIS_U, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
     uvec3 offset = {0, 0, 0};
 
-    dvz_upload_texture(context, texture, offset, shape, 256 * sizeof(float), tex_data);
+    // TODO
+    // dvz_upload_texture(context, texture, offset, shape, 256 * sizeof(float), tex_data);
     // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 
     FREE(tex_data);

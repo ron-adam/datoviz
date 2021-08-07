@@ -276,8 +276,9 @@ static DvzTexture* _earth_texture(DvzContext* context)
     uint32_t tex_size = (uint32_t)(width * height);
     DvzTexture* texture = dvz_ctx_texture(
         gpu->context, 2, (uvec3){(uint32_t)width, (uint32_t)height, 1}, VK_FORMAT_R8G8B8A8_UNORM);
-    dvz_upload_texture(
-        context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, tex_size * sizeof(cvec4), tex_data);
+    // TODO
+    // dvz_upload_texture(
+    //     context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, tex_size * sizeof(cvec4), tex_data);
     FREE(tex_data)
     return texture;
 }
@@ -307,7 +308,8 @@ static DvzTexture* _synthetic_texture(DvzContext* context)
         }
     }
 
-    dvz_upload_texture(context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, tex_data);
+    // TODO
+    // dvz_upload_texture(context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, tex_data);
     FREE(tex_data)
 
     return texture;
@@ -326,8 +328,9 @@ static DvzTexture* _mock_texture(DvzContext* context)
         {0, 0, 255, 255},
         {255, 255, 0, 255},
     };
-    dvz_upload_texture(
-        context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, sizeof(tex_data), tex_data);
+    // TODO
+    // dvz_upload_texture(
+    //     context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, sizeof(tex_data), tex_data);
     return texture;
 }
 
@@ -362,7 +365,8 @@ static DvzTexture* _volume_texture(DvzContext* context, int kind)
             }
         }
     }
-    dvz_upload_texture(context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, tex_data);
+    // TODO
+    // dvz_upload_texture(context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, tex_data);
     FREE(tex_data);
     return texture;
 }
@@ -420,11 +424,13 @@ static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)
     visual->data = calloc(size, 1);
     memcpy(visual->data, data, size);
 
-    dvz_upload_buffer(gpu->context, visual->br, 0, size, visual->data);
+    // TODO
+    // dvz_upload_buffer(gpu->context, visual->br, 0, size, visual->data);
 
     // DEBUG: Check that the data was successfully uploaded.
     TestVertex data2[3] = {0};
-    dvz_download_buffer(gpu->context, visual->br, 0, size, data2);
+    // TODO
+    // dvz_download_buffer(gpu->context, visual->br, 0, size, data2);
     ASSERT(memcmp(data, data2, size) == 0);
     // dvz_buffer_regions_upload(&visual->br, 0, 0, size, data);
 }

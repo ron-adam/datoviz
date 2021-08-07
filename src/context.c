@@ -434,18 +434,18 @@ void dvz_gpu_default(DvzGpu* gpu, DvzWindow* window)
 //     dvz_deq_callback(
 //         &context->deq, DVZ_TRANSFER_DEQ_COPY, //
 //         DVZ_TRANSFER_TEXTURE_COPY,            //
-//         _process_texture_copy, context);
+//         _process_image_copy, context);
 
 //     // Buffer/texture copies.
 //     dvz_deq_callback(
 //         &context->deq, DVZ_TRANSFER_DEQ_COPY, //
 //         DVZ_TRANSFER_TEXTURE_BUFFER,          //
-//         _process_texture_buffer, context);
+//         _process_image_buffer, context);
 
 //     dvz_deq_callback(
 //         &context->deq, DVZ_TRANSFER_DEQ_COPY, //
 //         DVZ_TRANSFER_BUFFER_TEXTURE,          //
-//         _process_buffer_texture, context);
+//         _process_buffer_image, context);
 
 //     // Transfer thread.
 //     context->thread = dvz_thread(_thread_transfers, context);
@@ -988,66 +988,15 @@ void dvz_texture_address_mode(
 
 
 
-// // TODO: this function should be discarded and integrated into upload_texture() in multiple
-// steps void dvz_texture_upload(
-//     DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, const void* data)
-// {
-//     ASSERT(texture != NULL);
-//     DvzContext* context = texture->context;
-//     ASSERT(context != NULL);
-//     ASSERT(size > 0);
-//     ASSERT(data != NULL);
+//////////////
 
-//     // Take the staging buffer.
-//     DvzBuffer* staging = staging_buffer(context, size);
-
-//     // Memcpy into the staging buffer.
-//     dvz_buffer_upload(staging, 0, size, data);
-
-//     // Copy from the staging buffer to the texture.
-//     _copy_texture_from_staging(context, texture, offset, shape, size);
-
-//     // IMPORTANT: need to wait for the texture to be copied to the staging buffer, *before*
-//     // downloading the data from the staging buffer.
-//     dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
-// }
-
-
-
-// // TODO: this function should be discarded and integrated into upload_texture() in multiple
-// steps void dvz_texture_download(
-//     DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
-// {
-//     ASSERT(texture != NULL);
-//     DvzContext* context = texture->context;
-//     ASSERT(context != NULL);
-//     ASSERT(size > 0);
-//     ASSERT(data != NULL);
-
-//     // Take the staging buffer.
-//     DvzBuffer* staging = staging_buffer(context, size);
-
-//     // Copy from the staging buffer to the texture.
-//     _copy_texture_to_staging(context, texture, offset, shape, size);
-
-//     // IMPORTANT: need to wait for the texture to be copied to the staging buffer, *before*
-//     // downloading the data from the staging buffer.
-//     dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
-
-//     // Memcpy into the staging buffer.
-//     dvz_buffer_download(staging, 0, size, data);
-// }
-
-
-
-void dvz_texture_copy(
-    DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset, uvec3 shape)
+void dvz_image_copy(
+    DvzImages* src, uvec3 src_offset, DvzImages* dst, uvec3 dst_offset, uvec3 shape)
 {
     ASSERT(src != NULL);
     ASSERT(dst != NULL);
-    DvzContext* context = src->context;
-    DvzGpu* gpu = context->gpu;
-    ASSERT(context != NULL);
+    DvzGpu* gpu = src->gpu;
+    ASSERT(gpu != NULL);
 
     // Take transfer cmd buf.
     DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
@@ -1058,17 +1007,17 @@ void dvz_texture_copy(
     DvzBarrier src_barrier = dvz_barrier(gpu);
     dvz_barrier_stages(
         &src_barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-    dvz_barrier_images(&src_barrier, src->image);
+    dvz_barrier_images(&src_barrier, src);
 
     DvzBarrier dst_barrier = dvz_barrier(gpu);
     dvz_barrier_stages(
         &dst_barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-    dvz_barrier_images(&dst_barrier, dst->image);
+    dvz_barrier_images(&dst_barrier, dst);
 
     // Source image transition.
-    if (src->image->layout != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+    if (src->layout != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
     {
-        log_trace("source image %d transition", src->image->images[0]);
+        log_trace("source image %d transition", src->images[0]);
         dvz_barrier_images_layout(
             &src_barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
         dvz_barrier_images_access(&src_barrier, 0, VK_ACCESS_TRANSFER_READ_BIT);
@@ -1077,7 +1026,7 @@ void dvz_texture_copy(
 
     // Destination image transition.
     {
-        log_trace("destination image %d transition", dst->image->images[0]);
+        log_trace("destination image %d transition", dst->images[0]);
         dvz_barrier_images_layout(
             &dst_barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         dvz_barrier_images_access(&dst_barrier, 0, VK_ACCESS_TRANSFER_WRITE_BIT);
@@ -1101,30 +1050,28 @@ void dvz_texture_copy(
     copy.dstOffset.z = (int32_t)dst_offset[2];
 
     vkCmdCopyImage(
-        cmds->cmds[0],                                               //
-        src->image->images[0], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, //
-        dst->image->images[0], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, //
+        cmds->cmds[0],                                        //
+        src->images[0], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, //
+        dst->images[0], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, //
         1, &copy);
 
     // Source image transition.
-    if (src->image->layout != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL &&
-        src->image->layout != VK_IMAGE_LAYOUT_UNDEFINED)
+    if (src->layout != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL &&
+        src->layout != VK_IMAGE_LAYOUT_UNDEFINED)
     {
         log_trace("source image transition back");
-        dvz_barrier_images_layout(
-            &src_barrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, src->image->layout);
+        dvz_barrier_images_layout(&src_barrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, src->layout);
         dvz_barrier_images_access(
             &src_barrier, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
         dvz_cmd_barrier(cmds, 0, &src_barrier);
     }
 
     // Destination image transition.
-    if (dst->image->layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-        dst->image->layout != VK_IMAGE_LAYOUT_UNDEFINED)
+    if (dst->layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+        dst->layout != VK_IMAGE_LAYOUT_UNDEFINED)
     {
         log_trace("destination image transition back");
-        dvz_barrier_images_layout(
-            &dst_barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, dst->image->layout);
+        dvz_barrier_images_layout(&dst_barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, dst->layout);
         dvz_barrier_images_access(&dst_barrier, VK_ACCESS_TRANSFER_WRITE_BIT, 0);
         dvz_cmd_barrier(cmds, 0, &dst_barrier);
     }
@@ -1146,16 +1093,12 @@ void dvz_texture_copy(
 
 
 
-void dvz_texture_copy_from_buffer(
-    DvzTexture* tex, uvec3 tex_offset, uvec3 shape, //
+void dvz_image_copy_from_buffer(
+    DvzImages* img, uvec3 tex_offset, uvec3 shape, //
     DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size)
 {
-    ASSERT(tex != NULL);
-    DvzContext* context = tex->context;
-
-    ASSERT(context != NULL);
-
-    DvzGpu* gpu = context->gpu;
+    ASSERT(img != NULL);
+    DvzGpu* gpu = img->gpu;
     ASSERT(gpu != NULL);
 
     DvzBuffer* buffer = br.buffer;
@@ -1166,9 +1109,9 @@ void dvz_texture_copy_from_buffer(
     ASSERT(shape[1] > 0);
     ASSERT(shape[2] > 0);
 
-    ASSERT(tex_offset[0] + shape[0] <= tex->image->width);
-    ASSERT(tex_offset[1] + shape[1] <= tex->image->height);
-    ASSERT(tex_offset[2] + shape[2] <= tex->image->depth);
+    ASSERT(tex_offset[0] + shape[0] <= img->width);
+    ASSERT(tex_offset[1] + shape[1] <= img->height);
+    ASSERT(tex_offset[2] + shape[2] <= img->depth);
 
     // Take transfer cmd buf.
     DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
@@ -1179,19 +1122,19 @@ void dvz_texture_copy_from_buffer(
     // Image transition.
     DvzBarrier barrier = dvz_barrier(gpu);
     dvz_barrier_stages(&barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-    ASSERT(tex != NULL);
-    ASSERT(tex->image != NULL);
-    dvz_barrier_images(&barrier, tex->image);
+    ASSERT(img != NULL);
+    ASSERT(img != NULL);
+    dvz_barrier_images(&barrier, img);
     dvz_barrier_images_layout(
         &barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     dvz_barrier_images_access(&barrier, 0, VK_ACCESS_TRANSFER_WRITE_BIT);
     dvz_cmd_barrier(cmds, 0, &barrier);
 
     // Copy to staging buffer
-    dvz_cmd_copy_buffer_to_image(cmds, 0, buffer, buf_offset, tex->image, tex_offset, shape);
+    dvz_cmd_copy_buffer_to_image(cmds, 0, buffer, buf_offset, img, tex_offset, shape);
 
     // Image transition.
-    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, tex->image->layout);
+    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, img->layout);
     dvz_barrier_images_access(&barrier, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT);
     dvz_cmd_barrier(cmds, 0, &barrier);
 
@@ -1213,16 +1156,12 @@ void dvz_texture_copy_from_buffer(
 
 
 
-void dvz_texture_copy_to_buffer(
-    DvzTexture* tex, uvec3 tex_offset, uvec3 shape, //
+void dvz_image_copy_to_buffer(
+    DvzImages* img, uvec3 tex_offset, uvec3 shape, //
     DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size)
 {
-    ASSERT(tex != NULL);
-    DvzContext* context = tex->context;
-
-    ASSERT(context != NULL);
-
-    DvzGpu* gpu = context->gpu;
+    ASSERT(img != NULL);
+    DvzGpu* gpu = img->gpu;
     ASSERT(gpu != NULL);
 
     DvzBuffer* buffer = br.buffer;
@@ -1233,9 +1172,9 @@ void dvz_texture_copy_to_buffer(
     ASSERT(shape[1] > 0);
     ASSERT(shape[2] > 0);
 
-    ASSERT(tex_offset[0] + shape[0] <= tex->image->width);
-    ASSERT(tex_offset[1] + shape[1] <= tex->image->height);
-    ASSERT(tex_offset[2] + shape[2] <= tex->image->depth);
+    ASSERT(tex_offset[0] + shape[0] <= img->width);
+    ASSERT(tex_offset[1] + shape[1] <= img->height);
+    ASSERT(tex_offset[2] + shape[2] <= img->depth);
 
     // Take transfer cmd buf.
     DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
@@ -1246,19 +1185,19 @@ void dvz_texture_copy_to_buffer(
     // Image transition.
     DvzBarrier barrier = dvz_barrier(gpu);
     dvz_barrier_stages(&barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-    ASSERT(tex != NULL);
-    ASSERT(tex->image != NULL);
-    dvz_barrier_images(&barrier, tex->image);
+    ASSERT(img != NULL);
+    ASSERT(img != NULL);
+    dvz_barrier_images(&barrier, img);
     dvz_barrier_images_layout(
         &barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     dvz_barrier_images_access(&barrier, 0, VK_ACCESS_TRANSFER_READ_BIT);
     dvz_cmd_barrier(cmds, 0, &barrier);
 
     // Copy to staging buffer
-    dvz_cmd_copy_image_to_buffer(cmds, 0, tex->image, tex_offset, shape, buffer, buf_offset);
+    dvz_cmd_copy_image_to_buffer(cmds, 0, img, tex_offset, shape, buffer, buf_offset);
 
     // Image transition.
-    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, tex->image->layout);
+    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, img->layout);
     dvz_barrier_images_access(&barrier, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_MEMORY_READ_BIT);
     dvz_cmd_barrier(cmds, 0, &barrier);
 
@@ -1315,3 +1254,55 @@ void dvz_texture_destroy(DvzTexture* texture)
     // texture->sampler = NULL;
     dvz_obj_destroyed(&texture->obj);
 }
+
+
+
+// // TODO: this function should be discarded and integrated into upload_texture() in multiple
+// steps void dvz_texture_upload(
+//     DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, const void* data)
+// {
+//     ASSERT(texture != NULL);
+//     DvzContext* context = texture->context;
+//     ASSERT(context != NULL);
+//     ASSERT(size > 0);
+//     ASSERT(data != NULL);
+
+//     // Take the staging buffer.
+//     DvzBuffer* staging = staging_buffer(context, size);
+
+//     // Memcpy into the staging buffer.
+//     dvz_buffer_upload(staging, 0, size, data);
+
+//     // Copy from the staging buffer to the texture.
+//     _copy_texture_from_staging(context, texture, offset, shape, size);
+
+//     // IMPORTANT: need to wait for the texture to be copied to the staging buffer, *before*
+//     // downloading the data from the staging buffer.
+//     dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+// }
+
+
+
+// // TODO: this function should be discarded and integrated into upload_texture() in multiple
+// steps void dvz_texture_download(
+//     DvzTexture* texture, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
+// {
+//     ASSERT(texture != NULL);
+//     DvzContext* context = texture->context;
+//     ASSERT(context != NULL);
+//     ASSERT(size > 0);
+//     ASSERT(data != NULL);
+
+//     // Take the staging buffer.
+//     DvzBuffer* staging = staging_buffer(context, size);
+
+//     // Copy from the staging buffer to the texture.
+//     _copy_texture_to_staging(context, texture, offset, shape, size);
+
+//     // IMPORTANT: need to wait for the texture to be copied to the staging buffer, *before*
+//     // downloading the data from the staging buffer.
+//     dvz_queue_wait(context->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+
+//     // Memcpy into the staging buffer.
+//     dvz_buffer_download(staging, 0, size, data);
+// }

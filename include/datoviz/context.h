@@ -363,15 +363,15 @@ DVZ_EXPORT void dvz_texture_address_mode(
  * @param dst_offset offset within the target texture
  * @param shape shape of the part of the texture to copy
  */
-DVZ_EXPORT void dvz_texture_copy(
-    DvzTexture* src, uvec3 src_offset, DvzTexture* dst, uvec3 dst_offset, uvec3 shape);
+DVZ_EXPORT void
+dvz_image_copy(DvzImages* src, uvec3 src_offset, DvzImages* dst, uvec3 dst_offset, uvec3 shape);
 
-DVZ_EXPORT void dvz_texture_copy_from_buffer(
-    DvzTexture* tex, uvec3 tex_offset, uvec3 shape, //
+DVZ_EXPORT void dvz_image_copy_from_buffer(
+    DvzImages* img, uvec3 tex_offset, uvec3 shape, //
     DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size);
 
-DVZ_EXPORT void dvz_texture_copy_to_buffer(
-    DvzTexture* tex, uvec3 tex_offset, uvec3 shape, //
+DVZ_EXPORT void dvz_image_copy_to_buffer(
+    DvzImages* img, uvec3 tex_offset, uvec3 shape, //
     DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size);
 
 /**
