@@ -212,6 +212,79 @@ void dvz_gpu_default(DvzGpu* gpu, DvzWindow* window)
 /*  Context                                                                                      */
 /*************************************************************************************************/
 
+static void _create_transfers(DvzContext* context)
+{
+    ASSERT(context != NULL);
+    context->deq = dvz_deq(4);
+
+    // Three producer/consumer pairs (deq processes).
+    dvz_deq_proc(
+        &context->deq, DVZ_TRANSFER_PROC_UD, //
+        2, (uint32_t[]){DVZ_TRANSFER_DEQ_UL, DVZ_TRANSFER_DEQ_DL});
+    dvz_deq_proc(
+        &context->deq, DVZ_TRANSFER_PROC_CPY, //
+        1, (uint32_t[]){DVZ_TRANSFER_DEQ_COPY});
+    dvz_deq_proc(
+        &context->deq, DVZ_TRANSFER_PROC_EV, //
+        1, (uint32_t[]){DVZ_TRANSFER_DEQ_EV});
+
+    // Transfer deq callbacks.
+    // Uploads.
+    dvz_deq_callback(
+        &context->deq, DVZ_TRANSFER_DEQ_UL, //
+        DVZ_TRANSFER_BUFFER_UPLOAD,         //
+        _process_buffer_upload, context);
+
+    // Downloads.
+    dvz_deq_callback(
+        &context->deq, DVZ_TRANSFER_DEQ_DL, //
+        DVZ_TRANSFER_BUFFER_DOWNLOAD,       //
+        _process_buffer_download, context);
+
+    // Copies.
+    dvz_deq_callback(
+        &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+        DVZ_TRANSFER_BUFFER_COPY,             //
+        _process_buffer_copy, context);
+
+    dvz_deq_callback(
+        &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+        DVZ_TRANSFER_TEXTURE_COPY,            //
+        _process_texture_copy, context);
+
+    // Buffer/texture copies.
+    dvz_deq_callback(
+        &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+        DVZ_TRANSFER_TEXTURE_BUFFER,          //
+        _process_texture_buffer, context);
+
+    dvz_deq_callback(
+        &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+        DVZ_TRANSFER_BUFFER_TEXTURE,          //
+        _process_buffer_texture, context);
+
+    // Transfer thread.
+    context->thread = dvz_thread(_thread_transfers, context);
+}
+
+
+
+static void _destroy_transfers(DvzContext* context)
+{
+    ASSERT(context != NULL);
+
+    // Enqueue a STOP task to stop the UL and DL threads.
+    dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_UL, 0, NULL);
+    dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_DL, 0, NULL);
+
+    // Join the UL and DL threads.
+    dvz_thread_join(&context->thread);
+
+    dvz_deq_destroy(&context->deq);
+}
+
+
+
 DvzContext* dvz_context(DvzGpu* gpu)
 {
     ASSERT(gpu != NULL);
@@ -237,58 +310,7 @@ DvzContext* dvz_context(DvzGpu* gpu)
     }
 
     // Transfer dequeues.
-    {
-        context->deq = dvz_deq(4);
-
-        // Three producer/consumer pairs (deq processes).
-        dvz_deq_proc(
-            &context->deq, DVZ_TRANSFER_PROC_UD, //
-            2, (uint32_t[]){DVZ_TRANSFER_DEQ_UL, DVZ_TRANSFER_DEQ_DL});
-        dvz_deq_proc(
-            &context->deq, DVZ_TRANSFER_PROC_CPY, //
-            1, (uint32_t[]){DVZ_TRANSFER_DEQ_COPY});
-        dvz_deq_proc(
-            &context->deq, DVZ_TRANSFER_PROC_EV, //
-            1, (uint32_t[]){DVZ_TRANSFER_DEQ_EV});
-
-        // Transfer deq callbacks.
-        // Uploads.
-        dvz_deq_callback(
-            &context->deq, DVZ_TRANSFER_DEQ_UL, //
-            DVZ_TRANSFER_BUFFER_UPLOAD,         //
-            _process_buffer_upload, context);
-
-        // Downloads.
-        dvz_deq_callback(
-            &context->deq, DVZ_TRANSFER_DEQ_DL, //
-            DVZ_TRANSFER_BUFFER_DOWNLOAD,       //
-            _process_buffer_download, context);
-
-        // Copies.
-        dvz_deq_callback(
-            &context->deq, DVZ_TRANSFER_DEQ_COPY, //
-            DVZ_TRANSFER_BUFFER_COPY,             //
-            _process_buffer_copy, context);
-
-        dvz_deq_callback(
-            &context->deq, DVZ_TRANSFER_DEQ_COPY, //
-            DVZ_TRANSFER_TEXTURE_COPY,            //
-            _process_texture_copy, context);
-
-        // Buffer/texture copies.
-        dvz_deq_callback(
-            &context->deq, DVZ_TRANSFER_DEQ_COPY, //
-            DVZ_TRANSFER_TEXTURE_BUFFER,          //
-            _process_texture_buffer, context);
-
-        dvz_deq_callback(
-            &context->deq, DVZ_TRANSFER_DEQ_COPY, //
-            DVZ_TRANSFER_BUFFER_TEXTURE,          //
-            _process_buffer_texture, context);
-
-        // Transfer thread.
-        context->thread = dvz_thread(_thread_transfers, context);
-    }
+    _create_transfers(context);
 
     // HACK: the vklite module makes the assumption that the queue #0 supports transfers.
     // Here, in the context, we make the same assumption. The first queue is reserved to transfers.
@@ -348,16 +370,7 @@ void dvz_context_destroy(DvzContext* context)
     _destroy_resources(context);
 
     // Destroy the transfers queue.
-    {
-        // Enqueue a STOP task to stop the UL and DL threads.
-        dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_UL, 0, NULL);
-        dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_DL, 0, NULL);
-
-        // Join the UL and DL threads.
-        dvz_thread_join(&context->thread);
-
-        dvz_deq_destroy(&context->deq);
-    }
+    _destroy_transfers(context);
 
     // Free the allocated memory.
     dvz_container_destroy(&context->buffers);
