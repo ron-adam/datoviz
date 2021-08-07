@@ -125,6 +125,17 @@ struct DvzResources
  */
 DVZ_EXPORT void dvz_resources(DvzGpu* gpu, DvzResources* res);
 
+DVZ_EXPORT DvzImages*
+dvz_resources_image(DvzResources* res, DvzTexDims dims, uvec3 shape, VkFormat format);
+
+DVZ_EXPORT DvzBuffer*
+dvz_resources_buffer(DvzResources* res, DvzBufferType type, VkDeviceSize size);
+
+DVZ_EXPORT DvzSampler*
+dvz_resources_sampler(DvzResources* res, VkFilter filter, VkSamplerAddressMode mode);
+
+DVZ_EXPORT DvzCompute* dvz_resources_compute(DvzResources* res, const char* shader_path);
+
 /**
  * Destroy a resources object.
  *

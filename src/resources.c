@@ -36,6 +36,47 @@ void dvz_resources(DvzGpu* gpu, DvzResources* res)
 
 
 
+DvzImages* dvz_resources_image(DvzResources* res, DvzTexDims dims, uvec3 shape, VkFormat format)
+{
+    ASSERT(res != NULL);
+    DvzImages* img = (DvzImages*)dvz_container_alloc(&res->images);
+
+    return img;
+}
+
+
+
+DvzBuffer* dvz_resources_buffer(DvzResources* res, DvzBufferType type, VkDeviceSize size)
+{
+    ASSERT(res != NULL);
+    DvzBuffer* buffer = (DvzBuffer*)dvz_container_alloc(&res->buffers);
+
+    return buffer;
+}
+
+
+
+DvzSampler* dvz_resources_sampler(DvzResources* res, VkFilter filter, VkSamplerAddressMode mode)
+{
+    ASSERT(res != NULL);
+    DvzSampler* sampler = (DvzSampler*)dvz_container_alloc(&res->samplers);
+
+    return sampler;
+}
+
+
+
+DvzCompute* dvz_resources_compute(DvzResources* res, const char* shader_path)
+{
+    ASSERT(res != NULL);
+    ASSERT(shader_path != NULL);
+    DvzCompute* compute = (DvzCompute*)dvz_container_alloc(&res->computes);
+
+    return compute;
+}
+
+
+
 void dvz_resources_destroy(DvzResources* res)
 {
     if (res == NULL)
