@@ -114,8 +114,6 @@ dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data, 
 
 DVZ_EXPORT void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data, int flags);
 
-DVZ_EXPORT void dvz_dat_destroy(DvzDat* dat);
-
 
 
 /*************************************************************************************************/
@@ -129,8 +127,6 @@ dvz_tex_upload(DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* 
 
 DVZ_EXPORT void
 dvz_tex_download(DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data, int flags);
-
-DVZ_EXPORT void dvz_tex_destroy(DvzTex* tex);
 
 
 

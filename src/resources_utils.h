@@ -357,7 +357,6 @@ static void _destroy_resources(DvzResources* res)
     log_trace("context destroy sets of images");
     CONTAINER_DESTROY_ITEMS(DvzImages, res->images, dvz_images_destroy)
 
-    // TODO
     // log_trace("context destroy dats");
     // CONTAINER_DESTROY_ITEMS(DvzDat, res->dats, dvz_dat_destroy)
 

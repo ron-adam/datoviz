@@ -179,6 +179,9 @@ DVZ_EXPORT void dvz_resources(DvzGpu* gpu, DvzResources* res);
  */
 DVZ_EXPORT void dvz_resources_destroy(DvzResources* res);
 
+DVZ_EXPORT void dvz_dat_destroy(DvzDat* dat);
+
+DVZ_EXPORT void dvz_tex_destroy(DvzTex* tex);
 
 
 #ifdef __cplusplus

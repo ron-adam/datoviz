@@ -448,7 +448,7 @@ if (DATOVIZ_WITH_CLI)
         "tests/test_input.c"
 
         "tests/test_transfers.c"
-        # "tests/test_context.c"
+        "tests/test_context.c"
 
         # "tests/test_canvas.c"
         # "tests/test_run.c"

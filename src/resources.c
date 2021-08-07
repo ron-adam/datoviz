@@ -1,8 +1,5 @@
 #include "../include/datoviz/resources.h"
-// #include "../include/datoviz/context.h"
-// #include "../include/datoviz/atlas.h"
 #include "resources_utils.h"
-// #include "transfer_utils.h"
 #include "vklite_utils.h"
 #include <stdlib.h>
 
