@@ -24,7 +24,7 @@ static DvzBufferRegions _staging_buffer(DvzGpu* gpu, VkDeviceSize size)
     DvzBuffer* buffer = (DvzBuffer*)calloc(1, sizeof(DvzBuffer));
     *buffer = dvz_buffer(gpu);
     _make_staging_buffer(buffer, size);
-    DvzBufferRegions stg = dvz_buffer_regions(buffer, 1, 0, 1024, 0);
+    DvzBufferRegions stg = dvz_buffer_regions(buffer, 1, 0, size, 0);
     return stg;
 }
 
@@ -40,10 +40,11 @@ int test_transfers_buffer_mappable(TestContext* tc)
     // dvz_transfers_destroy(&tc->transfers);
     // dvz_gpu_destroy(gpu);
 
-
-
     DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
+
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
 
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().
@@ -55,30 +56,31 @@ int test_transfers_buffer_mappable(TestContext* tc)
         data[i] = i;
 
     // Allocate a staging buffer region.
-    // DvzBufferRegions stg = dvz_buffer_regions(transfers, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
+    DvzBufferRegions stg = _staging_buffer(gpu, 1024);
 
-    // // Enqueue an upload transfer task.
-    // _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data);
+    // Enqueue an upload transfer task.
+    _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data);
 
-    // // NOTE: need to wait for the upload to be finished before we download the data.
-    // // The DL and UL are on different queues and may be processed out of order.
-    // dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
+    // NOTE: need to wait for the upload to be finished before we download the data.
+    // The DL and UL are on different queues and may be processed out of order.
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
 
-    // // Enqueue a download transfer task.
-    // uint8_t data2[128] = {0};
-    // _enqueue_buffer_download(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data2);
-    // AT(res == 0);
-    // dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
+    // Enqueue a download transfer task.
+    uint8_t data2[128] = {0};
+    _enqueue_buffer_download(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data2);
+    AT(res == 0);
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
 
-    // // Wait until the download_done event has been raised, dequeue it, and finish the test.
-    // dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
+    // Wait until the download_done event has been raised, dequeue it, and finish the test.
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
 
-    // // Check that the copy worked.
-    // AT(data2[127] == 127);
-    // AT(memcmp(data2, data, 128) == 0);
-    // AT(res == 42);
+    // Check that the copy worked.
+    AT(data2[127] == 127);
+    AT(memcmp(data2, data, 128) == 0);
+    AT(res == 42);
 
-    return res;
+    dvz_buffer_destroy(stg.buffer);
+    return 0;
 }
 
 

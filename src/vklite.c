@@ -989,9 +989,9 @@ void* dvz_buffer_map(DvzBuffer* buffer, VkDeviceSize offset, VkDeviceSize size)
     //     vkMapMemory(buffer->gpu->device, buffer->device_memory, offset, size, 0, &cdata));
 
     if (offset != 0)
-        log_warn("Buffer map offset %d not taken into account with VMA", offset);
+        log_warn("buffer map offset %d not taken into account with VMA", offset);
     if (size != buffer->size && size != VK_WHOLE_SIZE)
-        log_warn("Buffer map size %d not taken into account with VMA", size);
+        log_warn("buffer map size %d not taken into account with VMA", size);
 
     vmaMapMemory(buffer->gpu->allocator, buffer->vma.alloc, &cdata);
 
