@@ -195,15 +195,46 @@ static DvzBuffer* _get_standalone_buffer(DvzContext* ctx, DvzBufferType type, Vk
 }
 
 
+static DvzAlloc* _get_alloc(DvzContext* ctx, DvzBufferType type)
+{
+    ASSERT(ctx != NULL);
+    ASSERT((uint32_t)type < DVZ_BUFFER_TYPE_COUNT);
+    return &ctx->allocators[(uint32_t)type];
+}
 
 static DvzAlloc* _make_allocator(DvzContext* ctx, DvzBufferType type, VkDeviceSize size)
 {
     ASSERT(ctx != NULL);
     ASSERT((uint32_t)type < DVZ_BUFFER_TYPE_COUNT);
-    DvzAlloc* alloc = &ctx->allocators[(uint32_t)type];
+
+    DvzAlloc* alloc = _get_alloc(ctx, type);
     VkDeviceSize alignment = _find_alignment(ctx, type);
     *alloc = dvz_alloc(size, alignment);
     return alloc;
+}
+
+
+
+static VkDeviceSize _allocate_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize req_size)
+{
+    ASSERT(ctx != NULL);
+    ASSERT(type < DVZ_BUFFER_TYPE_COUNT);
+    ASSERT(req_size > 0);
+
+    VkDeviceSize resized = 0; // will be non-zero if the buffer must be resized
+    DvzAlloc* alloc = _get_alloc(ctx, type);
+    // Make the allocation.
+    VkDeviceSize offset = dvz_alloc_new(alloc, req_size, &resized);
+
+    // Need to resize the underlying DvzBuffer.
+    if (resized)
+    {
+        DvzBuffer* buffer = _get_shared_buffer(ctx, type);
+        log_info("reallocating buffer %d to %s", type, pretty_size(resized));
+        dvz_buffer_resize(buffer, resized);
+    }
+
+    return offset;
 }
 
 
@@ -569,6 +600,9 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
     DvzBuffer* buffer = NULL;
     VkDeviceSize offset = 0; // to determine with allocator
 
+    // Make sure the requested size is aligned.
+    size = _align(size, alignment);
+
     // Shared buffer.
     if (shared)
     {
@@ -576,18 +610,25 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
         buffer = _get_shared_buffer(ctx, type);
 
         // Allocate a DvzDat from it.
-        // TODO
+        // NOTE: this call may resize the underlying DvzBuffer, which is slow (hard GPU sync).
+        offset = _allocate_dat(ctx, type, count * size);
     }
 
     // Standalone buffer.
     else
     {
         // Create a brand new buffer just for this DvzDat.
-        buffer = _get_standalone_buffer(ctx, type, size);
+        buffer = _get_standalone_buffer(ctx, type, count * size);
         // Allocate the entire buffer, so offset is 0, and the size is the requested (aligned if
         // necessary) size.
         offset = 0;
-        size = _align(size, alignment);
+    }
+
+    // Check alignment.
+    if (alignment > 0)
+    {
+        ASSERT(offset % alignment == 0);
+        ASSERT(offset % size == 0);
     }
 
     // Set the buffer region.
