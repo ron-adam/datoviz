@@ -7,7 +7,7 @@
 
 
 /*************************************************************************************************/
-/*  Test callbacks and utils */
+/*  Test callbacks and utils                                                                     */
 /*************************************************************************************************/
 
 static void _dl_done(DvzDeq* deq, void* item, void* user_data)
@@ -18,12 +18,15 @@ static void _dl_done(DvzDeq* deq, void* item, void* user_data)
 
 
 
-static DvzBufferRegions _mock_buffer(DvzGpu* gpu, VkDeviceSize size)
+static DvzBufferRegions _mock_buffer(DvzGpu* gpu, DvzBufferType type, VkDeviceSize size)
 {
     ASSERT(gpu != NULL);
     DvzBuffer* buffer = (DvzBuffer*)calloc(1, sizeof(DvzBuffer));
     *buffer = dvz_buffer(gpu);
-    _make_staging_buffer(buffer, size);
+    if (type == DVZ_BUFFER_TYPE_STAGING)
+        _make_staging_buffer(buffer, size);
+    else if (type == DVZ_BUFFER_TYPE_VERTEX)
+        _make_vertex_buffer(buffer, size);
     DvzBufferRegions stg = dvz_buffer_regions(buffer, 1, 0, size, 0);
     return stg;
 }
@@ -153,7 +156,7 @@ int test_transfers_buffer_mappable(TestContext* tc)
         data[i] = i;
 
     // Allocate a staging buffer region.
-    DvzBufferRegions stg = _mock_buffer(gpu, 1024);
+    DvzBufferRegions stg = _mock_buffer(gpu, DVZ_BUFFER_TYPE_STAGING, 1024);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data);
@@ -200,7 +203,7 @@ int test_transfers_buffer_large(TestContext* tc)
         &transfers->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_DOWNLOAD_DONE, _dl_done, &res);
 
     // Allocate a staging buffer region.
-    DvzBufferRegions stg = _mock_buffer(gpu, size);
+    DvzBufferRegions stg = _mock_buffer(gpu, DVZ_BUFFER_TYPE_STAGING, size);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data);
@@ -250,8 +253,8 @@ int test_transfers_buffer_copy(TestContext* tc)
     for (uint32_t i = 0; i < 128; i++)
         data[i] = i;
 
-    DvzBufferRegions stg = _mock_buffer(gpu, 1024);
-    DvzBufferRegions br = _mock_buffer(gpu, 1024);
+    DvzBufferRegions stg = _mock_buffer(gpu, DVZ_BUFFER_TYPE_STAGING, 1024);
+    DvzBufferRegions br = _mock_buffer(gpu, DVZ_BUFFER_TYPE_VERTEX, 1024);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&transfers->deq, br, 0, stg, 0, 128, data);
@@ -303,7 +306,7 @@ int test_transfers_image_buffer(TestContext* tc)
     // Image.
     DvzImages* img = _mock_image(gpu, DVZ_TEX_2D, shape_full, format);
     // Buffer.
-    DvzBufferRegions stg = _mock_buffer(gpu, size);
+    DvzBufferRegions stg = _mock_buffer(gpu, DVZ_BUFFER_TYPE_STAGING, size);
 
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().
@@ -347,18 +350,21 @@ int test_transfers_direct_buffer(TestContext* tc)
     DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
 
-    // // Create a data array.
-    // uint8_t data[64] = {0};
-    // for (uint32_t i = 0; i < 64; i++)
-    //     data[i] = i;
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
 
-    // VkDeviceSize offset = 32;
-    // VkDeviceSize size = 64;
+    // Create a data array.
+    uint8_t data[64] = {0};
+    for (uint32_t i = 0; i < 64; i++)
+        data[i] = i;
 
-    // log_debug("start uploading data to buffer");
+    VkDeviceSize offset = 32;
+    VkDeviceSize size = 64;
 
-    // // Allocate a vertex buffer.
-    // DvzBufferRegions br = dvz_ctx_buffers(transfers, DVZ_BUFFER_TYPE_VERTEX, 1, 128);
+    log_debug("start uploading data to buffer");
+
+    // Allocate a vertex buffer.
+    DvzBufferRegions br = _mock_buffer(gpu, DVZ_BUFFER_TYPE_VERTEX, 128);
     // dvz_upload_buffer(transfers, br, offset, size, data);
 
     // log_debug("start downloading data from buffer");
@@ -370,6 +376,7 @@ int test_transfers_direct_buffer(TestContext* tc)
     // // Check that the copy worked.
     // AT(memcmp(data2, data, size) == 0);
 
+    _destroy_buffer(br);
     return 0;
 }
 

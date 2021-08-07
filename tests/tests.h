@@ -289,7 +289,7 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(TRANSFERS, test_transfers_buffer_large),    //
     CASE_FIXTURE(TRANSFERS, test_transfers_buffer_copy),     //
     CASE_FIXTURE(TRANSFERS, test_transfers_image_buffer),    //
-    // CASE_FIXTURE(TRANSFERS, test_transfers_direct_buffer),   //
+    CASE_FIXTURE(TRANSFERS, test_transfers_direct_buffer),   //
     // CASE_FIXTURE(TRANSFERS, test_transfers_direct_texture),  //
 
 
