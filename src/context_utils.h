@@ -42,7 +42,7 @@ static DvzBuffer* staging_buffer(DvzContext* ctx, VkDeviceSize size)
 /*  Default resources                                                                            */
 /*************************************************************************************************/
 
-static DvzTexture* _default_transfer_texture(DvzContext* ctx)
+static DvzTex* _default_transfer_texture(DvzContext* ctx)
 {
     // // TODO
     // ASSERT(ctx != NULL);
@@ -50,7 +50,7 @@ static DvzTexture* _default_transfer_texture(DvzContext* ctx)
     // ASSERT(gpu != NULL);
 
     // uvec3 shape = {256, 1, 1};
-    // DvzTexture* texture = dvz_ctx_texture(ctx, 1, shape, VK_FORMAT_R32_SFLOAT);
+    // DvzTex* texture = dvz_ctx_texture(ctx, 1, shape, VK_FORMAT_R32_SFLOAT);
     // float* tex_data = (float*)calloc(256, sizeof(float));
     // for (uint32_t i = 0; i < 256; i++)
     //     tex_data[i] = i / 255.0;

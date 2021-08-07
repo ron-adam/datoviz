@@ -119,9 +119,7 @@ struct DvzFontAtlas
     uint8_t* font_texture;
     float glyph_width, glyph_height;
     const char* font_str;
-
-    // TODO
-    // DvzTexture* texture;
+    DvzTex* tex;
 };
 
 
@@ -129,9 +127,7 @@ struct DvzFontAtlas
 struct DvzColorTexture
 {
     unsigned char* arr;
-
-    // TODO
-    // DvzTexture* texture;
+    DvzTex* tex;
 };
 
 
@@ -148,14 +144,14 @@ struct DvzResources
     DvzContainer buffers;
     DvzContainer images;
     DvzContainer dats;
-    DvzContainer textures; // TODO: rename to texs?
+    DvzContainer texs;
     DvzContainer samplers;
     DvzContainer computes;
 
     // Common resources.
     DvzFontAtlas font_atlas;
     DvzColorTexture color_texture;
-    DvzTexture* transfer_texture; // Default linear 1D texture
+    DvzTex* transfer_tex; // Default linear 1D texture
 };
 
 

@@ -106,7 +106,6 @@ typedef struct DvzSubmit DvzSubmit;
 typedef struct DvzCanvas DvzCanvas;
 typedef struct DvzContext DvzContext;
 typedef struct DvzTransfers DvzTransfers;
-typedef struct DvzTexture DvzTexture;
 typedef struct DvzGraphicsData DvzGraphicsData;
 
 // Callback definitions
@@ -207,7 +206,7 @@ typedef enum
     DVZ_TEXTURE_AXIS_U,
     DVZ_TEXTURE_AXIS_V,
     DVZ_TEXTURE_AXIS_W,
-} DvzTextureAxis;
+} DvzSamplerAxis;
 
 
 
@@ -788,20 +787,6 @@ struct DvzSubmit
     uint32_t signal_semaphores_count;
     uint32_t signal_semaphores_idx[DVZ_MAX_SEMAPHORES_PER_SUBMIT];
     DvzSemaphores* signal_semaphores[DVZ_MAX_SEMAPHORES_PER_SUBMIT];
-};
-
-
-
-// TODO: rename to DvzTex, and move to resources.h
-struct DvzTexture
-{
-    DvzObject obj;
-    uint32_t dims; // 1, 2, or 3
-
-    DvzContext* context;
-
-    DvzImages* image;
-    // DvzSampler* sampler;
 };
 
 
@@ -1519,7 +1504,7 @@ DVZ_EXPORT void dvz_sampler_mag_filter(DvzSampler* sampler, VkFilter filter);
  * @param address_mode the address mode
  */
 DVZ_EXPORT void dvz_sampler_address_mode(
-    DvzSampler* sampler, DvzTextureAxis axis, VkSamplerAddressMode address_mode);
+    DvzSampler* sampler, DvzSamplerAxis axis, VkSamplerAddressMode address_mode);
 
 /**
  * Create the sampler after it has been set up.
@@ -1613,8 +1598,8 @@ DVZ_EXPORT void dvz_bindings_buffer(DvzBindings* bindings, uint32_t idx, DvzBuff
  * @param idx the slot index
  * @param br the texture to bind to that slot
  */
-DVZ_EXPORT void dvz_bindings_texture(
-    DvzBindings* bindings, uint32_t idx, DvzTexture* texture, DvzSampler* sampler);
+DVZ_EXPORT void
+dvz_bindings_texture(DvzBindings* bindings, uint32_t idx, DvzImages* img, DvzSampler* sampler);
 
 /**
  * Update the bindings after the buffers/textures have been set up.

@@ -352,12 +352,7 @@ static void _screencast_staging(DvzCanvas* canvas)
     dvz_buffer_create(buffer);
     ASSERT(dvz_obj_is_created(&buffer->obj));
 
-    // Also create a texture wrapper around the swapchain image so as to user the transfer API.
-    DvzTexture* tex = &canvas->render.screencast_tex;
-    tex->context = ctx;
-    tex->dims = 2;
-    tex->image = canvas->render.swapchain.images;
-    dvz_obj_created(&tex->obj);
+    canvas->render.screencast_img = canvas->render.swapchain.images;
 }
 
 static void _canvas_swapchain(DvzCanvas* canvas)

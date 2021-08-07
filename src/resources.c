@@ -61,7 +61,7 @@ void dvz_resources_destroy(DvzResources* res)
     dvz_container_destroy(&res->buffers);
     dvz_container_destroy(&res->images);
     dvz_container_destroy(&res->dats);
-    dvz_container_destroy(&res->textures);
+    dvz_container_destroy(&res->texs);
     dvz_container_destroy(&res->samplers);
     dvz_container_destroy(&res->computes);
 

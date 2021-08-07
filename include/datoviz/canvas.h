@@ -526,7 +526,7 @@ struct DvzRender
     DvzImages pick_staging;
 
     DvzBuffer screencast_staging;
-    DvzTexture screencast_tex;
+    DvzImages* screencast_img;
 
     DvzFramebuffers framebuffers;
     DvzFramebuffers framebuffers_overlay; // used by the overlay renderpass

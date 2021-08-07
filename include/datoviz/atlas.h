@@ -51,7 +51,7 @@ static void _font_atlas_glyph_size(DvzFontAtlas* atlas, float size, vec2 glyph_s
 
 
 
-static DvzTexture* _font_texture(DvzContext* ctx, DvzFontAtlas* atlas)
+static DvzTex* _font_texture(DvzContext* ctx, DvzFontAtlas* atlas)
 {
     return NULL;
 
@@ -61,7 +61,7 @@ static DvzTexture* _font_texture(DvzContext* ctx, DvzFontAtlas* atlas)
     // ASSERT(atlas->font_texture != NULL);
 
     // uvec3 shape = {(uint32_t)atlas->width, (uint32_t)atlas->height, 1};
-    // DvzTexture* texture = dvz_ctx_texture(ctx, 2, shape, VK_FORMAT_R8G8B8A8_UNORM);
+    // DvzTex* texture = dvz_ctx_texture(ctx, 2, shape, VK_FORMAT_R8G8B8A8_UNORM);
     // // NOTE: the font texture must have LINEAR filter! otherwise no antialiasing
     // dvz_texture_filter(texture, DVZ_FILTER_MAG, VK_FILTER_LINEAR);
     // dvz_texture_filter(texture, DVZ_FILTER_MIN, VK_FILTER_LINEAR);

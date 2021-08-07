@@ -331,17 +331,17 @@ static void _create_resources(DvzResources* res)
 {
     ASSERT(res != NULL);
 
-    res->buffers =
+    res->buffers = //
         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzBuffer), DVZ_OBJECT_TYPE_BUFFER);
-    res->images =
+    res->images = //
         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzImages), DVZ_OBJECT_TYPE_IMAGES);
     res->dats = //
         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzDat), DVZ_OBJECT_TYPE_DAT);
-    res->textures =
-        dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzTexture), DVZ_OBJECT_TYPE_TEXTURE);
-    res->samplers =
+    res->texs = //
+        dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzTex), DVZ_OBJECT_TYPE_TEX);
+    res->samplers = //
         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzSampler), DVZ_OBJECT_TYPE_SAMPLER);
-    res->computes =
+    res->computes = //
         dvz_container(DVZ_CONTAINER_DEFAULT_COUNT, sizeof(DvzCompute), DVZ_OBJECT_TYPE_COMPUTE);
 }
 
@@ -357,11 +357,11 @@ static void _destroy_resources(DvzResources* res)
     log_trace("context destroy sets of images");
     CONTAINER_DESTROY_ITEMS(DvzImages, res->images, dvz_images_destroy)
 
-    // log_trace("context destroy dats");
-    // CONTAINER_DESTROY_ITEMS(DvzDat, res->dats, dvz_dat_destroy)
+    log_trace("context destroy dats");
+    CONTAINER_DESTROY_ITEMS(DvzDat, res->dats, dvz_dat_destroy)
 
-    // log_trace("context destroy textures");
-    // CONTAINER_DESTROY_ITEMS(DvzTexture, res->textures, dvz_tex_destroy)
+    log_trace("context destroy texs");
+    CONTAINER_DESTROY_ITEMS(DvzTex, res->texs, dvz_tex_destroy)
 
     log_trace("context destroy samplers");
     CONTAINER_DESTROY_ITEMS(DvzSampler, res->samplers, dvz_sampler_destroy)

@@ -1712,7 +1712,7 @@ void dvz_sampler_mag_filter(DvzSampler* sampler, VkFilter filter)
 
 
 void dvz_sampler_address_mode(
-    DvzSampler* sampler, DvzTextureAxis axis, VkSamplerAddressMode address_mode)
+    DvzSampler* sampler, DvzSamplerAxis axis, VkSamplerAddressMode address_mode)
 {
     ASSERT(sampler != NULL);
     ASSERT(axis <= 2);
@@ -1912,21 +1912,15 @@ void dvz_bindings_buffer(DvzBindings* bindings, uint32_t idx, DvzBufferRegions b
 
 
 
-void dvz_bindings_texture(
-    DvzBindings* bindings, uint32_t idx, DvzTexture* texture, DvzSampler* sampler)
+void dvz_bindings_texture(DvzBindings* bindings, uint32_t idx, DvzImages* img, DvzSampler* sampler)
 {
     ASSERT(bindings != NULL);
-    ASSERT(texture != NULL);
-
-    DvzImages* images = texture->image;
-    // DvzSampler* sampler = sampler;
-
-    ASSERT(images != NULL);
+    ASSERT(img != NULL);
     ASSERT(sampler != NULL);
-    ASSERT(images->count == 1 || images->count == bindings->dset_count);
+    ASSERT(img->count == 1 || img->count == bindings->dset_count);
 
     log_trace("set bindings with texture for binding #%d", idx);
-    bindings->images[idx] = images;
+    bindings->images[idx] = img;
     bindings->samplers[idx] = sampler;
 
     if (bindings->obj.status == DVZ_OBJECT_STATUS_CREATED)
