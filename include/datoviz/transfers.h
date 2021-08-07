@@ -163,6 +163,8 @@ DVZ_EXPORT void dvz_transfers_destroy(DvzTransfers* transfers);
 /*  Convenient but slow transfer functions, essentially used in testing or offscreen settings    */
 /*************************************************************************************************/
 
+// WARNING: do not use except for offscreen/testing.
+
 /**
  * Upload data to 1 or N buffer regions on the GPU.
  *

@@ -87,7 +87,7 @@ int test_transfers_buffer_large(TestContext*);
 int test_transfers_buffer_copy(TestContext*);
 int test_transfers_image_buffer(TestContext*);
 int test_transfers_direct_buffer(TestContext*);
-int test_transfers_direct_texture(TestContext*);
+int test_transfers_direct_image(TestContext*);
 
 // Test resources.
 
@@ -290,7 +290,7 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(TRANSFERS, test_transfers_buffer_copy),     //
     CASE_FIXTURE(TRANSFERS, test_transfers_image_buffer),    //
     CASE_FIXTURE(TRANSFERS, test_transfers_direct_buffer),   //
-    // CASE_FIXTURE(TRANSFERS, test_transfers_direct_texture),  //
+    CASE_FIXTURE(TRANSFERS, test_transfers_direct_image),    //
 
 
     // Resources.

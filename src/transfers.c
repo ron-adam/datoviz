@@ -151,6 +151,7 @@ void dvz_upload_buffer(
     log_debug("upload %s to a buffer", pretty_size(size));
 
     // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
+    // Furthermore, we could avoid using a staging buffer by testing if the buffer is host-visible.
     DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
 
     // Enqueue an upload transfer task.
@@ -181,6 +182,7 @@ void dvz_download_buffer(
     log_debug("download %s from a buffer", pretty_size(size));
 
     // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
+    // Furthermore, we could avoid using a staging buffer by testing if the buffer is host-visible.
     DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
 
     // Enqueue an upload transfer task.
@@ -247,17 +249,24 @@ void dvz_upload_image(
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
+
     _full_tex_shape(img, shape);
     ASSERT(shape[0] > 0);
     ASSERT(shape[1] > 0);
     ASSERT(shape[2] > 0);
 
-    // TODO
-    DvzBufferRegions stg = {0}; // dvz_ctx_buffers(transfers, DVZ_BUFFER_TYPE_STAGING, 1, size);
+    // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
+    // Furthermore, we could avoid using a staging buffer by testing if the buffer is host-visible.
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
     _enqueue_image_upload(&transfers->deq, img, offset, shape, stg, 0, size, data);
 
+    // Destroy the transient staging buffer.
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
     dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
+
+    _destroy_buffer_regions(stg);
 }
 
 
@@ -271,13 +280,18 @@ void dvz_download_image(
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
+
     _full_tex_shape(img, shape);
     ASSERT(shape[0] > 0);
     ASSERT(shape[1] > 0);
     ASSERT(shape[2] > 0);
 
-    // TODO
-    DvzBufferRegions stg = {0}; // dvz_ctx_buffers(transfers, DVZ_BUFFER_TYPE_STAGING, 1, size);
+    // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
+    // Furthermore, we could avoid using a staging buffer by testing if the buffer is host-visible.
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
+
     _enqueue_image_download(&transfers->deq, img, offset, shape, stg, 0, size, data);
 
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
@@ -286,6 +300,9 @@ void dvz_download_image(
     // Wait until the download is done.
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
     dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_EV);
+
+    // Destroy the transient staging buffer.
+    _destroy_buffer_regions(stg);
 }
 
 

@@ -274,33 +274,37 @@ int test_transfers_direct_buffer(TestContext* tc)
 
 
 
-int test_transfers_direct_texture(TestContext* tc)
+int test_transfers_direct_image(TestContext* tc)
 {
     DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
 
-    // uvec3 shape_full = {16, 48, 1};
-    // uvec3 offset = {0, 16, 0};
-    // uvec3 shape = {16, 16, 1};
-    // VkDeviceSize size = 256 * 4;
-    // VkFormat format = VK_FORMAT_R8G8B8A8_UINT;
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
 
-    // // Texture data.
-    // uint8_t data[1024] = {0};
-    // for (uint32_t i = 0; i < 1024; i++)
-    //     data[i] = i % 256;
+    uvec3 shape_full = {16, 48, 1};
+    uvec3 offset = {0, 16, 0};
+    uvec3 shape = {16, 16, 1};
+    VkDeviceSize size = 256 * 4;
+    VkFormat format = VK_FORMAT_R8G8B8A8_UINT;
 
-    // DvzTexture* tex = dvz_ctx_texture(transfers, 2, shape_full, format);
+    // Texture data.
+    uint8_t data[1024] = {0};
+    for (uint32_t i = 0; i < 1024; i++)
+        data[i] = i % 256;
 
-    // log_debug("start uploading data to texture");
-    // dvz_upload_texture(transfers, tex, offset, shape, size, data);
+    DvzImages* img = _standalone_image(gpu, DVZ_TEX_2D, shape_full, format);
 
-    // log_debug("start downloading data from buffer");
-    // uint8_t data2[1024] = {0};
-    // dvz_download_texture(transfers, tex, offset, shape, size, data2);
+    log_debug("start uploading data to texture");
+    dvz_upload_image(transfers, img, offset, shape, size, data);
 
-    // // Check that the copy worked.
-    // AT(memcmp(data2, data, size) == 0);
+    log_debug("start downloading data from buffer");
+    uint8_t data2[1024] = {0};
+    dvz_download_image(transfers, img, offset, shape, size, data2);
 
+    // Check that the copy worked.
+    AT(memcmp(data2, data, size) == 0);
+
+    _destroy_image(img);
     return 0;
 }
