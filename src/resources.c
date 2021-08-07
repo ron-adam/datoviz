@@ -31,6 +31,9 @@ void dvz_resources(DvzGpu* gpu, DvzResources* res)
     // Allocate memory for buffers, textures, and computes.
     _create_resources(res);
 
+    // Create the shared buffers.
+    _create_shared_buffers(res);
+
     dvz_obj_created(&res->obj);
 }
 

@@ -166,14 +166,17 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
     ASSERT(count > 0);
     ASSERT(count <= 10); // consistency check
 
+    log_debug("allocate dat of type %d with size %s and flags %d", type, pretty_size(size), flags);
+
     DvzDat* dat = (DvzDat*)dvz_container_alloc(&ctx->res.dats);
     dat->context = ctx;
     dat->flags = flags;
-    bool shared = (flags & DVZ_DAT_FLAGS_SHARED) > 0;
+    // No flags? ==> shared buffer by default.
+    bool shared = (flags == 0) || (flags & DVZ_DAT_FLAGS_SHARED) > 0;
     VkDeviceSize alignment = _find_alignment(&ctx->allocs, type);
 
     DvzBuffer* buffer = NULL;
-    VkDeviceSize offset = 0; // to determine with allocator
+    VkDeviceSize offset = 0; // to determine with allocator if shared buffer
 
     // Make sure the requested size is aligned.
     size = _align(size, alignment);
@@ -245,6 +248,7 @@ void dvz_dat_destroy(DvzDat* dat)
     // TODO
     // free the region in the buffer
     // dvz_alloc_free();
+    dvz_obj_destroyed(&dat->obj);
 }
 
 
@@ -284,5 +288,8 @@ void dvz_tex_download(
 
 void dvz_tex_destroy(DvzTex* tex)
 {
-    ASSERT(tex != NULL); // TODO
+    ASSERT(tex != NULL);
+    // TODO
+
+    dvz_obj_destroyed(&tex->obj);
 }

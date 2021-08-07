@@ -114,10 +114,11 @@ static void _make_mappable_buffer(DvzBuffer* buffer, VkDeviceSize size)
 
 
 
-static void _default_buffers(DvzResources* res)
+static void _create_shared_buffers(DvzResources* res)
 {
     ASSERT(res != NULL);
     ASSERT(res->gpu != NULL);
+    log_debug("create %d default buffers", DVZ_BUFFER_TYPE_COUNT);
 
     // Create a predetermined set of buffers.
     for (uint32_t i = 0; i < DVZ_BUFFER_TYPE_COUNT; i++)
@@ -130,28 +131,34 @@ static void _default_buffers(DvzResources* res)
 
     // Staging buffer
     buffer = (DvzBuffer*)dvz_container_get(&res->buffers, DVZ_BUFFER_TYPE_STAGING);
+    ASSERT(buffer != NULL);
     _make_staging_buffer(buffer, DVZ_BUFFER_TYPE_STAGING_SIZE);
     // Permanently map the buffer.
     // buffer->mmap = dvz_buffer_map(buffer, 0, VK_WHOLE_SIZE);
 
     // Vertex buffer
     buffer = (DvzBuffer*)dvz_container_get(&res->buffers, DVZ_BUFFER_TYPE_VERTEX);
+    ASSERT(buffer != NULL);
     _make_vertex_buffer(buffer, DVZ_BUFFER_TYPE_VERTEX_SIZE);
 
     // Index buffer
     buffer = (DvzBuffer*)dvz_container_get(&res->buffers, DVZ_BUFFER_TYPE_INDEX);
+    ASSERT(buffer != NULL);
     _make_index_buffer(buffer, DVZ_BUFFER_TYPE_INDEX_SIZE);
 
     // Storage buffer
     buffer = (DvzBuffer*)dvz_container_get(&res->buffers, DVZ_BUFFER_TYPE_STORAGE);
+    ASSERT(buffer != NULL);
     _make_storage_buffer(buffer, DVZ_BUFFER_TYPE_STORAGE_SIZE);
 
     // Uniform buffer
     buffer = (DvzBuffer*)dvz_container_get(&res->buffers, DVZ_BUFFER_TYPE_UNIFORM);
+    ASSERT(buffer != NULL);
     _make_uniform_buffer(buffer, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
 
     // Mappable uniform buffer
     buffer = (DvzBuffer*)dvz_container_get(&res->buffers, DVZ_BUFFER_TYPE_MAPPABLE);
+    ASSERT(buffer != NULL);
     _make_mappable_buffer(buffer, DVZ_BUFFER_TYPE_MAPPABLE_SIZE);
 }
 
@@ -165,6 +172,7 @@ static DvzBuffer* _get_shared_buffer(DvzResources* res, DvzBufferType type)
 {
     ASSERT(res != NULL);
     DvzBuffer* buffer = (DvzBuffer*)dvz_container_get(&res->buffers, (uint32_t)type);
+    ASSERT(buffer != NULL);
     ASSERT(buffer->type == type);
     return buffer;
 }
@@ -214,6 +222,7 @@ static DvzBuffer* _get_standalone_buffer(DvzResources* res, DvzBufferType type, 
 /*  Creation of buffer regions and images                                                        */
 /*************************************************************************************************/
 
+// Only for testing:
 static DvzBufferRegions
 _standalone_buffer_regions(DvzGpu* gpu, DvzBufferType type, VkDeviceSize size)
 {

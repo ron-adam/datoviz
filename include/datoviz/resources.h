@@ -36,8 +36,8 @@ extern "C" {
 // Dat flags.
 typedef enum
 {
-    DVZ_DAT_FLAGS_SHARED = 0x00,     // by default, the Dat is allocated from the big buffer
-    DVZ_DAT_FLAGS_STANDALONE = 0x01, // standalone DvzBuffer
+    DVZ_DAT_FLAGS_SHARED = 0x01,     // by default, the Dat is allocated from the big buffer
+    DVZ_DAT_FLAGS_STANDALONE = 0x02, // standalone DvzBuffer
 
     // the following are unused, may be removed
     DVZ_DAT_FLAGS_DYNAMIC = 0x10,   // will change often

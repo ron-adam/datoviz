@@ -266,7 +266,7 @@ static void _glfw_event_loop(GLFWwindow* w)
 /*  Test textures                                                                                */
 /*************************************************************************************************/
 
-static DvzTex* _earth_texture(DvzContext* ctx)
+static DvzTex* _earth_tex(DvzContext* ctx)
 {
     return NULL;
 
@@ -288,7 +288,7 @@ static DvzTex* _earth_texture(DvzContext* ctx)
 
 
 
-static DvzTex* _synthetic_texture(DvzContext* ctx)
+static DvzTex* _synthetic_tex(DvzContext* ctx)
 {
     ASSERT(ctx != NULL);
     return NULL;
@@ -321,7 +321,7 @@ static DvzTex* _synthetic_texture(DvzContext* ctx)
 
 
 
-static DvzTex* _mock_texture(DvzContext* ctx)
+static DvzTex* _mock_tex(DvzContext* ctx)
 {
     ASSERT(ctx != NULL);
     return NULL;
@@ -341,7 +341,7 @@ static DvzTex* _mock_texture(DvzContext* ctx)
 
 
 
-static DvzTex* _volume_texture(DvzContext* ctx, int kind)
+static DvzTex* _volume_tex(DvzContext* ctx, int kind)
 {
     return NULL;
 

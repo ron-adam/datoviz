@@ -450,7 +450,7 @@ static void dvz_array_resize(DvzArray* array, uint32_t item_count)
             new_item_count *= 2;
         ASSERT(new_item_count >= item_count);
         new_size = new_item_count * array->item_size;
-        log_debug(
+        log_trace(
             "resize array from %d to %d items of size %d", old_item_count, new_item_count,
             array->item_size);
         REALLOC(array->data, new_size);

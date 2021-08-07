@@ -9,7 +9,7 @@
 /*  Resources                                                                                    */
 /*************************************************************************************************/
 
-int test_resources_1(TestContext* tc)
+int test_ctx_resources_1(TestContext* tc)
 {
     ASSERT(tc != NULL);
     DvzContext* ctx = tc->context;
@@ -38,6 +38,28 @@ int test_resources_1(TestContext* tc)
     snprintf(path, sizeof(path), "%s/test_double.comp.spv", SPIRV_DIR);
     DvzCompute* compute = dvz_resources_compute(res, path);
     ASSERT(compute != NULL);
+
+    return 0;
+}
+
+
+
+/*************************************************************************************************/
+/*  Allocs                                                                                       */
+/*************************************************************************************************/
+
+int test_ctx_allocs_1(TestContext* tc)
+{
+    ASSERT(tc != NULL);
+    DvzContext* ctx = tc->context;
+    ASSERT(ctx != NULL);
+
+    DvzGpu* gpu = ctx->gpu;
+    ASSERT(gpu != NULL);
+
+    VkDeviceSize size = 256;
+    DvzDat* dat = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 1, 0);
+    ASSERT(dat != NULL);
 
     return 0;
 }
