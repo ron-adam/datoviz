@@ -211,6 +211,119 @@ static DvzBuffer* _get_standalone_buffer(DvzResources* res, DvzBufferType type, 
 
 
 /*************************************************************************************************/
+/*  Creation of buffer regions and images                                                        */
+/*************************************************************************************************/
+
+static DvzBufferRegions
+_standalone_buffer_regions(DvzGpu* gpu, DvzBufferType type, VkDeviceSize size)
+{
+    ASSERT(gpu != NULL);
+    DvzBuffer* buffer = (DvzBuffer*)calloc(1, sizeof(DvzBuffer));
+    *buffer = dvz_buffer(gpu);
+    if (type == DVZ_BUFFER_TYPE_STAGING)
+        _make_staging_buffer(buffer, size);
+    else if (type == DVZ_BUFFER_TYPE_VERTEX)
+        _make_vertex_buffer(buffer, size);
+    DvzBufferRegions stg = dvz_buffer_regions(buffer, 1, 0, size, 0);
+    return stg;
+}
+
+static void _destroy_buffer_regions(DvzBufferRegions br)
+{
+    dvz_buffer_destroy(br.buffer);
+    FREE(br.buffer);
+}
+
+
+
+static VkImageType _image_type_from_dims(DvzTexDims dims)
+{
+    switch (dims)
+    {
+    case DVZ_TEX_1D:
+        return VK_IMAGE_TYPE_1D;
+        break;
+    case DVZ_TEX_2D:
+        return VK_IMAGE_TYPE_2D;
+        break;
+    case DVZ_TEX_3D:
+        return VK_IMAGE_TYPE_3D;
+        break;
+
+    default:
+        break;
+    }
+    log_error("invalid image dimensions %d", dims);
+    return VK_IMAGE_TYPE_2D;
+}
+
+static void _transition_image(DvzImages* img)
+{
+    ASSERT(img != NULL);
+
+    DvzGpu* gpu = img->gpu;
+    ASSERT(gpu != NULL);
+
+    DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
+    DvzCommands* cmds = &cmds_;
+
+    dvz_cmd_reset(cmds, 0);
+    dvz_cmd_begin(cmds, 0);
+
+    DvzBarrier barrier = dvz_barrier(gpu);
+    dvz_barrier_stages(&barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    dvz_barrier_images(&barrier, img);
+    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_UNDEFINED, img->layout);
+    dvz_barrier_images_access(&barrier, 0, VK_ACCESS_TRANSFER_READ_BIT);
+    dvz_cmd_barrier(cmds, 0, &barrier);
+
+    dvz_cmd_end(cmds, 0);
+    dvz_cmd_submit_sync(cmds, 0);
+}
+
+static DvzImages* _standalone_image(DvzGpu* gpu, DvzTexDims dims, uvec3 shape, VkFormat format)
+{
+    ASSERT(gpu != NULL);
+    ASSERT(1 <= dims && dims <= 3);
+    log_debug(
+        "creating %dD image with shape %dx%dx%d and format %d", //
+        dims, shape[0], shape[1], shape[2], format);
+
+    DvzImages* img = calloc(1, sizeof(DvzImages));
+
+    *img = dvz_images(gpu, _image_type_from_dims(dims), 1);
+
+    // Create the image.
+    dvz_images_format(img, format);
+    dvz_images_size(img, shape[0], shape[1], shape[2]);
+    dvz_images_tiling(img, VK_IMAGE_TILING_OPTIMAL);
+    dvz_images_layout(img, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    dvz_images_usage(
+        img,                                                      //
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | //
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    dvz_images_memory(img, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    dvz_images_queue_access(img, DVZ_DEFAULT_QUEUE_TRANSFER);
+    dvz_images_queue_access(img, DVZ_DEFAULT_QUEUE_COMPUTE);
+    dvz_images_queue_access(img, DVZ_DEFAULT_QUEUE_RENDER);
+    dvz_images_create(img);
+
+    // Immediately transition the image to its layout.
+    _transition_image(img);
+
+    return img;
+}
+
+static void _destroy_image(DvzImages* img)
+{
+    ASSERT(img);
+    dvz_images_destroy(img);
+    FREE(img);
+}
+
+
+
+/*************************************************************************************************/
 /*  Common resources                                                                             */
 /*************************************************************************************************/
 

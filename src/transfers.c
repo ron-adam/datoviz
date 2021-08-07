@@ -1,6 +1,7 @@
 #include "../include/datoviz/transfers.h"
 #include "../include/datoviz/canvas.h"
 #include "../include/datoviz/fifo.h"
+#include "resources_utils.h"
 #include "transfer_utils.h"
 
 
@@ -144,10 +145,13 @@ void dvz_upload_buffer(
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
+
     log_debug("upload %s to a buffer", pretty_size(size));
 
-    // TODO
-    DvzBufferRegions stg = {0}; // dvz_ctx_buffers(transfers, DVZ_BUFFER_TYPE_STAGING, 1, size);
+    // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&transfers->deq, br, offset, stg, 0, size, data);
@@ -155,6 +159,9 @@ void dvz_upload_buffer(
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
     dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
+
+    // Destroy the transient staging buffer.
+    _destroy_buffer_regions(stg);
 }
 
 
@@ -168,10 +175,13 @@ void dvz_download_buffer(
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
+
     log_debug("download %s from a buffer", pretty_size(size));
 
-    // TODO
-    DvzBufferRegions stg = {0}; // dvz_ctx_buffers(transfers, DVZ_BUFFER_TYPE_STAGING, 1, size);
+    // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_download(&transfers->deq, br, offset, stg, 0, size, data);
@@ -183,6 +193,9 @@ void dvz_download_buffer(
     // Wait until the download is done.
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
     dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_EV);
+
+    // Destroy the transient staging buffer.
+    _destroy_buffer_regions(stg);
 }
 
 
