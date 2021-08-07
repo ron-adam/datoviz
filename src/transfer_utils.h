@@ -34,14 +34,14 @@ static void _texture_shape(DvzTexture* texture, uvec3 shape)
 /*  New transfers                                                                                */
 /*************************************************************************************************/
 
-// Process for the deq proc #0, which encompasses the two queues UPLOAD and DOWNLOAD.
-static void* _thread_transfers(void* user_data)
-{
-    DvzContext* ctx = (DvzContext*)user_data;
-    ASSERT(ctx != NULL);
-    dvz_deq_dequeue_loop(&ctx->deq, DVZ_TRANSFER_PROC_UD);
-    return NULL;
-}
+// // Process for the deq proc #0, which encompasses the two queues UPLOAD and DOWNLOAD.
+// static void* _thread_transfers(void* user_data)
+// {
+//     DvzContext* ctx = (DvzContext*)user_data;
+//     ASSERT(ctx != NULL);
+//     dvz_deq_dequeue_loop(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+//     return NULL;
+// }
 
 
 

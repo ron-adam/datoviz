@@ -166,6 +166,7 @@ struct DvzContext
 
     DvzContainer computes;
 
+    // TO REMOVE
     // Data transfers.
     DvzDeq deq;
     DvzThread thread; // transfer thread

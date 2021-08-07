@@ -7,10 +7,120 @@
 
 
 
-// WARNING: these functions are convenient because they return immediately, but they are not
+/*************************************************************************************************/
+/*  Utils                                                                                        */
+/*************************************************************************************************/
+
+// Process for the deq proc #0, which encompasses the two queues UPLOAD and DOWNLOAD.
+static void* _thread_transfers(void* user_data)
+{
+    DvzContext* ctx = (DvzContext*)user_data;
+    ASSERT(ctx != NULL);
+    dvz_deq_dequeue_loop(&ctx->deq, DVZ_TRANSFER_PROC_UD);
+    return NULL;
+}
+
+
+
+static void _create_transfers(DvzTransfers* transfers)
+{
+    ASSERT(transfers != NULL);
+    transfers->deq = dvz_deq(4);
+
+    // Three producer/consumer pairs (deq processes).
+    dvz_deq_proc(
+        &transfers->deq, DVZ_TRANSFER_PROC_UD, //
+        2, (uint32_t[]){DVZ_TRANSFER_DEQ_UL, DVZ_TRANSFER_DEQ_DL});
+    dvz_deq_proc(
+        &transfers->deq, DVZ_TRANSFER_PROC_CPY, //
+        1, (uint32_t[]){DVZ_TRANSFER_DEQ_COPY});
+    dvz_deq_proc(
+        &transfers->deq, DVZ_TRANSFER_PROC_EV, //
+        1, (uint32_t[]){DVZ_TRANSFER_DEQ_EV});
+
+    // Transfer deq callbacks.
+    // Uploads.
+    dvz_deq_callback(
+        &transfers->deq, DVZ_TRANSFER_DEQ_UL, //
+        DVZ_TRANSFER_BUFFER_UPLOAD,           //
+        _process_buffer_upload, transfers);
+
+    // Downloads.
+    dvz_deq_callback(
+        &transfers->deq, DVZ_TRANSFER_DEQ_DL, //
+        DVZ_TRANSFER_BUFFER_DOWNLOAD,         //
+        _process_buffer_download, transfers);
+
+    // Copies.
+    dvz_deq_callback(
+        &transfers->deq, DVZ_TRANSFER_DEQ_COPY, //
+        DVZ_TRANSFER_BUFFER_COPY,               //
+        _process_buffer_copy, transfers);
+
+    dvz_deq_callback(
+        &transfers->deq, DVZ_TRANSFER_DEQ_COPY, //
+        DVZ_TRANSFER_TEXTURE_COPY,              //
+        _process_texture_copy, transfers);
+
+    // Buffer/texture copies.
+    dvz_deq_callback(
+        &transfers->deq, DVZ_TRANSFER_DEQ_COPY, //
+        DVZ_TRANSFER_TEXTURE_BUFFER,            //
+        _process_texture_buffer, transfers);
+
+    dvz_deq_callback(
+        &transfers->deq, DVZ_TRANSFER_DEQ_COPY, //
+        DVZ_TRANSFER_BUFFER_TEXTURE,            //
+        _process_buffer_texture, transfers);
+
+    // Transfer thread.
+    transfers->thread = dvz_thread(_thread_transfers, transfers);
+}
+
+
+
+/*************************************************************************************************/
+/*  Transfers struct                                                                             */
+/*************************************************************************************************/
+
+DvzTransfers* dvz_transfers(DvzGpu* gpu)
+{
+    ASSERT(gpu != NULL);
+    ASSERT(dvz_obj_is_created(&gpu->obj));
+    log_trace("creating transfers");
+
+    DvzTransfers* transfers = calloc(1, sizeof(DvzTransfers));
+    ASSERT(transfers != NULL);
+
+    // Create the transfers.
+    transfers->gpu = gpu;
+    _create_transfers(transfers);
+    dvz_obj_created(&transfers->obj);
+
+    gpu->transfers = transfers;
+    return transfers;
+}
+
+
+
+void dvz_transfers_destroy(DvzTransfers* transfers)
+{
+    ASSERT(transfers != NULL);
+
+    // Enqueue a STOP task to stop the UL and DL threads.
+    dvz_deq_enqueue(&transfers->deq, DVZ_TRANSFER_DEQ_UL, 0, NULL);
+    dvz_deq_enqueue(&transfers->deq, DVZ_TRANSFER_DEQ_DL, 0, NULL);
+
+    // Join the UL and DL threads.
+    dvz_thread_join(&transfers->thread);
+
+    dvz_deq_destroy(&transfers->deq);
+}
+
+
+
+// WARNING: the functions below are convenient because they return immediately, but they are not
 // optimally efficient because of the use of hard GPU synchronization primitives.
-
-
 
 /*************************************************************************************************/
 /*  Buffer transfers                                                                             */

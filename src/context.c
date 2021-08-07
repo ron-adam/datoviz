@@ -396,76 +396,76 @@ void dvz_gpu_default(DvzGpu* gpu, DvzWindow* window)
 /*  Context                                                                                      */
 /*************************************************************************************************/
 
-static void _create_transfers(DvzContext* context)
-{
-    ASSERT(context != NULL);
-    context->deq = dvz_deq(4);
+// static void _create_transfers(DvzContext* context)
+// {
+//     ASSERT(context != NULL);
+//     context->deq = dvz_deq(4);
 
-    // Three producer/consumer pairs (deq processes).
-    dvz_deq_proc(
-        &context->deq, DVZ_TRANSFER_PROC_UD, //
-        2, (uint32_t[]){DVZ_TRANSFER_DEQ_UL, DVZ_TRANSFER_DEQ_DL});
-    dvz_deq_proc(
-        &context->deq, DVZ_TRANSFER_PROC_CPY, //
-        1, (uint32_t[]){DVZ_TRANSFER_DEQ_COPY});
-    dvz_deq_proc(
-        &context->deq, DVZ_TRANSFER_PROC_EV, //
-        1, (uint32_t[]){DVZ_TRANSFER_DEQ_EV});
+//     // Three producer/consumer pairs (deq processes).
+//     dvz_deq_proc(
+//         &context->deq, DVZ_TRANSFER_PROC_UD, //
+//         2, (uint32_t[]){DVZ_TRANSFER_DEQ_UL, DVZ_TRANSFER_DEQ_DL});
+//     dvz_deq_proc(
+//         &context->deq, DVZ_TRANSFER_PROC_CPY, //
+//         1, (uint32_t[]){DVZ_TRANSFER_DEQ_COPY});
+//     dvz_deq_proc(
+//         &context->deq, DVZ_TRANSFER_PROC_EV, //
+//         1, (uint32_t[]){DVZ_TRANSFER_DEQ_EV});
 
-    // Transfer deq callbacks.
-    // Uploads.
-    dvz_deq_callback(
-        &context->deq, DVZ_TRANSFER_DEQ_UL, //
-        DVZ_TRANSFER_BUFFER_UPLOAD,         //
-        _process_buffer_upload, context);
+//     // Transfer deq callbacks.
+//     // Uploads.
+//     dvz_deq_callback(
+//         &context->deq, DVZ_TRANSFER_DEQ_UL, //
+//         DVZ_TRANSFER_BUFFER_UPLOAD,         //
+//         _process_buffer_upload, context);
 
-    // Downloads.
-    dvz_deq_callback(
-        &context->deq, DVZ_TRANSFER_DEQ_DL, //
-        DVZ_TRANSFER_BUFFER_DOWNLOAD,       //
-        _process_buffer_download, context);
+//     // Downloads.
+//     dvz_deq_callback(
+//         &context->deq, DVZ_TRANSFER_DEQ_DL, //
+//         DVZ_TRANSFER_BUFFER_DOWNLOAD,       //
+//         _process_buffer_download, context);
 
-    // Copies.
-    dvz_deq_callback(
-        &context->deq, DVZ_TRANSFER_DEQ_COPY, //
-        DVZ_TRANSFER_BUFFER_COPY,             //
-        _process_buffer_copy, context);
+//     // Copies.
+//     dvz_deq_callback(
+//         &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+//         DVZ_TRANSFER_BUFFER_COPY,             //
+//         _process_buffer_copy, context);
 
-    dvz_deq_callback(
-        &context->deq, DVZ_TRANSFER_DEQ_COPY, //
-        DVZ_TRANSFER_TEXTURE_COPY,            //
-        _process_texture_copy, context);
+//     dvz_deq_callback(
+//         &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+//         DVZ_TRANSFER_TEXTURE_COPY,            //
+//         _process_texture_copy, context);
 
-    // Buffer/texture copies.
-    dvz_deq_callback(
-        &context->deq, DVZ_TRANSFER_DEQ_COPY, //
-        DVZ_TRANSFER_TEXTURE_BUFFER,          //
-        _process_texture_buffer, context);
+//     // Buffer/texture copies.
+//     dvz_deq_callback(
+//         &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+//         DVZ_TRANSFER_TEXTURE_BUFFER,          //
+//         _process_texture_buffer, context);
 
-    dvz_deq_callback(
-        &context->deq, DVZ_TRANSFER_DEQ_COPY, //
-        DVZ_TRANSFER_BUFFER_TEXTURE,          //
-        _process_buffer_texture, context);
+//     dvz_deq_callback(
+//         &context->deq, DVZ_TRANSFER_DEQ_COPY, //
+//         DVZ_TRANSFER_BUFFER_TEXTURE,          //
+//         _process_buffer_texture, context);
 
-    // Transfer thread.
-    context->thread = dvz_thread(_thread_transfers, context);
-}
+//     // Transfer thread.
+//     context->thread = dvz_thread(_thread_transfers, context);
+// }
 
 
 
-static void _destroy_transfers(DvzContext* context)
-{
-    ASSERT(context != NULL);
+// static void _destroy_transfers(DvzContext* context)
+// {
+//     ASSERT(context != NULL);
 
-    // Enqueue a STOP task to stop the UL and DL threads.
-    dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_UL, 0, NULL);
-    dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_DL, 0, NULL);
+//     // Enqueue a STOP task to stop the UL and DL threads.
+//     dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_UL, 0, NULL);
+//     dvz_deq_enqueue(&context->deq, DVZ_TRANSFER_DEQ_DL, 0, NULL);
 
-    // Join the UL and DL threads.
-    dvz_thread_join(&context->thread);
+//     // Join the UL and DL threads.
+//     dvz_thread_join(&context->thread);
 
-    dvz_deq_destroy(&context->deq);
-}
+//     dvz_deq_destroy(&context->deq);
+// }
 
 
 
@@ -483,7 +483,7 @@ DvzContext* dvz_context(DvzGpu* gpu)
     _create_resources(context);
 
     // Transfer dequeues.
-    _create_transfers(context);
+    // _create_transfers(context);
 
     // HACK: the vklite module makes the assumption that the queue #0 supports transfers.
     // Here, in the context, we make the same assumption. The first queue is reserved to transfers.
@@ -545,7 +545,7 @@ void dvz_context_destroy(DvzContext* context)
     _destroy_resources(context);
 
     // Destroy the transfers queue.
-    _destroy_transfers(context);
+    // _destroy_transfers(context);
 
     // Destroy the DvzDat allocators.
     for (uint32_t i = 0; i < DVZ_BUFFER_TYPE_COUNT; i++)
@@ -643,6 +643,7 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
 void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data)
 {
     ASSERT(dat != NULL);
+    // TODO
     // asynchronous function
     // if staging
     //     allocate staging buffer if there isn't already one
@@ -657,6 +658,7 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
 void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data)
 {
     ASSERT(dat != NULL);
+    // TODO
     // asynchronous function
 }
 
@@ -665,7 +667,9 @@ void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data)
 void dvz_dat_destroy(DvzDat* dat)
 {
     ASSERT(dat != NULL);
+    // TODO
     // free the region in the buffer
+    // dvz_alloc_free();
 }
 
 
@@ -673,6 +677,7 @@ void dvz_dat_destroy(DvzDat* dat)
 DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, int flags)
 {
     ASSERT(ctx != NULL);
+    // TODDO
     // create a new image
 
     return NULL;
@@ -683,6 +688,7 @@ DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, int flags)
 void dvz_tex_upload(DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
 {
     ASSERT(tex != NULL);
+    // TODO
 }
 
 
@@ -690,17 +696,22 @@ void dvz_tex_upload(DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, v
 void dvz_tex_download(DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data)
 {
     ASSERT(tex != NULL);
+    // TODO
 }
 
 
 
-void dvz_tex_destroy(DvzTex* tex) { ASSERT(tex != NULL); }
+void dvz_tex_destroy(DvzTex* tex)
+{
+    ASSERT(tex != NULL); // TODO
+}
 
 
 
 void dvz_ctx_clear(DvzContext* ctx)
 {
     ASSERT(ctx != NULL);
+    // TODO
     // free all buffers, delete all images
 }
 

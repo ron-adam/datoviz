@@ -6,6 +6,7 @@
 #define DVZ_TRANSFERS_HEADER
 
 // #include "../include/datoviz/context.h"
+#include "../include/datoviz/fifo.h"
 #include "../include/datoviz/vklite.h"
 
 
@@ -58,6 +59,7 @@ typedef struct DvzTransferBufferTexture DvzTransferBufferTexture;
 typedef struct DvzTransferTextureCopy DvzTransferTextureCopy;
 typedef struct DvzTransferDownload DvzTransferDownload;
 typedef union DvzTransferUnion DvzTransferUnion;
+typedef struct DvzTransfers DvzTransfers;
 
 
 
@@ -92,7 +94,6 @@ struct DvzTransferTextureCopy
 
 
 
-// TODO: merge the 2 structs below
 struct DvzTransferBufferTexture
 {
     DvzTexture* tex;
@@ -128,6 +129,27 @@ struct DvzTransfer
     DvzDataTransferType type;
     DvzTransferUnion u;
 };
+
+
+
+struct DvzTransfers
+{
+    DvzObject obj;
+    DvzGpu* gpu;
+
+    DvzDeq deq;       // transfer dequeues
+    DvzThread thread; // transfer thread
+};
+
+
+
+/*************************************************************************************************/
+/*  Transfers                                                                                    */
+/*************************************************************************************************/
+
+// TODO: docstrings
+
+DVZ_EXPORT DvzTransfers* dvz_transfers(DvzGpu* gpu);
 
 
 
@@ -174,6 +196,8 @@ DVZ_EXPORT void dvz_download_buffer(
 DVZ_EXPORT void dvz_copy_buffer(
     DvzContext* ctx, DvzBufferRegions src, VkDeviceSize src_offset, //
     DvzBufferRegions dst, VkDeviceSize dst_offset, VkDeviceSize size);
+
+
 
 /**
  * Upload data to a texture.

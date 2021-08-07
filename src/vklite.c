@@ -213,6 +213,14 @@ void dvz_gpu_destroy(DvzGpu* gpu)
         gpu->context = NULL;
     }
 
+    // Destroy the transfers.
+    if (gpu->transfers != NULL)
+    {
+        dvz_transfers_destroy(gpu->transfers);
+        FREE(gpu->transfers);
+        gpu->transfers = NULL;
+    }
+
     // Destroy the command pools.
     log_trace("GPU destroy %d command pool(s)", gpu->queues.queue_family_count);
     for (uint32_t i = 0; i < gpu->queues.queue_family_count; i++)

@@ -105,6 +105,7 @@ typedef struct DvzSubmit DvzSubmit;
 // Forward declarations.
 typedef struct DvzCanvas DvzCanvas;
 typedef struct DvzContext DvzContext;
+typedef struct DvzTransfers DvzTransfers;
 typedef struct DvzTexture DvzTexture;
 typedef struct DvzGraphicsData DvzGraphicsData;
 
@@ -360,6 +361,7 @@ struct DvzGpu
     VmaAllocator allocator;
 
     DvzContext* context;
+    DvzTransfers* transfers;
 };
 
 
@@ -554,7 +556,7 @@ struct DvzCompute
 {
     DvzObject obj;
     DvzGpu* gpu;
-    DvzContext* context;
+    // DvzContext* context;
 
     char shader_path[1024];
     const char* shader_code;
@@ -2485,7 +2487,7 @@ DVZ_EXPORT void dvz_cmd_push(
 
 
 /*************************************************************************************************/
-/*  Context                                                                                      */
+/*  Context and transfers                                                                        */
 /*************************************************************************************************/
 
 /**
@@ -2494,6 +2496,13 @@ DVZ_EXPORT void dvz_cmd_push(
  * @param context the context
  */
 DVZ_EXPORT void dvz_context_destroy(DvzContext* context);
+
+/**
+ * Destroy a transfers object.
+ *
+ * @param transfers the DvzTransfers object
+ */
+DVZ_EXPORT void dvz_transfers_destroy(DvzTransfers* transfers);
 
 
 
