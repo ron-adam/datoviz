@@ -74,7 +74,7 @@ typedef struct DvzDat DvzDat;
 typedef struct DvzTex DvzTex;
 
 typedef struct DvzFontAtlas DvzFontAtlas;
-typedef struct DvzColorTexture DvzColorTexture;
+typedef struct DvzColormapAtlas DvzColormapAtlas;
 
 typedef struct DvzResources DvzResources;
 
@@ -116,18 +116,18 @@ struct DvzFontAtlas
     const char* name;
     uint32_t width, height;
     uint32_t cols, rows;
-    uint8_t* font_texture;
+    uint8_t* font_data;
     float glyph_width, glyph_height;
     const char* font_str;
-    DvzTex* tex;
+    DvzImages* img;
 };
 
 
 
-struct DvzColorTexture
+struct DvzColormapAtlas
 {
     unsigned char* arr;
-    DvzTex* tex;
+    DvzImages* img;
 };
 
 
@@ -150,8 +150,8 @@ struct DvzResources
 
     // Common resources.
     DvzFontAtlas font_atlas;
-    DvzColorTexture color_texture;
-    DvzTex* transfer_tex; // Default linear 1D texture
+    DvzColormapAtlas cmap_atlas;
+    DvzImages* transfer_img; // Default linear 1D texture
 };
 
 

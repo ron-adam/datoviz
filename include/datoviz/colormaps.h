@@ -330,7 +330,7 @@ static unsigned char* _load_colormaps()
     if (DVZ_COLORMAP_ARRAY != NULL)
         return DVZ_COLORMAP_ARRAY;
     unsigned long size = 0;
-    DVZ_COLORMAP_ARRAY = dvz_resource_texture("color_texture", &size);
+    DVZ_COLORMAP_ARRAY = dvz_resource_texture("cmap_atlas", &size);
     ASSERT(DVZ_COLORMAP_ARRAY != NULL);
     ASSERT(size > 0);
     return DVZ_COLORMAP_ARRAY;

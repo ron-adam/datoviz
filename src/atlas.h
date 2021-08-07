@@ -5,8 +5,9 @@
 #ifndef DVZ_FONT_ATLAS_HEADER
 #define DVZ_FONT_ATLAS_HEADER
 
-#include "common.h"
-#include "context.h"
+#include "../include/datoviz/common.h"
+#include "../include/datoviz/context.h"
+#include "resources_utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 BEGIN_INCL_NO_WARN
@@ -51,26 +52,25 @@ static void _font_atlas_glyph_size(DvzFontAtlas* atlas, float size, vec2 glyph_s
 
 
 
-static DvzTex* _font_texture(DvzContext* ctx, DvzFontAtlas* atlas)
+static DvzImages* _font_image(DvzContext* ctx, DvzFontAtlas* atlas)
 {
-    return NULL;
+    ASSERT(ctx != NULL);
 
-    // // TODO
-    // ASSERT(ctx != NULL);
-    // ASSERT(atlas != NULL);
-    // ASSERT(atlas->font_texture != NULL);
+    DvzGpu* gpu = ctx->gpu;
+    ASSERT(gpu != NULL);
 
-    // uvec3 shape = {(uint32_t)atlas->width, (uint32_t)atlas->height, 1};
-    // DvzTex* texture = dvz_ctx_texture(ctx, 2, shape, VK_FORMAT_R8G8B8A8_UNORM);
-    // // NOTE: the font texture must have LINEAR filter! otherwise no antialiasing
-    // dvz_texture_filter(texture, DVZ_FILTER_MAG, VK_FILTER_LINEAR);
-    // dvz_texture_filter(texture, DVZ_FILTER_MIN, VK_FILTER_LINEAR);
+    ASSERT(atlas != NULL);
+    ASSERT(atlas->font_data != NULL);
 
-    // dvz_upload_texture(
-    //     ctx, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET,
-    //     (uint32_t)(atlas->width * atlas->height * 4), atlas->font_texture);
+    uvec3 shape = {(uint32_t)atlas->width, (uint32_t)atlas->height, 1};
 
-    // return texture;
+    // NOTE: the font texture must have LINEAR filter! otherwise no antialiasing
+    DvzImages* img = _standalone_image(gpu, DVZ_TEX_2D, shape, VK_FORMAT_R8G8B8A8_UNORM);
+    VkDeviceSize size = atlas->width * atlas->height * 4;
+    dvz_upload_image(
+        &ctx->transfers, img, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, atlas->font_data);
+
+    return img;
 }
 
 
@@ -85,7 +85,7 @@ static DvzFontAtlas dvz_font_atlas(DvzContext* ctx)
     ASSERT(file_size > 0);
     ASSERT(buffer != NULL);
 
-    atlas.font_texture =
+    atlas.font_data =
         stbi_load_from_memory(buffer, file_size, &width, &height, &depth, STBI_rgb_alpha);
     ASSERT(width > 0);
     ASSERT(height > 0);
@@ -102,8 +102,7 @@ static DvzFontAtlas dvz_font_atlas(DvzContext* ctx)
     atlas.glyph_width = atlas.width / (float)atlas.cols;
     atlas.glyph_height = atlas.height / (float)atlas.rows;
 
-    // TODO
-    // atlas.texture = _font_texture(ctx, &atlas);
+    atlas.img = _font_image(ctx, &atlas);
 
     return atlas;
 }
@@ -113,8 +112,8 @@ static DvzFontAtlas dvz_font_atlas(DvzContext* ctx)
 static void dvz_font_atlas_destroy(DvzFontAtlas* atlas)
 {
     ASSERT(atlas != NULL);
-    ASSERT(atlas->font_texture != NULL);
-    stbi_image_free(atlas->font_texture);
+    ASSERT(atlas->font_data != NULL);
+    stbi_image_free(atlas->font_data);
 }
 
 

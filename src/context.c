@@ -1,6 +1,6 @@
 #include "../include/datoviz/context.h"
-#include "../include/datoviz/atlas.h"
 #include "allocs_utils.h"
+#include "atlas.h"
 #include "context_utils.h"
 #include "resources_utils.h"
 #include "transfer_utils.h"

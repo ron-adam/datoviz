@@ -923,7 +923,7 @@ int test_graphics_image_cmap(TestContext* tc)
     // Graphics bindings.
     _graphics_bindings(&tg);
     _graphics_params(&tg, sizeof(DvzGraphicsImageCmapParams), &params);
-    dvz_bindings_texture(&tg.bindings, DVZ_USER_BINDING + 1, context->color_texture.texture);
+    dvz_bindings_texture(&tg.bindings, DVZ_USER_BINDING + 1, context->cmap_atlas.texture);
     dvz_bindings_texture(&tg.bindings, DVZ_USER_BINDING + 2, texture);
 
     // Run the test.
@@ -981,7 +981,7 @@ int test_graphics_volume_slice(TestContext* tc)
     // Graphics bindings.
     _graphics_bindings(&tg);
     _graphics_params(&tg, sizeof(DvzGraphicsVolumeSliceParams), &params);
-    dvz_bindings_texture(&tg.bindings, DVZ_USER_BINDING + 1, context->color_texture.texture);
+    dvz_bindings_texture(&tg.bindings, DVZ_USER_BINDING + 1, context->cmap_atlas.texture);
     dvz_bindings_texture(&tg.bindings, DVZ_USER_BINDING + 2, texture);
 
     // Arcball rotation.

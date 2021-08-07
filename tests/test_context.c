@@ -16,6 +16,7 @@ int test_resources_1(TestContext* tc)
     ASSERT(ctx != NULL);
 
     DvzGpu* gpu = ctx->gpu;
+    ASSERT(gpu != NULL);
 
     DvzResources* res = &ctx->res;
     ASSERT(res != NULL);

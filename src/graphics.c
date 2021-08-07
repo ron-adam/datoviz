@@ -1,8 +1,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../include/datoviz/graphics.h"
-#include "../include/datoviz/atlas.h"
 #include "../include/datoviz/canvas.h"
 #include "../include/datoviz/context.h"
+#include "atlas.h"
 
 
 /*************************************************************************************************/

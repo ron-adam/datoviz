@@ -217,7 +217,7 @@ static DvzTexture* _default_source_texture(DvzContext* ctx, DvzSourceKind kind)
         tex = ctx->transfer_texture;
         break;
     case 2:
-        tex = ctx->color_texture.texture;
+        tex = ctx->cmap_atlas.texture;
         break;
     case 3:
         log_warn("not implemented yet: default 3D texture");

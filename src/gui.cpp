@@ -194,7 +194,7 @@ static void _imgui_context(DvzCanvas* canvas)
 
     // Retrieve the pointer to the color texture.
     log_debug("creating the Dear ImGui context, with the colormap texture");
-    DvzTexture* texture = canvas->gpu->context->color_texture.texture;
+    DvzTexture* texture = canvas->gpu->context->cmap_atlas.texture;
 
     ASSERT(texture != NULL);
     ASSERT(texture->sampler != NULL);

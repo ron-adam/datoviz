@@ -325,7 +325,7 @@ set(path_colortex "${CMAKE_BINARY_DIR}/_colortex.c")
 add_custom_command(
     OUTPUT ${path_colortex}
     COMMAND ${CMAKE_COMMAND}
-    -D DIR="${CMAKE_SOURCE_DIR}/data/textures/color_texture.img"
+    -D DIR="${CMAKE_SOURCE_DIR}/data/textures/cmap_atlas.img"
     -D PREFIX="texture"
     -D OUTPUT=${path_colortex}
     -P "${CMAKE_SOURCE_DIR}/cmake/embed_resources.cmake"

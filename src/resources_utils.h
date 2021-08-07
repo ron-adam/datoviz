@@ -384,14 +384,14 @@ static void _default_resources(DvzResources* res)
     // context->font_atlas = dvz_font_atlas(context);
 
     // // Color texture.
-    // context->color_texture.arr = _load_colormaps();
-    // context->color_texture.texture =
+    // context->cmap_atlas.arr = _load_colormaps();
+    // context->cmap_atlas.texture =
     //     dvz_ctx_texture(context, 2, (uvec3){256, 256, 1}, VK_FORMAT_R8G8B8A8_UNORM);
     // dvz_texture_address_mode(
-    //     context->color_texture.texture, DVZ_TEXTURE_AXIS_U,
+    //     context->cmap_atlas.texture, DVZ_TEXTURE_AXIS_U,
     //     VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
     // dvz_texture_address_mode(
-    //     context->color_texture.texture, DVZ_TEXTURE_AXIS_V,
+    //     context->cmap_atlas.texture, DVZ_TEXTURE_AXIS_V,
     //     VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
     // dvz_context_colormap(context);
 
