@@ -90,6 +90,9 @@ int test_transfers_buffer_large(TestContext* tc)
     DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
 
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
+
     uint64_t size = 32 * 1024 * 1024; // MB
     uint8_t* data = calloc(size, 1);
     data[0] = 1;
@@ -99,39 +102,35 @@ int test_transfers_buffer_large(TestContext* tc)
     dvz_deq_callback(
         &transfers->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_DOWNLOAD_DONE, _dl_done, &res);
 
-    // // Allocate a staging buffer region.
-    // // TODO
-    // DvzBuffer* staging = NULL;
-    // // (DvzBuffer*)dvz_container_get(&transfers->buffers, DVZ_BUFFER_TYPE_STAGING);
-    // dvz_buffer_resize(staging, size);
-    // DvzBufferRegions stg = dvz_buffer_regions(staging, 1, 0, size, 0);
+    // Allocate a staging buffer region.
+    DvzBufferRegions stg = _staging_buffer(gpu, size);
 
-    // // Enqueue an upload transfer task.
-    // _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data);
+    // Enqueue an upload transfer task.
+    _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data);
 
-    // // Wait for the transfer thread to process both transfer tasks.
-    // dvz_app_wait(tc->app);
+    // Wait for the transfer thread to process both transfer tasks.
+    dvz_app_wait(tc->app);
 
-    // // Enqueue a download transfer task.
-    // uint8_t* data2 = calloc(size, 1);
-    // _enqueue_buffer_download(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data2);
-    // // This download task will be processed by the background transfer thread. At the end, it
-    // will
-    // // enqueue a DOWNLOAD_DONE task in the EV queue.
-    // AT(res == 0);
+    // Enqueue a download transfer task.
+    uint8_t* data2 = calloc(size, 1);
+    _enqueue_buffer_download(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data2);
+    // This download task will be processed by the background transfer thread. At the end, it
+    // will enqueue a DOWNLOAD_DONE task in the EV queue.
+    AT(res == 0);
 
-    // // Wait until the download_done event has been raised, dequeue it, and finish the test.
-    // dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
+    // Wait until the download_done event has been raised, dequeue it, and finish the test.
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
 
-    // // Check that the copy worked.
-    // AT(data2[0] == 1);
-    // AT(data2[size - 1] == 2);
-    // AT(memcmp(data2, data, size) == 0); // SHOULD FAIL
-    // AT(res == 42);
+    // Check that the copy worked.
+    AT(data2[0] == 1);
+    AT(data2[size - 1] == 2);
+    AT(memcmp(data2, data, size) == 0); // SHOULD FAIL
+    AT(res == 42);
 
-    // FREE(data);
-    // FREE(data2);
+    FREE(data);
+    FREE(data2);
 
+    dvz_buffer_destroy(stg.buffer);
     return 0;
 }
 
