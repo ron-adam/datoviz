@@ -1,7 +1,7 @@
 #include "../include/datoviz/context.h"
 #include "allocs_utils.h"
-#include "atlas.h"
 #include "context_utils.h"
+#include "font_atlas.h"
 #include "resources_utils.h"
 #include "transfer_utils.h"
 #include "vklite_utils.h"
