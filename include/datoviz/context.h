@@ -157,9 +157,12 @@ struct DvzContext
     DvzGpu* gpu;
 
     DvzContainer buffers;
+    DvzContainer dats;
+
     DvzContainer images;
+    DvzContainer textures; // TODO: rename to texs?
     DvzContainer samplers;
-    DvzContainer textures;
+
     DvzContainer computes;
 
     // Data transfers.
@@ -228,6 +231,7 @@ DVZ_EXPORT DvzDat* dvz_dat(DvzContext* ctx, DvzDatType type, VkDeviceSize size, 
 // allocate a buffer region
 
 DVZ_EXPORT void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data);
+// asynchronous function
 // if staging
 //     allocate staging buffer if there isn't already one
 // enqueue a buffer upload transfer
@@ -236,9 +240,12 @@ DVZ_EXPORT void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize si
 //     dequeue all pending copies, with hard gpu sync
 
 DVZ_EXPORT void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data);
+// asynchronous function
 
-DVZ_EXPORT void dvz_dat_free(DvzDat* dat);
+DVZ_EXPORT void dvz_dat_destroy(DvzDat* dat);
 // free the region in the buffer
+
+
 
 DVZ_EXPORT DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, int flags);
 // create a new image
