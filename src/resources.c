@@ -39,8 +39,9 @@ void dvz_resources(DvzGpu* gpu, DvzResources* res)
 DvzImages* dvz_resources_image(DvzResources* res, DvzTexDims dims, uvec3 shape, VkFormat format)
 {
     ASSERT(res != NULL);
+    ASSERT(res->gpu != NULL);
     DvzImages* img = (DvzImages*)dvz_container_alloc(&res->images);
-
+    _make_image(res->gpu, img, dims, shape, format);
     return img;
 }
 
@@ -49,8 +50,7 @@ DvzImages* dvz_resources_image(DvzResources* res, DvzTexDims dims, uvec3 shape, 
 DvzBuffer* dvz_resources_buffer(DvzResources* res, DvzBufferType type, VkDeviceSize size)
 {
     ASSERT(res != NULL);
-    DvzBuffer* buffer = (DvzBuffer*)dvz_container_alloc(&res->buffers);
-
+    DvzBuffer* buffer = _get_standalone_buffer(res, type, size);
     return buffer;
 }
 
@@ -60,7 +60,13 @@ DvzSampler* dvz_resources_sampler(DvzResources* res, VkFilter filter, VkSamplerA
 {
     ASSERT(res != NULL);
     DvzSampler* sampler = (DvzSampler*)dvz_container_alloc(&res->samplers);
-
+    *sampler = dvz_sampler(res->gpu);
+    dvz_sampler_min_filter(sampler, VK_FILTER_NEAREST);
+    dvz_sampler_mag_filter(sampler, VK_FILTER_NEAREST);
+    dvz_sampler_address_mode(sampler, DVZ_SAMPLER_AXIS_U, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    dvz_sampler_address_mode(sampler, DVZ_SAMPLER_AXIS_V, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    dvz_sampler_address_mode(sampler, DVZ_SAMPLER_AXIS_V, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+    dvz_sampler_create(sampler);
     return sampler;
 }
 
@@ -71,7 +77,7 @@ DvzCompute* dvz_resources_compute(DvzResources* res, const char* shader_path)
     ASSERT(res != NULL);
     ASSERT(shader_path != NULL);
     DvzCompute* compute = (DvzCompute*)dvz_container_alloc(&res->computes);
-
+    *compute = dvz_compute(res->gpu, shader_path);
     return compute;
 }
 

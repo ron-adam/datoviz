@@ -21,6 +21,23 @@ int test_resources_1(TestContext* tc)
     DvzResources* res = &ctx->res;
     ASSERT(res != NULL);
 
+    // Create some GPU objects, which should be automatically destroyed upon context destruction
+    // (resources destruction).
+    DvzBuffer* buffer = dvz_resources_buffer(res, DVZ_BUFFER_TYPE_VERTEX, 64);
+    ASSERT(buffer != NULL);
+
+    uvec3 shape = {2, 4, 1};
+    DvzImages* img = dvz_resources_image(res, DVZ_TEX_2D, shape, VK_FORMAT_R8G8B8A8_UNORM);
+    ASSERT(img != NULL);
+
+    DvzSampler* sampler =
+        dvz_resources_sampler(res, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+    ASSERT(sampler != NULL);
+
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/test_double.comp.spv", SPIRV_DIR);
+    DvzCompute* compute = dvz_resources_compute(res, path);
+    ASSERT(compute != NULL);
 
     return 0;
 }

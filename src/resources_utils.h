@@ -281,16 +281,9 @@ static void _transition_image(DvzImages* img)
     dvz_cmd_submit_sync(cmds, 0);
 }
 
-static DvzImages* _standalone_image(DvzGpu* gpu, DvzTexDims dims, uvec3 shape, VkFormat format)
+static void _make_image(DvzGpu* gpu, DvzImages* img, DvzTexDims dims, uvec3 shape, VkFormat format)
 {
-    ASSERT(gpu != NULL);
-    ASSERT(1 <= dims && dims <= 3);
-    log_debug(
-        "creating %dD image with shape %dx%dx%d and format %d", //
-        dims, shape[0], shape[1], shape[2], format);
-
-    DvzImages* img = calloc(1, sizeof(DvzImages));
-
+    ASSERT(img != NULL);
     *img = dvz_images(gpu, _image_type_from_dims(dims), 1);
 
     // Create the image.
@@ -310,7 +303,18 @@ static DvzImages* _standalone_image(DvzGpu* gpu, DvzTexDims dims, uvec3 shape, V
 
     // Immediately transition the image to its layout.
     _transition_image(img);
+}
 
+static DvzImages* _standalone_image(DvzGpu* gpu, DvzTexDims dims, uvec3 shape, VkFormat format)
+{
+    ASSERT(gpu != NULL);
+    ASSERT(1 <= dims && dims <= 3);
+    log_debug(
+        "creating %dD image with shape %dx%dx%d and format %d", //
+        dims, shape[0], shape[1], shape[2], format);
+
+    DvzImages* img = calloc(1, sizeof(DvzImages));
+    _make_image(gpu, img, dims, shape, format);
     return img;
 }
 
