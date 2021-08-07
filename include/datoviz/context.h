@@ -55,27 +55,27 @@ typedef enum
 
 
 
-// Dat type.
-typedef enum
-{
-    DVZ_DAT_TYPE_NONE,
-    DVZ_DAT_TYPE_STAGING,
-    DVZ_DAT_TYPE_VERTEX,
-    DVZ_DAT_TYPE_UNIFORM,
-    DVZ_DAT_TYPE_STORAGE,
-} DvzDatType;
+// // Dat type.
+// typedef enum
+// {
+//     DVZ_DAT_TYPE_NONE,
+//     DVZ_DAT_TYPE_STAGING,
+//     DVZ_DAT_TYPE_VERTEX,
+//     DVZ_DAT_TYPE_UNIFORM,
+//     DVZ_DAT_TYPE_STORAGE,
+// } DvzDatType;
 
 
 
 // Dat flags.
 typedef enum
 {
-    DVZ_DAT_FLAGS_SHARED,     // by default, the Dat is allocated from the big buffer
-    DVZ_DAT_FLAGS_STANDALONE, // standalone DvzBuffer
+    DVZ_DAT_FLAGS_SHARED = 0x00,     // by default, the Dat is allocated from the big buffer
+    DVZ_DAT_FLAGS_STANDALONE = 0x01, // standalone DvzBuffer
 
     // the following are unused, may be removed
-    DVZ_DAT_FLAGS_DYNAMIC,   // will change often
-    DVZ_DAT_FLAGS_RESIZABLE, // can be resized
+    DVZ_DAT_FLAGS_DYNAMIC = 0x10,   // will change often
+    DVZ_DAT_FLAGS_RESIZABLE = 0x20, // can be resized
 } DvzDatFlags;
 
 
@@ -131,8 +131,10 @@ struct DvzDat
 {
     DvzObject obj;
     DvzContext* context;
-    DvzBufferRegions br;
+
+    // DvzDatType type;
     int flags;
+    DvzBufferRegions br;
 };
 
 
@@ -223,7 +225,8 @@ DVZ_EXPORT void dvz_context_colormap(DvzContext* context);
 /*  Dats and texs                                                                                */
 /*************************************************************************************************/
 
-DVZ_EXPORT DvzDat* dvz_dat(DvzContext* ctx, DvzDatType type, VkDeviceSize size, int flags);
+DVZ_EXPORT DvzDat*
+dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t count, int flags);
 // choose an existing DvzBuffer, or create a new one
 // allocate a buffer region
 

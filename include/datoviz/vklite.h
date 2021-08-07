@@ -142,14 +142,15 @@ typedef enum
 
 
 // Buffer type.
+// NOTE: the enum index should correspond to the buffer index in the context->buffers container
 typedef enum
 {
-    DVZ_BUFFER_TYPE_UNDEFINED,
+    // DVZ_BUFFER_TYPE_UNDEFINED,
     DVZ_BUFFER_TYPE_STAGING,
     DVZ_BUFFER_TYPE_VERTEX,
     DVZ_BUFFER_TYPE_INDEX,
-    DVZ_BUFFER_TYPE_UNIFORM,
     DVZ_BUFFER_TYPE_STORAGE,
+    DVZ_BUFFER_TYPE_UNIFORM,
     DVZ_BUFFER_TYPE_UNIFORM_MAPPABLE,
     DVZ_BUFFER_TYPE_COUNT,
 } DvzBufferType;
