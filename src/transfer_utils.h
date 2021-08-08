@@ -141,6 +141,9 @@ static DvzDeqItem* _create_download_done(VkDeviceSize size, void* data)
 /*  Buffer transfer task enqueuing                                                               */
 /*************************************************************************************************/
 
+// WARNING: if there is NO staging buffer, the caller must dequeue the CPY proc manually on the
+// main thread to ensure the upload is done. This is to give a chance to the caller to synchronize
+// access to the mappable buffer.
 static void _enqueue_buffer_upload(
     DvzDeq* deq,                                   //
     DvzBufferRegions br, VkDeviceSize buf_offset,  // destination buffer
@@ -549,6 +552,106 @@ static void _process_image_copy(DvzDeq* deq, void* item, void* user_data)
     // TODO
     // dvz_image_copy(tr->src, tr->src_offset, tr->dst, tr->dst_offset, tr->shape);
     dvz_queue_wait(transfers->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+}
+
+
+
+/*************************************************************************************************/
+/*  Dup transfers                                                                                */
+/*************************************************************************************************/
+
+static DvzTransferDups _dups()
+{
+    DvzTransferDups dups = {0};
+    dups.count = 0;
+    return dups;
+}
+
+static uint32_t _dups_idx(DvzTransferDups* dups, DvzBufferRegions br)
+{
+    for (uint32_t i = 0; i < DVZ_DUPS_MAX; i++)
+    {
+        if (dups->dups[i].br.buffer == br.buffer && dups->dups[i].br.offsets[0] == br.offsets[0])
+            return i;
+    }
+    // log_error("could not find buffer region in DvzTransferDups structure");
+    return UINT32_MAX;
+}
+
+static DvzTransferDup* _dups_get(DvzTransferDups* dups, DvzBufferRegions br)
+{
+    ASSERT(dups != NULL);
+    uint32_t idx = _dups_idx(dups, br);
+    if (idx >= DVZ_DUPS_MAX)
+        return NULL;
+    ASSERT(idx < DVZ_DUPS_MAX);
+    DvzTransferDup* dup = &dups->dups[idx];
+    return dup;
+}
+
+static bool _dups_empty(DvzTransferDups* dups)
+{
+    ASSERT(dups != NULL);
+    return dups->count == 0;
+}
+
+static bool _dups_has(DvzTransferDups* dups, DvzBufferRegions br)
+{
+    ASSERT(dups != NULL);
+    return _dups_get(dups, br) != NULL;
+}
+
+static void _dups_append(DvzTransferDups* dups, DvzBufferRegions br)
+{
+    ASSERT(dups != NULL);
+    // Avoid duplicates.
+    ASSERT(!_dups_has(dups, br));
+    for (uint32_t i = 0; i < DVZ_DUPS_MAX; i++)
+    {
+        if (!dups->dups[i].is_set)
+        {
+            dups->dups[i].is_set = 1;
+            dups->dups[i].br = br;
+            dups->count++;
+            return;
+        }
+    }
+    log_error("dups list is full!");
+}
+
+static void _dups_remove(DvzTransferDups* dups, DvzBufferRegions br)
+{
+    ASSERT(dups != NULL);
+    ASSERT(dups->count > 0);
+    memset(_dups_get(dups, br), 0, sizeof(DvzTransferDup));
+    dups->count--;
+}
+
+static void _dups_mark_done(DvzTransferDups* dups, DvzBufferRegions br, uint32_t buf_idx)
+{
+    ASSERT(dups != NULL);
+    DvzTransferDup* dup = _dups_get(dups, br);
+    dup->done[buf_idx] = true;
+}
+
+static bool _dups_is_done(DvzTransferDups* dups, DvzBufferRegions br, uint32_t idx)
+{
+    ASSERT(dups != NULL);
+    DvzTransferDup* dup = _dups_get(dups, br);
+    return dup->done[idx];
+}
+
+static bool _dups_all_done(DvzTransferDups* dups, DvzBufferRegions br)
+{
+    ASSERT(dups != NULL);
+    bool all_done = true;
+    DvzTransferDup* dup = _dups_get(dups, br);
+    ASSERT(dup != NULL);
+    for (uint32_t i = 0; i < br.count; i++)
+    {
+        all_done &= dup->done[i];
+    }
+    return all_done;
 }
 
 

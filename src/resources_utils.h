@@ -224,7 +224,7 @@ static DvzBuffer* _get_standalone_buffer(DvzResources* res, DvzBufferType type, 
 
 // Only for testing:
 static DvzBufferRegions
-_standalone_buffer_regions(DvzGpu* gpu, DvzBufferType type, VkDeviceSize size)
+_standalone_buffer_regions(DvzGpu* gpu, DvzBufferType type, uint32_t count, VkDeviceSize size)
 {
     ASSERT(gpu != NULL);
     DvzBuffer* buffer = (DvzBuffer*)calloc(1, sizeof(DvzBuffer));
@@ -233,7 +233,7 @@ _standalone_buffer_regions(DvzGpu* gpu, DvzBufferType type, VkDeviceSize size)
         _make_staging_buffer(buffer, size);
     else if (type == DVZ_BUFFER_TYPE_VERTEX)
         _make_vertex_buffer(buffer, size);
-    DvzBufferRegions stg = dvz_buffer_regions(buffer, 1, 0, size, 0);
+    DvzBufferRegions stg = dvz_buffer_regions(buffer, count, 0, size, 0);
     return stg;
 }
 

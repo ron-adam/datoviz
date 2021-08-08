@@ -159,7 +159,7 @@ void dvz_upload_buffer(
 
     // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
     // Furthermore, we could avoid using a staging buffer by testing if the buffer is host-visible.
-    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1, size);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&transfers->deq, br, offset, stg, 0, size, data);
@@ -190,7 +190,7 @@ void dvz_download_buffer(
 
     // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
     // Furthermore, we could avoid using a staging buffer by testing if the buffer is host-visible.
-    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1, size);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_download(&transfers->deq, br, offset, stg, 0, size, data);
@@ -266,7 +266,7 @@ void dvz_upload_image(
 
     // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
     // Furthermore, we could avoid using a staging buffer by testing if the buffer is host-visible.
-    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1, size);
     _enqueue_image_upload(&transfers->deq, img, offset, shape, stg, 0, size, data);
 
     // Destroy the transient staging buffer.
@@ -297,7 +297,7 @@ void dvz_download_image(
 
     // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
     // Furthermore, we could avoid using a staging buffer by testing if the buffer is host-visible.
-    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1, size);
 
     _enqueue_image_download(&transfers->deq, img, offset, shape, stg, 0, size, data);
 

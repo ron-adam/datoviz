@@ -48,7 +48,7 @@ int test_transfers_buffer_mappable(TestContext* tc)
         data[i] = i;
 
     // Allocate a staging buffer region.
-    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1024);
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data);
@@ -96,7 +96,7 @@ int test_transfers_buffer_large(TestContext* tc)
         &transfers->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_DOWNLOAD_DONE, _dl_done, &res);
 
     // Allocate a staging buffer region.
-    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1, size);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data);
@@ -147,8 +147,8 @@ int test_transfers_buffer_copy(TestContext* tc)
     for (uint32_t i = 0; i < 128; i++)
         data[i] = i;
 
-    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1024);
-    DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_VERTEX, 1024);
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
+    DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_VERTEX, 1, 1024);
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&transfers->deq, br, 0, stg, 0, 128, data);
@@ -200,7 +200,7 @@ int test_transfers_image_buffer(TestContext* tc)
     // Image.
     DvzImages* img = _standalone_image(gpu, DVZ_TEX_2D, shape_full, format);
     // Buffer.
-    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, size);
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1, size);
 
     // Callback for when the download has finished.
     int res = 0; // should be set to 42 by _dl_done().
@@ -258,7 +258,7 @@ int test_transfers_direct_buffer(TestContext* tc)
     log_debug("start uploading data to buffer");
 
     // Allocate a vertex buffer.
-    DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_VERTEX, 128);
+    DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_VERTEX, 1, 128);
     dvz_upload_buffer(transfers, br, offset, size, data);
 
     log_debug("start downloading data from buffer");
@@ -308,5 +308,81 @@ int test_transfers_direct_image(TestContext* tc)
     AT(memcmp(data2, data, size) == 0);
 
     _destroy_image(img);
+    return 0;
+}
+
+
+
+/*************************************************************************************************/
+/*  Test dup transfers                                                                           */
+/*************************************************************************************************/
+
+int test_transfers_dups_1(TestContext* tc)
+{
+    DvzTransfers* transfers = &tc->transfers;
+    ASSERT(transfers != NULL);
+
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
+
+    uint32_t count = 3;
+    VkDeviceSize size = 16;
+    DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, count, size);
+
+    DvzTransferDups dups = _dups();
+
+    AT(dups.count == 0);
+    AT(_dups_empty(&dups));
+    AT(!_dups_has(&dups, br));
+
+    _dups_append(&dups, br);
+    AT(dups.count == 1);
+    AT(_dups_idx(&dups, br) == 0);
+    AT(_dups_has(&dups, br));
+
+    br.offsets[0] = 1;
+    AT(!_dups_has(&dups, br));
+    br.offsets[0] = 0;
+
+    for (uint32_t i = 0; i < count; i++)
+    {
+        AT(!_dups_is_done(&dups, br, i));
+    }
+
+    _dups_mark_done(&dups, br, 1);
+    AT(!_dups_is_done(&dups, br, 0));
+    AT(_dups_is_done(&dups, br, 1));
+    AT(!_dups_all_done(&dups, br));
+
+    _dups_mark_done(&dups, br, 0);
+    AT(!_dups_all_done(&dups, br));
+
+    _dups_mark_done(&dups, br, 2);
+    AT(_dups_all_done(&dups, br));
+
+    // Append another buffer region.
+    DvzBufferRegions br1 = br;
+    br1.offsets[0] = 4;
+    _dups_append(&dups, br1);
+    AT(_dups_idx(&dups, br1) == 1);
+    AT(dups.count == 2);
+    AT(!_dups_all_done(&dups, br1));
+
+    for (uint32_t i = 0; i < count; i++)
+        _dups_mark_done(&dups, br1, i);
+    AT(_dups_all_done(&dups, br1));
+
+    // Remove the first buffer region.
+    _dups_remove(&dups, br);
+    AT(dups.count == 1);
+    AT(_dups_idx(&dups, br) == UINT32_MAX);
+    AT(_dups_idx(&dups, br1) == 1);
+
+    _dups_append(&dups, br);
+    AT(dups.count == 2);
+    AT(_dups_idx(&dups, br) == 0);
+    AT(!_dups_all_done(&dups, br));
+
+    _destroy_buffer_regions(br);
     return 0;
 }

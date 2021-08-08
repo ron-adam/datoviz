@@ -23,6 +23,9 @@
 #define DVZ_TRANSFER_PROC_CPY 1
 #define DVZ_TRANSFER_PROC_EV  2
 
+// Maximum number of pending dup transfers.
+#define DVZ_DUPS_MAX 16
+
 
 
 /*************************************************************************************************/
@@ -59,6 +62,8 @@ typedef struct DvzTransferImageCopy DvzTransferImageCopy;
 typedef struct DvzTransferDownload DvzTransferDownload;
 typedef union DvzTransferUnion DvzTransferUnion;
 typedef struct DvzTransfers DvzTransfers;
+typedef struct DvzTransferDup DvzTransferDup;
+typedef struct DvzTransferDups DvzTransferDups;
 
 
 
@@ -138,6 +143,23 @@ struct DvzTransfers
 
     DvzDeq deq;       // transfer dequeues
     DvzThread thread; // transfer thread
+};
+
+
+
+struct DvzTransferDup
+{
+    bool is_set;
+    DvzBufferRegions br;
+    bool done[DVZ_MAX_BUFFER_REGIONS_PER_SET];
+};
+
+
+
+struct DvzTransferDups
+{
+    uint32_t count;
+    DvzTransferDup dups[DVZ_DUPS_MAX];
 };
 
 
