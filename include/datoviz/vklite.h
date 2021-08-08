@@ -432,6 +432,7 @@ struct DvzVma
     VmaAllocationCreateFlags flags;
     VmaAllocationInfo info;
     VmaAllocation alloc;
+    VkDeviceSize alignment; // alignment required by Vulkan
 };
 
 
@@ -449,17 +450,13 @@ struct DvzBuffer
     uint32_t queues[DVZ_MAX_QUEUES];
 
     VkDeviceSize size;
+    VkMemoryPropertyFlags memory;
     VkBufferUsageFlags usage;
 
     // VMA
     DvzVma vma;
 
     void* mmap;
-
-    // TO REMOVE:
-    VkMemoryPropertyFlags memory;
-    VkDeviceMemory device_memory;
-    VkDeviceSize allocated_size;
 };
 
 
@@ -504,9 +501,6 @@ struct DvzImages
 
     VkImage images[DVZ_MAX_IMAGES_PER_SET];
     VkImageView image_views[DVZ_MAX_IMAGES_PER_SET];
-
-    // TO REMOVE:
-    VkDeviceMemory memories[DVZ_MAX_IMAGES_PER_SET];
 };
 
 

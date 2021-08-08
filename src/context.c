@@ -88,7 +88,7 @@ DvzContext* dvz_context(DvzGpu* gpu)
     dvz_resources(gpu, &ctx->res);
 
     // Create the allocs.
-    dvz_allocs(gpu, &ctx->allocs);
+    dvz_allocs(gpu, &ctx->res, &ctx->allocs);
 
     // HACK: the vklite module makes the assumption that the queue #0 supports transfers.
     // Here, in the context, we make the same assumption. The first queue is reserved to transfers.
@@ -173,19 +173,21 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
     dat->flags = flags;
     // No flags? ==> shared buffer by default.
     bool shared = (flags == 0) || (flags & DVZ_DAT_FLAGS_SHARED) > 0;
-    VkDeviceSize alignment = _find_alignment(&ctx->allocs, type);
 
     DvzBuffer* buffer = NULL;
     VkDeviceSize offset = 0; // to determine with allocator if shared buffer
-
-    // Make sure the requested size is aligned.
-    size = _align(size, alignment);
+    VkDeviceSize alignment = 0;
 
     // Shared buffer.
     if (shared)
     {
         // Get the  unique shared buffer of the requested type.
         buffer = _get_shared_buffer(&ctx->res, type);
+
+        // Find the buffer alignment.
+        alignment = buffer->vma.alignment;
+        // Make sure the requested size is aligned.
+        size = _align(size, alignment);
 
         // Allocate a DvzDat from it.
         // NOTE: this call may resize the underlying DvzBuffer, which is slow (hard GPU sync).
@@ -200,6 +202,7 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
         // Allocate the entire buffer, so offset is 0, and the size is the requested (aligned if
         // necessary) size.
         offset = 0;
+        // NOTE: for standalone buffers, we should not need to worry about alignments at this point
     }
 
     // Check alignment.

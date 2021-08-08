@@ -1250,47 +1250,6 @@ static void make_shared(
 
 
 
-// TO REMOVE:
-static void create_buffer(
-    VkDevice device, DvzQueues* queues, uint32_t queue_count, uint32_t* queue_indices, //
-    VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-    VkPhysicalDeviceMemoryProperties memory_properties, VkDeviceSize size, //
-    VkBuffer* buffer, VkDeviceMemory* bufferMemory)
-{
-    ASSERT(queues != NULL);
-
-    VkBufferCreateInfo buf_info = {0};
-    buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buf_info.size = size;
-    buf_info.usage = usage;
-
-    uint32_t queue_families[DVZ_MAX_QUEUE_FAMILIES];
-    make_shared(
-        queues, queue_count, queue_indices, //
-        &buf_info.sharingMode, &buf_info.queueFamilyIndexCount, queue_families);
-    buf_info.pQueueFamilyIndices = queue_families;
-
-    log_trace(
-        "create buffer with size %s, sharing mode %s", pretty_size(size),
-        buf_info.sharingMode == 0 ? "exclusive" : "concurrent");
-    VK_CHECK_RESULT(vkCreateBuffer(device, &buf_info, NULL, buffer));
-
-    VkMemoryRequirements memRequirements = {0};
-    vkGetBufferMemoryRequirements(device, *buffer, &memRequirements);
-
-    VkMemoryAllocateInfo alloc_info = {0};
-    alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    alloc_info.allocationSize = memRequirements.size;
-    alloc_info.memoryTypeIndex =
-        find_memory_type(memRequirements.memoryTypeBits, properties, memory_properties);
-
-    VK_CHECK_RESULT(vkAllocateMemory(device, &alloc_info, NULL, bufferMemory));
-
-    vkBindBufferMemory(device, *buffer, *bufferMemory, 0);
-}
-
-
-
 /*************************************************************************************************/
 /*  Images                                                                                       */
 /*************************************************************************************************/

@@ -60,6 +60,15 @@ int test_ctx_allocs_1(TestContext* tc)
     VkDeviceSize size = 256;
     DvzDat* dat = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 1, 0);
     ASSERT(dat != NULL);
+    AT(dat->br.offsets[0] == 0);
+    AT(dat->br.size == size);
+
+    DvzDat* dat_1 = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 1, 0);
+    ASSERT(dat_1 != NULL);
+    AT(dat_1->br.offsets[0] == 256);
+    AT(dat_1->br.size == size);
+
+
 
     return 0;
 }

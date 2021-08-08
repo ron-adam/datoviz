@@ -19,20 +19,6 @@ extern "C" {
 /*  Allocs utils                                                                                 */
 /*************************************************************************************************/
 
-static VkDeviceSize _find_alignment(DvzAllocs* allocs, DvzBufferType type)
-{
-    ASSERT(allocs != NULL);
-    ASSERT(type < DVZ_BUFFER_TYPE_COUNT);
-
-    VkDeviceSize alignment = 0;
-    bool needs_align = type == DVZ_BUFFER_TYPE_UNIFORM || type == DVZ_BUFFER_TYPE_MAPPABLE;
-    if (needs_align)
-        alignment = allocs->gpu->device_properties.limits.minUniformBufferOffsetAlignment;
-    return alignment;
-}
-
-
-
 static DvzAlloc* _get_alloc(DvzAllocs* allocs, DvzBufferType type)
 {
     ASSERT(allocs != NULL);
@@ -42,13 +28,20 @@ static DvzAlloc* _get_alloc(DvzAllocs* allocs, DvzBufferType type)
 
 
 
-static DvzAlloc* _make_allocator(DvzAllocs* allocs, DvzBufferType type, VkDeviceSize size)
+static DvzAlloc*
+_make_allocator(DvzAllocs* allocs, DvzResources* res, DvzBufferType type, VkDeviceSize size)
 {
     ASSERT(allocs != NULL);
     ASSERT((uint32_t)type < DVZ_BUFFER_TYPE_COUNT);
 
     DvzAlloc* alloc = _get_alloc(allocs, type);
-    VkDeviceSize alignment = _find_alignment(allocs, type);
+
+    // Find alignment by looking at the buffers themselves.
+    DvzBuffer* buffer = (DvzBuffer*)dvz_container_get(&res->buffers, type);
+    VkDeviceSize alignment = buffer->vma.alignment;
+    ASSERT(alignment > 0);
+    // VkDeviceSize alignment = _find_alignment(allocs, type);
+
     *alloc = dvz_alloc(size, alignment);
     return alloc;
 }

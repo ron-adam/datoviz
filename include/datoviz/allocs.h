@@ -54,7 +54,7 @@ struct DvzAllocs
  * @param gpu the GPU
  * @param allocs the allocs
  */
-DVZ_EXPORT void dvz_allocs(DvzGpu* gpu, DvzAllocs* allocs);
+DVZ_EXPORT void dvz_allocs(DvzGpu* gpu, DvzResources* res, DvzAllocs* allocs);
 
 /**
  * Destroy an allocs object.

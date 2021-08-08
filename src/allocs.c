@@ -8,7 +8,7 @@
 /*  Allocs                                                                                       */
 /*************************************************************************************************/
 
-void dvz_allocs(DvzGpu* gpu, DvzAllocs* allocs)
+void dvz_allocs(DvzGpu* gpu, DvzResources* res, DvzAllocs* allocs)
 {
     ASSERT(gpu != NULL);
     ASSERT(dvz_obj_is_created(&gpu->obj));
@@ -21,12 +21,12 @@ void dvz_allocs(DvzGpu* gpu, DvzAllocs* allocs)
     // Create the resources.
     allocs->gpu = gpu;
 
-    _make_allocator(allocs, DVZ_BUFFER_TYPE_STAGING, DVZ_BUFFER_TYPE_STAGING_SIZE);
-    _make_allocator(allocs, DVZ_BUFFER_TYPE_VERTEX, DVZ_BUFFER_TYPE_VERTEX_SIZE);
-    _make_allocator(allocs, DVZ_BUFFER_TYPE_INDEX, DVZ_BUFFER_TYPE_INDEX_SIZE);
-    _make_allocator(allocs, DVZ_BUFFER_TYPE_STORAGE, DVZ_BUFFER_TYPE_STORAGE_SIZE);
-    _make_allocator(allocs, DVZ_BUFFER_TYPE_UNIFORM, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
-    _make_allocator(allocs, DVZ_BUFFER_TYPE_MAPPABLE, DVZ_BUFFER_TYPE_MAPPABLE_SIZE);
+    _make_allocator(allocs, res, DVZ_BUFFER_TYPE_STAGING, DVZ_BUFFER_TYPE_STAGING_SIZE);
+    _make_allocator(allocs, res, DVZ_BUFFER_TYPE_VERTEX, DVZ_BUFFER_TYPE_VERTEX_SIZE);
+    _make_allocator(allocs, res, DVZ_BUFFER_TYPE_INDEX, DVZ_BUFFER_TYPE_INDEX_SIZE);
+    _make_allocator(allocs, res, DVZ_BUFFER_TYPE_STORAGE, DVZ_BUFFER_TYPE_STORAGE_SIZE);
+    _make_allocator(allocs, res, DVZ_BUFFER_TYPE_UNIFORM, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
+    _make_allocator(allocs, res, DVZ_BUFFER_TYPE_MAPPABLE, DVZ_BUFFER_TYPE_MAPPABLE_SIZE);
 
     dvz_obj_created(&allocs->obj);
 }

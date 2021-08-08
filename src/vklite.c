@@ -818,6 +818,11 @@ static void _buffer_create(DvzBuffer* buffer)
     // Get the memory flags found by VMA and store them in the DvzBuffer instance.
     vmaGetMemoryTypeProperties(gpu->allocator, buffer->vma.info.memoryType, &buffer->memory);
     ASSERT(buffer->memory != 0);
+
+    // Store the alignment requirement in the DvzBuffer.
+    VkMemoryRequirements req = {0};
+    vkGetBufferMemoryRequirements(gpu->device, buffer->buffer, &req);
+    buffer->vma.alignment = req.alignment;
 }
 
 
