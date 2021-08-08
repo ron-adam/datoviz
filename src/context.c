@@ -248,7 +248,7 @@ void dvz_dat_destroy(DvzDat* dat)
     ASSERT(dat != NULL);
     DvzContext* ctx = dat->context;
     ASSERT(ctx != NULL);
-    // dvz_alloc_free(&ctx->datalloc);
+    _deallocate_dat(&ctx->datalloc, dat->br.buffer->type, dat->br.offsets[0]);
     dvz_obj_destroyed(&dat->obj);
 }
 

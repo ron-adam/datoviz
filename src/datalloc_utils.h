@@ -72,6 +72,16 @@ _allocate_dat(DvzDatAlloc* datalloc, DvzResources* res, DvzBufferType type, VkDe
 
 
 
+static void _deallocate_dat(DvzDatAlloc* datalloc, DvzBufferType type, VkDeviceSize offset)
+{
+    ASSERT(datalloc != NULL);
+
+    // Get the abstract DvzAlloc object associated to the dat's buffer.
+    DvzAlloc* alloc = _get_alloc(datalloc, type);
+    dvz_alloc_free(alloc, offset);
+}
+
+
 #ifdef __cplusplus
 }
 #endif

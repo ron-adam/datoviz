@@ -56,7 +56,7 @@ struct DvzAlloc
 /*  Utils                                                                                        */
 /*************************************************************************************************/
 
-static inline uint32_t _align(uint32_t size, uint32_t alignment)
+static inline VkDeviceSize _align(VkDeviceSize size, VkDeviceSize alignment)
 {
     if (alignment == 0)
         return size;
@@ -313,7 +313,7 @@ dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize* resized)
 
 
 
-DVZ_INLINE void dvz_alloc_free(DvzAlloc* alloc, uint32_t offset)
+DVZ_INLINE void dvz_alloc_free(DvzAlloc* alloc, VkDeviceSize offset)
 {
     ASSERT(alloc != NULL);
     DvzAllocSlot* slot = _get_slot(alloc, offset);

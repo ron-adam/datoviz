@@ -60,6 +60,7 @@ int test_ctx_datalloc_1(TestContext* tc)
     VkDeviceSize alignment = 0;
     VkDeviceSize size = 128;
 
+    // 2 allocations in the staging buffer.
     DvzDat* dat = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 1, 0);
     ASSERT(dat != NULL);
     AT(dat->br.offsets[0] == 0);
@@ -72,12 +73,20 @@ int test_ctx_datalloc_1(TestContext* tc)
     AT(dat_1->br.size == size);
     AT(dat->br.size == size);
 
+    // 1 allocation in the vertex buffer.
     DvzDat* dat_2 = dvz_dat(ctx, DVZ_BUFFER_TYPE_VERTEX, size, 1, 0);
     ASSERT(dat_2 != NULL);
     AT(dat_2->br.offsets[0] == 0);
     AT(dat_2->br.size == size);
 
+    // Delete the first staging allocation.
+    dvz_dat_destroy(dat);
 
+    // New allocation in the staging buffer.
+    DvzDat* dat_3 = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 1, 0);
+    ASSERT(dat_3 != NULL);
+    AT(dat_3->br.offsets[0] == 0);
+    AT(dat_3->br.size == size);
 
     return 0;
 }
