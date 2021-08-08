@@ -91,9 +91,9 @@ int test_transfers_direct_image(TestContext*);
 
 // Test resources.
 int test_ctx_resources_1(TestContext*);
-int test_ctx_allocs_1(TestContext*);
+int test_ctx_datalloc_1(TestContext*);
 
-// Test allocs.
+// Test datalloc.
 
 // Test context.
 // int test_context_buffer(TestContext*);
@@ -294,7 +294,7 @@ static TestCase TEST_CASES[] = {
 
     // Resources.
     CASE_FIXTURE(CONTEXT, test_ctx_resources_1), //
-    CASE_FIXTURE(CONTEXT, test_ctx_allocs_1),    //
+    CASE_FIXTURE(CONTEXT, test_ctx_datalloc_1),  //
 
     // Allocs.
 

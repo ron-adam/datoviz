@@ -26,7 +26,7 @@ extern "C" {
 /*  Typedefs                                                                                     */
 /*************************************************************************************************/
 
-typedef struct DvzAllocs DvzAllocs;
+typedef struct DvzDatAlloc DvzDatAlloc;
 
 
 
@@ -34,7 +34,7 @@ typedef struct DvzAllocs DvzAllocs;
 /*  Structs                                                                                      */
 /*************************************************************************************************/
 
-struct DvzAllocs
+struct DvzDatAlloc
 {
     DvzObject obj;
     DvzGpu* gpu;
@@ -49,19 +49,19 @@ struct DvzAllocs
 /*************************************************************************************************/
 
 /**
- * Create an allocs object.
+ * Create an datalloc object.
  *
  * @param gpu the GPU
- * @param allocs the allocs
+ * @param datalloc the datalloc
  */
-DVZ_EXPORT void dvz_allocs(DvzGpu* gpu, DvzResources* res, DvzAllocs* allocs);
+DVZ_EXPORT void dvz_datalloc(DvzGpu* gpu, DvzResources* res, DvzDatAlloc* datalloc);
 
 /**
- * Destroy an allocs object.
+ * Destroy an datalloc object.
  *
- * @param allocs the allocs
+ * @param datalloc the datalloc
  */
-DVZ_EXPORT void dvz_allocs_destroy(DvzAllocs* allocs);
+DVZ_EXPORT void dvz_datalloc_destroy(DvzDatAlloc* datalloc);
 
 
 

@@ -365,7 +365,7 @@ file(GLOB sources
     "src/input.c"
     "src/resources.c"
     "src/transfers.c"
-    "src/allocs.c"
+    "src/datalloc.c"
     "src/context.c"
     "src/atlases.c"
 

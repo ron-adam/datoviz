@@ -1,6 +1,6 @@
 #include "../include/datoviz/context.h"
 #include "../include/datoviz/atlases.h"
-#include "allocs_utils.h"
+#include "datalloc_utils.h"
 #include "resources_utils.h"
 #include "transfer_utils.h"
 #include "vklite_utils.h"
@@ -87,8 +87,8 @@ DvzContext* dvz_context(DvzGpu* gpu)
     // Create the resources.
     dvz_resources(gpu, &ctx->res);
 
-    // Create the allocs.
-    dvz_allocs(gpu, &ctx->res, &ctx->allocs);
+    // Create the datalloc.
+    dvz_datalloc(gpu, &ctx->res, &ctx->datalloc);
 
     // HACK: the vklite module makes the assumption that the queue #0 supports transfers.
     // Here, in the context, we make the same assumption. The first queue is reserved to transfers.
@@ -149,7 +149,7 @@ void dvz_context_destroy(DvzContext* ctx)
     // Destroy the companion objects.
     dvz_transfers_destroy(&ctx->transfers);
     dvz_resources_destroy(&ctx->res);
-    dvz_allocs_destroy(&ctx->allocs);
+    dvz_datalloc_destroy(&ctx->datalloc);
     dvz_atlases_destroy(&ctx->atlases);
 }
 
@@ -192,7 +192,7 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
 
         // Allocate a DvzDat from it.
         // NOTE: this call may resize the underlying DvzBuffer, which is slow (hard GPU sync).
-        offset = _allocate_dat(&ctx->allocs, &ctx->res, type, count * size_align);
+        offset = _allocate_dat(&ctx->datalloc, &ctx->res, type, count * size_align);
     }
 
     // Standalone buffer.
@@ -246,9 +246,9 @@ void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data, int flags)
 void dvz_dat_destroy(DvzDat* dat)
 {
     ASSERT(dat != NULL);
-    // TODO
-    // free the region in the buffer
-    // dvz_alloc_free();
+    DvzContext* ctx = dat->context;
+    ASSERT(ctx != NULL);
+    // dvz_alloc_free(&ctx->datalloc);
     dvz_obj_destroyed(&dat->obj);
 }
 

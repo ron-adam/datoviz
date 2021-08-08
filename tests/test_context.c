@@ -48,7 +48,7 @@ int test_ctx_resources_1(TestContext* tc)
 /*  Allocs                                                                                       */
 /*************************************************************************************************/
 
-int test_ctx_allocs_1(TestContext* tc)
+int test_ctx_datalloc_1(TestContext* tc)
 {
     ASSERT(tc != NULL);
     DvzContext* ctx = tc->context;

@@ -5,10 +5,10 @@
 #ifndef DVZ_CONTEXT_HEADER
 #define DVZ_CONTEXT_HEADER
 
-#include "allocs.h"
 #include "atlases.h"
 #include "colormaps.h"
 #include "common.h"
+#include "datalloc.h"
 #include "fifo.h"
 #include "resources.h"
 #include "transfers.h"
@@ -58,7 +58,7 @@ struct DvzContext
     // context. However, the DvzAllocs objects *depends* on the DvzResources.
     DvzTransfers transfers;
     DvzResources res;
-    DvzAllocs allocs;
+    DvzDatAlloc datalloc;
     DvzAtlases atlases;
 };
 

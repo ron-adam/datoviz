@@ -370,7 +370,7 @@ struct DvzGpu
 
     // DvzTransfers* transfers;
     // DvzTransfers* resources;
-    // // TODO: allocs
+    // // TODO: datalloc
     DvzContext* context;
 };
 
