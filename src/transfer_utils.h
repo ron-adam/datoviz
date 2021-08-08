@@ -137,6 +137,29 @@ static DvzDeqItem* _create_download_done(VkDeviceSize size, void* data)
 
 
 
+// Create a mappable buffer dup transfer task.
+static DvzDeqItem* _create_dup_transfer(
+    DvzDataTransferType type, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size,
+    void* data, uint32_t deq_idx)
+{
+    ASSERT(br.buffer != NULL);
+    ASSERT(size > 0);
+    ASSERT(data != NULL);
+
+    ASSERT(type == DVZ_TRANSFER_DUP_UPLOAD);
+
+    DvzTransferDup* tr = (DvzTransferDup*)calloc(1, sizeof(DvzTransferDup));
+    tr->br = br;
+    tr->offset = offset;
+    tr->size = size;
+    tr->data = data;
+    // TODO: recurrent, staging?
+
+    return dvz_deq_enqueue_custom(deq_idx, (int)type, tr);
+}
+
+
+
 /*************************************************************************************************/
 /*  Buffer transfer task enqueuing                                                               */
 /*************************************************************************************************/
@@ -263,6 +286,57 @@ static void _enqueue_buffer_copy(
 //     log_info("enqueue buffer download done");
 //     dvz_deq_enqueue_submit(deq, _create_download_done(size, data), false);
 // }
+
+
+
+/*************************************************************************************************/
+/*  Dup transfer task enqueuing                                                                  */
+/*************************************************************************************************/
+
+static void _enqueue_dup_upload(
+    DvzDeq* deq,                                   //
+    DvzBufferRegions br, VkDeviceSize buf_offset,  // destination buffer
+    DvzBufferRegions stg, VkDeviceSize stg_offset, // optional staging buffer
+    VkDeviceSize size, void* data)
+{
+    ASSERT(deq != NULL);
+    ASSERT(size > 0);
+    ASSERT(data != NULL);
+    log_trace("enqueue dup upload");
+
+    DvzDeqItem* deq_item = NULL;
+    // DvzDeqItem* next_item = NULL;
+
+    // Upload to a mappable buffer, no need for a staging buffer.
+    if (stg.buffer == NULL)
+    {
+        // Upload in one step, directly to the destination buffer that is assumed to be mappable.
+
+        // NOTE: we use the COPY queue, not the UPLOAD one, because we *don't* want this task to be
+        // automatically dequeued and processed by the background thread. Since there's no staging
+        // buffer, we probably want to synchronize access to this buffer, so we want this to happen
+        // in the main thread. It is up to the caller to do the synchronization *and* to dequeue
+        // the COPY queue manually. Otherwise the upload won't happen!
+        deq_item = _create_dup_transfer(
+            DVZ_TRANSFER_DUP_UPLOAD, br, buf_offset, size, data, DVZ_TRANSFER_DEQ_DUP);
+    }
+    // Upload to a staging buffer first.
+    else
+    {
+        // TODO: not implemented yet
+        // // First, upload to the staging buffer.
+        // deq_item = _create_buffer_transfer(
+        //     DVZ_TRANSFER_BUFFER_UPLOAD, stg, stg_offset, size, data, DVZ_TRANSFER_DEQ_UL);
+
+        // // Then, need to do a copy to the destination buffer.
+        // next_item = _create_buffer_copy(stg, stg_offset, br, buf_offset, size);
+
+        // // Dependency.
+        // dvz_deq_enqueue_next(deq_item, next_item, false);
+    }
+
+    dvz_deq_enqueue_submit(deq, deq_item, false);
+}
 
 
 

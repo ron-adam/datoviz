@@ -90,7 +90,7 @@ static void _create_transfers(DvzTransfers* transfers)
 
     dvz_deq_callback(
         &transfers->deq, DVZ_TRANSFER_DEQ_DUP, //
-        DVZ_TRANSFER_BUFFER_DUP,               //
+        DVZ_TRANSFER_DUP_UPLOAD,               //
         _process_dup_transfer, transfers);
 }
 
@@ -108,24 +108,30 @@ static void _dup_process(DvzTransfers* transfers, DvzTransferDupItem* item, uint
     DvzBufferRegions* stg = &item->tr.stg;
     ASSERT(img_idx < br->count);
     bool recurrent = item->tr.recurrent;
-    bool mappable = stg == NULL; // item->mappable;
+    bool mappable = stg->buffer == NULL; // item->mappable;
 
-    if (!recurrent)
+    // if the current buffer region is marked as done, stop immediately.
+    if (!recurrent && _dups_is_done(&transfers->dups, item, img_idx))
     {
-        // if the current buffer region is marked as done, stop immediately.
-        if (_dups_is_done(&transfers->dups, item, img_idx))
-            return;
+        log_debug("skip dup transfer processing for image #%d", img_idx);
+        return;
     }
+
+    log_debug("processing dup transfer for image #%d", img_idx);
 
     // Mappable buffer? upload directly for the current region only.
     if (mappable)
     {
+        log_debug("direct mappable upload");
+
         // Upload the data directly (safe when this function is properly called in the event loop)
         dvz_buffer_regions_upload(br, img_idx, item->tr.offset, item->tr.size, item->tr.data);
     }
     // Staging buffer? Make a copy.
     else
     {
+        log_debug("copy from staging to buffer");
+
         // Submit a copy for the img_idx part, from staging to target buffer, and wait.
         dvz_buffer_regions_copy(
             &item->tr.stg, item->tr.offset, br, item->tr.offset, item->tr.size);
@@ -137,8 +143,10 @@ static void _dup_process(DvzTransfers* transfers, DvzTransferDupItem* item, uint
     {
         // Mark this region as done
         _dups_mark_done(&transfers->dups, item, img_idx);
+
         // If all regions are done, remove the current item from the list.
-        _dups_remove(&transfers->dups, item);
+        if (_dups_all_done(&transfers->dups, item))
+            _dups_remove(&transfers->dups, item);
     }
 }
 
@@ -166,6 +174,8 @@ void dvz_transfers(DvzGpu* gpu, DvzTransfers* transfers)
     dvz_obj_created(&transfers->obj);
 }
 
+
+
 // This function is meant to be called at every frame by the event loop, in a FRAME canvas callback
 // running in MAIN queue (main thread).
 void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx)
@@ -189,10 +199,12 @@ void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx)
     if (_dups_empty(dups))
         return;
     // HACK: should be wrapped in an interface instead.
+    // Process all ongoing dups.
     DvzTransferDupItem* item = NULL;
     for (uint32_t i = 0; i < DVZ_DUPS_MAX; i++)
     {
         item = &dups->dups[i];
+        ASSERT(item != NULL);
         if (item->is_set)
         {
             _dup_process(transfers, item, img_idx);

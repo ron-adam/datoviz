@@ -394,3 +394,70 @@ int test_transfers_dups_1(TestContext* tc)
     _destroy_buffer_regions(br);
     return 0;
 }
+
+
+
+int test_transfers_dups_2(TestContext* tc)
+{
+    DvzTransfers* transfers = &tc->transfers;
+    ASSERT(transfers != NULL);
+
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
+
+    uint32_t count = 3;
+    VkDeviceSize size = 16;
+    DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, count, size);
+
+    // Do nothing.
+    dvz_transfers_frame(transfers, 0);
+
+    // Enqueue a dup upload.
+    uint8_t data = 42;
+    _enqueue_dup_upload(&transfers->deq, br, 0, (DvzBufferRegions){0}, 0, sizeof(data), &data);
+
+    // This will upload the data to buffer region #1 but not the others.
+    dvz_transfers_frame(transfers, 1);
+
+    // Download the buffer region and check that region #1, and only this one, has the data.
+    uint8_t* downloaded = (uint8_t*)calloc(size, 1);
+    uint8_t exp[3] = {0, data, 0};
+    for (uint32_t i = 0; i < count; i++)
+    {
+        dvz_buffer_regions_download(&br, i, 0, size, downloaded);
+        AT(downloaded[0] == exp[i]);
+    }
+
+    // This will upload the data to buffer region #2 but not the others.
+    dvz_transfers_frame(transfers, 2);
+    dvz_transfers_frame(transfers, 2); // twice, to check it doesn't change anything
+
+    exp[2] = data;
+    for (uint32_t i = 0; i < count; i++)
+    {
+        dvz_buffer_regions_download(&br, i, 0, size, downloaded);
+        AT(downloaded[0] == exp[i]);
+    }
+    AT(!_dups_empty(&transfers->dups));
+
+    // Last buffer is #0.
+    dvz_transfers_frame(transfers, 0);
+
+    exp[0] = data;
+    for (uint32_t i = 0; i < count; i++)
+    {
+        dvz_buffer_regions_download(&br, i, 0, size, downloaded);
+        AT(downloaded[0] == exp[i]);
+    }
+    AT(_dups_empty(&transfers->dups));
+
+    // DvzTransferDupItem* item = _dups_get(&transfers->dups, br, 0, sizeof(data));
+    // ASSERT(item != NULL);
+    // _dups_all_done(&transfers->dups, item);
+    // for (uint32_t i = 0; i < size; i++)
+    //     log_debug("%d", expected[i]);
+    // log_info("%d %d %d", i, downloaded[0], exp[i]);
+    _destroy_buffer_regions(br);
+    FREE(downloaded);
+    return 0;
+}

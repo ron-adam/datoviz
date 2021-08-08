@@ -230,9 +230,9 @@ _standalone_buffer_regions(DvzGpu* gpu, DvzBufferType type, uint32_t count, VkDe
     DvzBuffer* buffer = (DvzBuffer*)calloc(1, sizeof(DvzBuffer));
     *buffer = dvz_buffer(gpu);
     if (type == DVZ_BUFFER_TYPE_STAGING)
-        _make_staging_buffer(buffer, size);
+        _make_staging_buffer(buffer, size * count);
     else if (type == DVZ_BUFFER_TYPE_VERTEX)
-        _make_vertex_buffer(buffer, size);
+        _make_vertex_buffer(buffer, size * count);
     DvzBufferRegions stg = dvz_buffer_regions(buffer, count, 0, size, 0);
     return stg;
 }
