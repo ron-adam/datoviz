@@ -578,14 +578,14 @@ static uint32_t _dups_idx(DvzTransferDups* dups, DvzBufferRegions br)
     return UINT32_MAX;
 }
 
-static DvzTransferDup* _dups_get(DvzTransferDups* dups, DvzBufferRegions br)
+static DvzTransferDupItem* _dups_get(DvzTransferDups* dups, DvzBufferRegions br)
 {
     ASSERT(dups != NULL);
     uint32_t idx = _dups_idx(dups, br);
     if (idx >= DVZ_DUPS_MAX)
         return NULL;
     ASSERT(idx < DVZ_DUPS_MAX);
-    DvzTransferDup* dup = &dups->dups[idx];
+    DvzTransferDupItem* dup = &dups->dups[idx];
     return dup;
 }
 
@@ -623,21 +623,21 @@ static void _dups_remove(DvzTransferDups* dups, DvzBufferRegions br)
 {
     ASSERT(dups != NULL);
     ASSERT(dups->count > 0);
-    memset(_dups_get(dups, br), 0, sizeof(DvzTransferDup));
+    memset(_dups_get(dups, br), 0, sizeof(DvzTransferDupItem));
     dups->count--;
 }
 
 static void _dups_mark_done(DvzTransferDups* dups, DvzBufferRegions br, uint32_t buf_idx)
 {
     ASSERT(dups != NULL);
-    DvzTransferDup* dup = _dups_get(dups, br);
+    DvzTransferDupItem* dup = _dups_get(dups, br);
     dup->done[buf_idx] = true;
 }
 
 static bool _dups_is_done(DvzTransferDups* dups, DvzBufferRegions br, uint32_t idx)
 {
     ASSERT(dups != NULL);
-    DvzTransferDup* dup = _dups_get(dups, br);
+    DvzTransferDupItem* dup = _dups_get(dups, br);
     return dup->done[idx];
 }
 
@@ -645,7 +645,7 @@ static bool _dups_all_done(DvzTransferDups* dups, DvzBufferRegions br)
 {
     ASSERT(dups != NULL);
     bool all_done = true;
-    DvzTransferDup* dup = _dups_get(dups, br);
+    DvzTransferDupItem* dup = _dups_get(dups, br);
     ASSERT(dup != NULL);
     for (uint32_t i = 0; i < br.count; i++)
     {

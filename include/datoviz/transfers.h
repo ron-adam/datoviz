@@ -63,9 +63,10 @@ typedef struct DvzTransferBufferCopy DvzTransferBufferCopy;
 typedef struct DvzTransferBufferImage DvzTransferBufferImage;
 typedef struct DvzTransferImageCopy DvzTransferImageCopy;
 typedef struct DvzTransferDownload DvzTransferDownload;
+typedef struct DvzTransferDup DvzTransferDup;
 typedef union DvzTransferUnion DvzTransferUnion;
 typedef struct DvzTransfers DvzTransfers;
-typedef struct DvzTransferDup DvzTransferDup;
+typedef struct DvzTransferDupItem DvzTransferDupItem;
 typedef struct DvzTransferDups DvzTransferDups;
 
 
@@ -120,6 +121,17 @@ struct DvzTransferDownload
 
 
 
+struct DvzTransferDup
+{
+    DvzBufferRegions br;
+    VkDeviceSize offset;
+    VkDeviceSize size;
+    void* data;
+    bool recurrent;
+};
+
+
+
 union DvzTransferUnion
 {
     DvzTransferBuffer buf;
@@ -127,6 +139,7 @@ union DvzTransferUnion
     DvzTransferImageCopy img_copy;
     DvzTransferBufferImage buf_img;
     DvzTransferDownload download;
+    DvzTransferDup dup;
 };
 
 
@@ -150,7 +163,7 @@ struct DvzTransfers
 
 
 
-struct DvzTransferDup
+struct DvzTransferDupItem
 {
     bool is_set;
     DvzBufferRegions br;
@@ -162,7 +175,7 @@ struct DvzTransferDup
 struct DvzTransferDups
 {
     uint32_t count;
-    DvzTransferDup dups[DVZ_DUPS_MAX];
+    DvzTransferDupItem dups[DVZ_DUPS_MAX];
 };
 
 
