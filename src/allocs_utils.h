@@ -40,7 +40,6 @@ _make_allocator(DvzAllocs* allocs, DvzResources* res, DvzBufferType type, VkDevi
     DvzBuffer* buffer = (DvzBuffer*)dvz_container_get(&res->buffers, type);
     VkDeviceSize alignment = buffer->vma.alignment;
     ASSERT(alignment > 0);
-    // VkDeviceSize alignment = _find_alignment(allocs, type);
 
     *alloc = dvz_alloc(size, alignment);
     return alloc;

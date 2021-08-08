@@ -177,6 +177,7 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
     DvzBuffer* buffer = NULL;
     VkDeviceSize offset = 0; // to determine with allocator if shared buffer
     VkDeviceSize alignment = 0;
+    VkDeviceSize size_align = 0;
 
     // Shared buffer.
     if (shared)
@@ -187,11 +188,11 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
         // Find the buffer alignment.
         alignment = buffer->vma.alignment;
         // Make sure the requested size is aligned.
-        size = _align(size, alignment);
+        size_align = _align(size, alignment);
 
         // Allocate a DvzDat from it.
         // NOTE: this call may resize the underlying DvzBuffer, which is slow (hard GPU sync).
-        offset = _allocate_dat(&ctx->allocs, &ctx->res, type, count * size);
+        offset = _allocate_dat(&ctx->allocs, &ctx->res, type, count * size_align);
     }
 
     // Standalone buffer.
@@ -207,10 +208,7 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
 
     // Check alignment.
     if (alignment > 0)
-    {
         ASSERT(offset % alignment == 0);
-        ASSERT(offset % size == 0);
-    }
 
     // Set the buffer region.
     dat->br = dvz_buffer_regions(buffer, count, offset, size, alignment);

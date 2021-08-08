@@ -57,16 +57,25 @@ int test_ctx_allocs_1(TestContext* tc)
     DvzGpu* gpu = ctx->gpu;
     ASSERT(gpu != NULL);
 
-    VkDeviceSize size = 256;
+    VkDeviceSize alignment = 0;
+    VkDeviceSize size = 128;
+
     DvzDat* dat = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 1, 0);
     ASSERT(dat != NULL);
     AT(dat->br.offsets[0] == 0);
+    alignment = dat->br.buffer->vma.alignment;
     AT(dat->br.size == size);
 
     DvzDat* dat_1 = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 1, 0);
     ASSERT(dat_1 != NULL);
-    AT(dat_1->br.offsets[0] == 256);
+    AT(dat_1->br.offsets[0] == _align(size, alignment));
     AT(dat_1->br.size == size);
+    AT(dat->br.size == size);
+
+    DvzDat* dat_2 = dvz_dat(ctx, DVZ_BUFFER_TYPE_VERTEX, size, 1, 0);
+    ASSERT(dat_2 != NULL);
+    AT(dat_2->br.offsets[0] == 0);
+    AT(dat_2->br.size == size);
 
 
 
