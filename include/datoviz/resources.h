@@ -46,6 +46,29 @@ typedef enum
 
 
 
+// Dat usage.
+typedef enum
+{
+    DVZ_DAT_USAGE_FREQUENT_NONE,
+    DVZ_DAT_USAGE_FREQUENT_UPLOAD = 0x01,
+    DVZ_DAT_USAGE_FREQUENT_DOWNLOAD = 0x02,
+    DVZ_DAT_USAGE_FREQUENT_RESIZE = 0x04,
+} DvzDatUsage;
+
+
+
+typedef enum
+{
+    DVZ_DAT_OPTIONS_NONE = 0x0000,               //
+    DVZ_DAT_OPTIONS_STANDALONE = 0x0001,         // (or shared)
+    DVZ_DAT_OPTIONS_STAGING = 0x0002,            // (or mappable)
+    DVZ_DAT_OPTIONS_SINGLE = 0x0004,             // (or single copy)
+    DVZ_DAT_OPTIONS_KEEP_ON_RESIZE = 0x0010,     // (or loose the data when resizing the buffer)
+    DVZ_DAT_OPTIONS_PERSISTENT_STAGING = 0x0020, // (or recreate the staging buffer every time)
+} DvzDatOptions;
+
+
+
 // Tex dims.
 typedef enum
 {
@@ -78,6 +101,7 @@ struct DvzDat
 
     int flags;
     DvzBufferRegions br;
+    DvzBufferRegions stg; // used for persistent staging, resized when the dat is resized
 };
 
 

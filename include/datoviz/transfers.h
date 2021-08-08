@@ -18,10 +18,13 @@
 #define DVZ_TRANSFER_DEQ_DL   1
 #define DVZ_TRANSFER_DEQ_COPY 2
 #define DVZ_TRANSFER_DEQ_EV   3
+#define DVZ_TRANSFER_DEQ_DUP  4
+
 // Three deq processes: upload/download, copy, event (incl. download_done)
 #define DVZ_TRANSFER_PROC_UD  0
 #define DVZ_TRANSFER_PROC_CPY 1
 #define DVZ_TRANSFER_PROC_EV  2
+#define DVZ_TRANSFER_PROC_DUP 3
 
 // Maximum number of pending dup transfers.
 #define DVZ_DUPS_MAX 16

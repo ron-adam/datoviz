@@ -24,9 +24,9 @@ static void* _thread_transfers(void* user_data)
 static void _create_transfers(DvzTransfers* transfers)
 {
     ASSERT(transfers != NULL);
-    transfers->deq = dvz_deq(4);
+    transfers->deq = dvz_deq(5);
 
-    // Three producer/consumer pairs (deq processes).
+    // Producer/consumer pairs (deq processes).
     dvz_deq_proc(
         &transfers->deq, DVZ_TRANSFER_PROC_UD, //
         2, (uint32_t[]){DVZ_TRANSFER_DEQ_UL, DVZ_TRANSFER_DEQ_DL});
@@ -36,6 +36,9 @@ static void _create_transfers(DvzTransfers* transfers)
     dvz_deq_proc(
         &transfers->deq, DVZ_TRANSFER_PROC_EV, //
         1, (uint32_t[]){DVZ_TRANSFER_DEQ_EV});
+    dvz_deq_proc(
+        &transfers->deq, DVZ_TRANSFER_PROC_DUP, //
+        1, (uint32_t[]){DVZ_TRANSFER_DEQ_DUP});
 
     // Transfer deq callbacks.
 
