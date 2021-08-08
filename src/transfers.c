@@ -38,10 +38,17 @@ static void _create_transfers(DvzTransfers* transfers)
         1, (uint32_t[]){DVZ_TRANSFER_DEQ_EV});
 
     // Transfer deq callbacks.
+
     // Uploads.
     dvz_deq_callback(
         &transfers->deq, DVZ_TRANSFER_DEQ_UL, //
         DVZ_TRANSFER_BUFFER_UPLOAD,           //
+        _process_buffer_upload, transfers);
+
+    // Uploads on the main thread, used when there is no staging buffer.
+    dvz_deq_callback(
+        &transfers->deq, DVZ_TRANSFER_DEQ_COPY, //
+        DVZ_TRANSFER_BUFFER_UPLOAD,             //
         _process_buffer_upload, transfers);
 
     // Downloads.

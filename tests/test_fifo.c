@@ -520,13 +520,13 @@ static void _proc_batch(
     ASSERT(res != NULL);
     if (pos == DVZ_DEQ_PROC_BATCH_BEGIN)
     {
-        log_info("begin batch, %d item(s) to be dequeued", item_count);
+        log_debug("begin batch, %d item(s) to be dequeued", item_count);
         ASSERT(item_count == 5);
         ASSERT(items == NULL);
     }
     else
     {
-        log_info("end batch, %d item(s) processed", item_count);
+        log_debug("end batch, %d item(s) processed", item_count);
         ASSERT(item_count == 5);
         // Compute the sum of all dequeued items in the batch.
         for (uint32_t i = 0; i < item_count; i++)

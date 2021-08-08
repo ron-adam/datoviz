@@ -55,7 +55,8 @@ int test_transfers_buffer_mappable(TestContext* tc)
 
     // NOTE: need to wait for the upload to be finished before we download the data.
     // The DL and UL are on different queues and may be processed out of order.
-    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
+    // dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_CPY);
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Enqueue a download transfer task.
     uint8_t data2[128] = {0};
@@ -99,6 +100,7 @@ int test_transfers_buffer_large(TestContext* tc)
 
     // Enqueue an upload transfer task.
     _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data);
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Wait for the transfer thread to process both transfer tasks.
     dvz_app_wait(tc->app);

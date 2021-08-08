@@ -175,6 +175,7 @@ static void canvas_render(DvzCanvas* canvas)
     // Reset the Submit instance before adding the command buffers.
     dvz_submit_reset(s);
 
+    // TODO: remove?
     // Render command buffers empty? Fill them with blank color by default.
     if (canvas->cmds_render.obj.status != DVZ_OBJECT_STATUS_CREATED)
     {
@@ -182,6 +183,7 @@ static void canvas_render(DvzCanvas* canvas)
         for (uint32_t i = 0; i < canvas->render.swapchain.img_count; i++)
             blank_commands(canvas, &canvas->cmds_render, i);
     }
+
     ASSERT(canvas->cmds_render.obj.status == DVZ_OBJECT_STATUS_CREATED);
     // Add the command buffers to the submit instance.
     dvz_submit_commands(s, &canvas->cmds_render);
@@ -221,8 +223,8 @@ static void canvas_render(DvzCanvas* canvas)
     if (!canvas->offscreen)
     {
         dvz_swapchain_present(
-            &canvas->render.swapchain, 1, //
-            canvas->sync.present_semaphores,
+            &canvas->render.swapchain, 1,    //
+            canvas->sync.present_semaphores, // waiting semaphore, alias to sem_render_finished
             CLIP(f, 0, canvas->sync.present_semaphores->count - 1));
     }
 

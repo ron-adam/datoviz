@@ -24,7 +24,7 @@
 // Create a mappable buffer transfer task, either UPLOAD or DOWNLOAD.
 static DvzDeqItem* _create_buffer_transfer(
     DvzDataTransferType type, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size,
-    void* data)
+    void* data, uint32_t deq_idx)
 {
     // Upload/download to mappable buffer only (otherwise, will need a GPU-GPU copy task too).
 
@@ -33,9 +33,6 @@ static DvzDeqItem* _create_buffer_transfer(
     ASSERT(data != NULL);
 
     ASSERT(type == DVZ_TRANSFER_BUFFER_UPLOAD || type == DVZ_TRANSFER_BUFFER_DOWNLOAD);
-
-    uint32_t deq_idx =
-        type == DVZ_TRANSFER_BUFFER_UPLOAD ? DVZ_TRANSFER_DEQ_UL : DVZ_TRANSFER_DEQ_DL;
 
     DvzTransferBuffer* tr = (DvzTransferBuffer*)calloc(1, sizeof(DvzTransferBuffer));
     tr->br = br;
@@ -162,14 +159,21 @@ static void _enqueue_buffer_upload(
     if (stg.buffer == NULL)
     {
         // Upload in one step, directly to the destination buffer that is assumed to be mappable.
-        deq_item = _create_buffer_transfer(DVZ_TRANSFER_BUFFER_UPLOAD, br, buf_offset, size, data);
+
+        // NOTE: we use the COPY queue, not the UPLOAD one, because we *don't* want this task to be
+        // automatically dequeued and processed by the background thread. Since there's no staging
+        // buffer, we probably want to synchronize access to this buffer, so we want this to happen
+        // in the main thread. It is up to the caller to do the synchronization *and* to dequeue
+        // the COPY queue manually. Otherwise the upload won't happen!
+        deq_item = _create_buffer_transfer(
+            DVZ_TRANSFER_BUFFER_UPLOAD, br, buf_offset, size, data, DVZ_TRANSFER_DEQ_COPY);
     }
     // Upload to a staging buffer first.
     else
     {
         // First, upload to the staging buffer.
-        deq_item =
-            _create_buffer_transfer(DVZ_TRANSFER_BUFFER_UPLOAD, stg, stg_offset, size, data);
+        deq_item = _create_buffer_transfer(
+            DVZ_TRANSFER_BUFFER_UPLOAD, stg, stg_offset, size, data, DVZ_TRANSFER_DEQ_UL);
 
         // Then, need to do a copy to the destination buffer.
         next_item = _create_buffer_copy(stg, stg_offset, br, buf_offset, size);
@@ -202,8 +206,8 @@ static void _enqueue_buffer_download(
     if (stg.buffer == NULL)
     {
         // Upload in one step, directly to the destination buffer that is assumed to be mappable.
-        deq_item =
-            _create_buffer_transfer(DVZ_TRANSFER_BUFFER_DOWNLOAD, br, buf_offset, size, data);
+        deq_item = _create_buffer_transfer(
+            DVZ_TRANSFER_BUFFER_DOWNLOAD, br, buf_offset, size, data, DVZ_TRANSFER_DEQ_DL);
 
         // Enqueue the DOWNLOAD_DONE item after the download has finished.
         done_item = _create_download_done(size, data);
@@ -215,8 +219,8 @@ static void _enqueue_buffer_download(
         deq_item = _create_buffer_copy(br, buf_offset, stg, stg_offset, size);
 
         // Then, download from the staging buffer.
-        next_item =
-            _create_buffer_transfer(DVZ_TRANSFER_BUFFER_DOWNLOAD, stg, stg_offset, size, data);
+        next_item = _create_buffer_transfer(
+            DVZ_TRANSFER_BUFFER_DOWNLOAD, stg, stg_offset, size, data, DVZ_TRANSFER_DEQ_DL);
 
         // Dependency.
         dvz_deq_enqueue_next(deq_item, next_item, false);
@@ -285,7 +289,8 @@ static void _enqueue_image_upload(
     DvzDeqItem* next_item = NULL;
 
     // First, upload to the staging buffer.
-    deq_item = _create_buffer_transfer(DVZ_TRANSFER_BUFFER_UPLOAD, stg, stg_offset, size, data);
+    deq_item = _create_buffer_transfer(
+        DVZ_TRANSFER_BUFFER_UPLOAD, stg, stg_offset, size, data, DVZ_TRANSFER_DEQ_UL);
 
     // Then, need to do a copy to the image.
     next_item = _create_buffer_image_copy(
@@ -325,7 +330,8 @@ static void _enqueue_image_download(
         DVZ_TRANSFER_IMAGE_BUFFER, stg, stg_offset, size, img, offset, shape);
 
     // Then, download from the staging buffer.
-    next_item = _create_buffer_transfer(DVZ_TRANSFER_BUFFER_DOWNLOAD, stg, stg_offset, size, data);
+    next_item = _create_buffer_transfer(
+        DVZ_TRANSFER_BUFFER_DOWNLOAD, stg, stg_offset, size, data, DVZ_TRANSFER_DEQ_DL);
 
     // Dependency.
     dvz_deq_enqueue_next(deq_item, next_item, false);
