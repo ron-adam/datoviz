@@ -472,6 +472,10 @@ static void _process_buffer_copy(DvzDeq* deq, void* item, void* user_data)
     ASSERT(tr != NULL);
 
     // Make the GPU-GPU buffer copy (block the GPU and wait for the copy to finish).
+
+    // TODO OPTIM: use a batch callback to wait only if there is >= 1 dequeued tasks, instead of
+    // waiting at every dequeued item in a given batch.
+
     dvz_queue_wait(transfers->gpu, DVZ_DEFAULT_QUEUE_RENDER);
     dvz_buffer_regions_copy(&tr->src, tr->src_offset, &tr->dst, tr->dst_offset, tr->size);
     dvz_queue_wait(transfers->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
@@ -567,21 +571,27 @@ static DvzTransferDups _dups()
     return dups;
 }
 
-static uint32_t _dups_idx(DvzTransferDups* dups, DvzBufferRegions br)
+static uint32_t
+_dups_get_idx(DvzTransferDups* dups, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size)
 {
     for (uint32_t i = 0; i < DVZ_DUPS_MAX; i++)
     {
-        if (dups->dups[i].br.buffer == br.buffer && dups->dups[i].br.offsets[0] == br.offsets[0])
+        if (dups->dups[i].tr.br.buffer == br.buffer &&         //
+            dups->dups[i].tr.br.offsets[0] == br.offsets[0] && //
+            dups->dups[i].tr.offset == offset &&               //
+            dups->dups[i].tr.size == size                      //
+        )
             return i;
     }
     // log_error("could not find buffer region in DvzTransferDups structure");
     return UINT32_MAX;
 }
 
-static DvzTransferDupItem* _dups_get(DvzTransferDups* dups, DvzBufferRegions br)
+static DvzTransferDupItem*
+_dups_get(DvzTransferDups* dups, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size)
 {
     ASSERT(dups != NULL);
-    uint32_t idx = _dups_idx(dups, br);
+    uint32_t idx = _dups_get_idx(dups, br, offset, size);
     if (idx >= DVZ_DUPS_MAX)
         return NULL;
     ASSERT(idx < DVZ_DUPS_MAX);
@@ -595,23 +605,29 @@ static bool _dups_empty(DvzTransferDups* dups)
     return dups->count == 0;
 }
 
-static bool _dups_has(DvzTransferDups* dups, DvzBufferRegions br)
+static bool
+_dups_has(DvzTransferDups* dups, DvzBufferRegions br, VkDeviceSize offset, VkDeviceSize size)
 {
     ASSERT(dups != NULL);
-    return _dups_get(dups, br) != NULL;
+    return _dups_get(dups, br, offset, size) != NULL;
 }
 
-static void _dups_append(DvzTransferDups* dups, DvzBufferRegions br)
+static void _dups_append(DvzTransferDups* dups, DvzTransferDup* tr)
 {
     ASSERT(dups != NULL);
+    ASSERT(tr != NULL);
     // Avoid duplicates.
-    ASSERT(!_dups_has(dups, br));
+    if (_dups_has(dups, tr->br, tr->offset, tr->size))
+    {
+        log_debug("skip dup append as the item already exists");
+        return;
+    }
     for (uint32_t i = 0; i < DVZ_DUPS_MAX; i++)
     {
         if (!dups->dups[i].is_set)
         {
             dups->dups[i].is_set = 1;
-            dups->dups[i].br = br;
+            dups->dups[i].tr = *tr;
             dups->count++;
             return;
         }
@@ -619,39 +635,59 @@ static void _dups_append(DvzTransferDups* dups, DvzBufferRegions br)
     log_error("dups list is full!");
 }
 
-static void _dups_remove(DvzTransferDups* dups, DvzBufferRegions br)
+
+
+static void _dups_remove(DvzTransferDups* dups, DvzTransferDupItem* item)
 {
     ASSERT(dups != NULL);
     ASSERT(dups->count > 0);
-    memset(_dups_get(dups, br), 0, sizeof(DvzTransferDupItem));
+    memset(item, 0, sizeof(DvzTransferDupItem));
     dups->count--;
 }
 
-static void _dups_mark_done(DvzTransferDups* dups, DvzBufferRegions br, uint32_t buf_idx)
+static void _dups_mark_done(DvzTransferDups* dups, DvzTransferDupItem* item, uint32_t buf_idx)
 {
     ASSERT(dups != NULL);
-    DvzTransferDupItem* dup = _dups_get(dups, br);
-    dup->done[buf_idx] = true;
+    ASSERT(item != NULL);
+    item->done[buf_idx] = true;
 }
 
-static bool _dups_is_done(DvzTransferDups* dups, DvzBufferRegions br, uint32_t idx)
+static bool _dups_is_done(DvzTransferDups* dups, DvzTransferDupItem* item, uint32_t idx)
 {
     ASSERT(dups != NULL);
-    DvzTransferDupItem* dup = _dups_get(dups, br);
-    return dup->done[idx];
+    ASSERT(item != NULL);
+    return item->done[idx];
 }
 
-static bool _dups_all_done(DvzTransferDups* dups, DvzBufferRegions br)
+static bool _dups_all_done(DvzTransferDups* dups, DvzTransferDupItem* item)
 {
     ASSERT(dups != NULL);
     bool all_done = true;
-    DvzTransferDupItem* dup = _dups_get(dups, br);
-    ASSERT(dup != NULL);
-    for (uint32_t i = 0; i < br.count; i++)
+    ASSERT(item != NULL);
+    for (uint32_t i = 0; i < item->tr.br.count; i++)
     {
-        all_done &= dup->done[i];
+        all_done &= item->done[i];
     }
     return all_done;
+}
+
+
+
+static void _process_dup_transfer(DvzDeq* deq, void* item, void* user_data)
+{
+    DvzTransferDup* tr = (DvzTransferDup*)item;
+    ASSERT(tr != NULL);
+    log_trace("process dup transfer");
+
+    DvzTransfers* transfers = (DvzTransfers*)user_data;
+    ASSERT(transfers != NULL);
+
+    DvzTransferDups* dups = &transfers->dups;
+    ASSERT(dups != NULL);
+
+    // Append the dequeue TransferDup struct in the DvzTransfers specialized structure that keeps
+    // track of all ongoing transfer dups.
+    _dups_append(dups, tr);
 }
 
 

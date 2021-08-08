@@ -835,6 +835,12 @@ void dvz_deq_dequeue_batch(DvzDeq* deq, uint32_t proc_idx)
     // Allocate the memory for the items to be dequeued.
     if (item_count > 0)
         items = calloc(item_count, sizeof(DvzDeqItem));
+    else
+    {
+        // Skip this function if there are no pending items in the dequeue.
+        pthread_mutex_unlock(&proc->lock);
+        return;
+    }
     uint32_t k = 0;     // item index for each queue
     uint32_t k_tot = 0; // item index across all queues
 

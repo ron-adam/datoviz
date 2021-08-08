@@ -84,6 +84,62 @@ static void _create_transfers(DvzTransfers* transfers)
 
     // Transfer thread.
     transfers->thread = dvz_thread(_thread_transfers, transfers);
+
+    // Transfer dups
+    transfers->dups = _dups();
+
+    dvz_deq_callback(
+        &transfers->deq, DVZ_TRANSFER_DEQ_DUP, //
+        DVZ_TRANSFER_BUFFER_DUP,               //
+        _process_dup_transfer, transfers);
+}
+
+
+
+static void _dup_process(DvzTransfers* transfers, DvzTransferDupItem* item, uint32_t img_idx)
+{
+    ASSERT(transfers != NULL);
+    ASSERT(item != NULL);
+
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
+
+    DvzBufferRegions* br = &item->tr.br;
+    DvzBufferRegions* stg = &item->tr.stg;
+    ASSERT(img_idx < br->count);
+    bool recurrent = item->tr.recurrent;
+    bool mappable = stg == NULL; // item->mappable;
+
+    if (!recurrent)
+    {
+        // if the current buffer region is marked as done, stop immediately.
+        if (_dups_is_done(&transfers->dups, item, img_idx))
+            return;
+    }
+
+    // Mappable buffer? upload directly for the current region only.
+    if (mappable)
+    {
+        // Upload the data directly (safe when this function is properly called in the event loop)
+        dvz_buffer_regions_upload(br, img_idx, item->tr.offset, item->tr.size, item->tr.data);
+    }
+    // Staging buffer? Make a copy.
+    else
+    {
+        // Submit a copy for the img_idx part, from staging to target buffer, and wait.
+        dvz_buffer_regions_copy(
+            &item->tr.stg, item->tr.offset, br, item->tr.offset, item->tr.size);
+        // NOTE: is the wait really necessary here? we could also use a fence, or not wait at all?
+        dvz_queue_wait(gpu, DVZ_QUEUE_TRANSFER);
+    }
+
+    if (!recurrent)
+    {
+        // Mark this region as done
+        _dups_mark_done(&transfers->dups, item, img_idx);
+        // If all regions are done, remove the current item from the list.
+        _dups_remove(&transfers->dups, item);
+    }
 }
 
 
@@ -108,6 +164,40 @@ void dvz_transfers(DvzGpu* gpu, DvzTransfers* transfers)
     _create_transfers(transfers);
 
     dvz_obj_created(&transfers->obj);
+}
+
+// This function is meant to be called at every frame by the event loop, in a FRAME canvas callback
+// running in MAIN queue (main thread).
+void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx)
+{
+    ASSERT(transfers != NULL);
+
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
+
+    // Dequeue all pending copies (which are either buffer copies, or direct mappable).
+    // This is NOT used for transfer dups, which are enqueued in a different queue/proc (DUP).
+    // NOTE: this call *blocks* the GPU until the copies are complete.
+    dvz_deq_dequeue_batch(&transfers->deq, DVZ_TRANSFER_PROC_CPY);
+
+    // Now, process dup transfers.
+    dvz_deq_dequeue_batch(&transfers->deq, DVZ_TRANSFER_PROC_DUP);
+    // TODO: callback for this proc should append items to the Dups struct
+
+    // Check if there are ongoing non-recurrent dup transfers.
+    DvzTransferDups* dups = &transfers->dups;
+    if (_dups_empty(dups))
+        return;
+    // HACK: should be wrapped in an interface instead.
+    DvzTransferDupItem* item = NULL;
+    for (uint32_t i = 0; i < DVZ_DUPS_MAX; i++)
+    {
+        item = &dups->dups[i];
+        if (item->is_set)
+        {
+            _dup_process(transfers, item, img_idx);
+        }
+    }
 }
 
 

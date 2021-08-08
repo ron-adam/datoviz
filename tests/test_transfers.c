@@ -328,60 +328,68 @@ int test_transfers_dups_1(TestContext* tc)
     uint32_t count = 3;
     VkDeviceSize size = 16;
     DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, count, size);
+    DvzTransferDupItem* item = NULL;
 
     DvzTransferDups dups = _dups();
+    DvzTransferDup tr = {.br = br, .offset = 0, .size = size};
 
     AT(dups.count == 0);
     AT(_dups_empty(&dups));
-    AT(!_dups_has(&dups, br));
+    AT(!_dups_has(&dups, br, 0, size));
 
-    _dups_append(&dups, br);
+    _dups_append(&dups, &tr);
     AT(dups.count == 1);
-    AT(_dups_idx(&dups, br) == 0);
-    AT(_dups_has(&dups, br));
+    AT(_dups_get_idx(&dups, br, 0, size) == 0);
+    AT(_dups_has(&dups, br, 0, size));
 
     br.offsets[0] = 1;
-    AT(!_dups_has(&dups, br));
+    AT(!_dups_has(&dups, br, 0, size));
     br.offsets[0] = 0;
+    item = _dups_get(&dups, br, 0, size);
 
     for (uint32_t i = 0; i < count; i++)
     {
-        AT(!_dups_is_done(&dups, br, i));
+        AT(!_dups_is_done(&dups, item, i));
     }
 
-    _dups_mark_done(&dups, br, 1);
-    AT(!_dups_is_done(&dups, br, 0));
-    AT(_dups_is_done(&dups, br, 1));
-    AT(!_dups_all_done(&dups, br));
+    _dups_mark_done(&dups, item, 1);
+    AT(!_dups_is_done(&dups, item, 0));
+    AT(_dups_is_done(&dups, item, 1));
+    AT(!_dups_all_done(&dups, item));
 
-    _dups_mark_done(&dups, br, 0);
-    AT(!_dups_all_done(&dups, br));
+    _dups_mark_done(&dups, item, 0);
+    AT(!_dups_all_done(&dups, item));
 
-    _dups_mark_done(&dups, br, 2);
-    AT(_dups_all_done(&dups, br));
+    _dups_mark_done(&dups, item, 2);
+    AT(_dups_all_done(&dups, item));
 
     // Append another buffer region.
     DvzBufferRegions br1 = br;
     br1.offsets[0] = 4;
-    _dups_append(&dups, br1);
-    AT(_dups_idx(&dups, br1) == 1);
+    tr.br = br1;
+    _dups_append(&dups, &tr);
+    item = _dups_get(&dups, br1, 0, size);
+    AT(_dups_get_idx(&dups, br1, 0, size) == 1);
     AT(dups.count == 2);
-    AT(!_dups_all_done(&dups, br1));
+    AT(!_dups_all_done(&dups, item));
 
     for (uint32_t i = 0; i < count; i++)
-        _dups_mark_done(&dups, br1, i);
-    AT(_dups_all_done(&dups, br1));
+        _dups_mark_done(&dups, item, i);
+    AT(_dups_all_done(&dups, item));
 
     // Remove the first buffer region.
-    _dups_remove(&dups, br);
+    item = _dups_get(&dups, br, 0, size);
+    _dups_remove(&dups, item);
     AT(dups.count == 1);
-    AT(_dups_idx(&dups, br) == UINT32_MAX);
-    AT(_dups_idx(&dups, br1) == 1);
+    AT(_dups_get_idx(&dups, br, 0, size) == UINT32_MAX);
+    AT(_dups_get_idx(&dups, br1, 0, size) == 1);
 
-    _dups_append(&dups, br);
+    tr.br = br;
+    _dups_append(&dups, &tr);
+    item = _dups_get(&dups, br, 0, size);
     AT(dups.count == 2);
-    AT(_dups_idx(&dups, br) == 0);
-    AT(!_dups_all_done(&dups, br));
+    AT(_dups_get_idx(&dups, br, 0, size) == 0);
+    AT(!_dups_all_done(&dups, item));
 
     _destroy_buffer_regions(br);
     return 0;

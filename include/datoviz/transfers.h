@@ -43,6 +43,7 @@ typedef enum
     DVZ_TRANSFER_BUFFER_UPLOAD,
     DVZ_TRANSFER_BUFFER_DOWNLOAD,
     DVZ_TRANSFER_BUFFER_COPY,
+    DVZ_TRANSFER_BUFFER_DUP,
 
     DVZ_TRANSFER_IMAGE_COPY,
     DVZ_TRANSFER_IMAGE_BUFFER,
@@ -123,7 +124,7 @@ struct DvzTransferDownload
 
 struct DvzTransferDup
 {
-    DvzBufferRegions br;
+    DvzBufferRegions br, stg;
     VkDeviceSize offset;
     VkDeviceSize size;
     void* data;
@@ -152,22 +153,19 @@ struct DvzTransfer
 
 
 
-struct DvzTransfers
-{
-    DvzObject obj;
-    DvzGpu* gpu;
-
-    DvzDeq deq;       // transfer dequeues
-    DvzThread thread; // transfer thread
-};
-
-
+/*************************************************************************************************/
+/*  Transfer dups                                                                                */
+/*************************************************************************************************/
 
 struct DvzTransferDupItem
 {
     bool is_set;
-    DvzBufferRegions br;
+    DvzTransferDup tr;
     bool done[DVZ_MAX_BUFFER_REGIONS_PER_SET];
+    // bool mappable;
+    // DvzBufferRegions br;
+    // VkDeviceSize offset, size;
+    // bool recurrent;
 };
 
 
@@ -181,12 +179,31 @@ struct DvzTransferDups
 
 
 /*************************************************************************************************/
+/*  Transfers struct                                                                             */
+/*************************************************************************************************/
+
+struct DvzTransfers
+{
+    DvzObject obj;
+    DvzGpu* gpu;
+
+    DvzDeq deq;       // transfer dequeues
+    DvzThread thread; // transfer thread
+
+    DvzTransferDups dups;
+};
+
+
+
+/*************************************************************************************************/
 /*  Transfers                                                                                    */
 /*************************************************************************************************/
 
 // TODO: docstrings
 
 DVZ_EXPORT void dvz_transfers(DvzGpu* gpu, DvzTransfers* transfers);
+
+DVZ_EXPORT void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx);
 
 /**
  * Destroy a transfers object.
