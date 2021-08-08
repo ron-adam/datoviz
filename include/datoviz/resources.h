@@ -76,7 +76,6 @@ struct DvzDat
     DvzObject obj;
     DvzContext* context;
 
-    // DvzDatType type;
     int flags;
     DvzBufferRegions br;
 };

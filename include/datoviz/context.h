@@ -109,12 +109,14 @@ DVZ_EXPORT void dvz_app_reset(DvzApp* app);
 // TODO: docstrings
 
 DVZ_EXPORT DvzDat*
-dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t count, int flags);
+dvz_dat(DvzContext* ctx, DvzBufferType type, uint32_t count, VkDeviceSize size, int flags);
 
 DVZ_EXPORT void
 dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data, int flags);
 
 DVZ_EXPORT void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data, int flags);
+
+DVZ_EXPORT void dvz_dat_resize(DvzDat* dat, VkDeviceSize new_size);
 
 
 

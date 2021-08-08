@@ -61,32 +61,53 @@ int test_ctx_datalloc_1(TestContext* tc)
     VkDeviceSize size = 128;
 
     // 2 allocations in the staging buffer.
-    DvzDat* dat = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 1, 0);
+    DvzDat* dat = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size, 0);
     ASSERT(dat != NULL);
     AT(dat->br.offsets[0] == 0);
-    alignment = dat->br.buffer->vma.alignment;
     AT(dat->br.size == size);
 
-    DvzDat* dat_1 = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 1, 0);
+    // Get the buffer alignment.
+    alignment = dat->br.buffer->vma.alignment;
+
+    DvzDat* dat_1 = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size, 0);
     ASSERT(dat_1 != NULL);
     AT(dat_1->br.offsets[0] == _align(size, alignment));
     AT(dat_1->br.size == size);
-    AT(dat->br.size == size);
+
+    // Resize the second buffer.
+    VkDeviceSize new_size = 196;
+    dvz_dat_resize(dat_1, new_size);
+    // The offset should be the same, just the size should change.
+    AT(dat_1->br.offsets[0] == _align(size, alignment));
+    AT(dat_1->br.size == new_size);
 
     // 1 allocation in the vertex buffer.
-    DvzDat* dat_2 = dvz_dat(ctx, DVZ_BUFFER_TYPE_VERTEX, size, 1, 0);
+    DvzDat* dat_2 = dvz_dat(ctx, DVZ_BUFFER_TYPE_VERTEX, 1, size, 0);
     ASSERT(dat_2 != NULL);
     AT(dat_2->br.offsets[0] == 0);
     AT(dat_2->br.size == size);
+
 
     // Delete the first staging allocation.
     dvz_dat_destroy(dat);
 
     // New allocation in the staging buffer.
-    DvzDat* dat_3 = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 1, 0);
+    DvzDat* dat_3 = dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size, 0);
     ASSERT(dat_3 != NULL);
     AT(dat_3->br.offsets[0] == 0);
     AT(dat_3->br.size == size);
+
+    // Resize the lastly-created buffer, we should be in the first position.
+    dvz_dat_resize(dat_3, new_size);
+    AT(dat_3->br.offsets[0] == 0);
+    AT(dat_3->br.size == new_size);
+
+    // Resize the lastly-created buffer, we should now get a new position.
+    new_size = 1024;
+    dvz_dat_resize(dat_3, new_size);
+    AT(dat_3->br.offsets[0] == 2 * alignment);
+    AT(dat_3->br.size == new_size);
+
 
     return 0;
 }

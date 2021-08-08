@@ -159,25 +159,30 @@ void dvz_context_destroy(DvzContext* ctx)
 /*  Dats                                                                                         */
 /*************************************************************************************************/
 
-DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t count, int flags)
+static inline VkDeviceSize
+_total_aligned_size(DvzBuffer* buffer, uint32_t count, VkDeviceSize size, VkDeviceSize* alignment)
 {
+    // Find the buffer alignment.
+    *alignment = buffer->vma.alignment;
+    // Make sure the requested size is aligned.
+    return count * _align(size, *alignment);
+}
+
+static bool _dat_shared(int flags) { return (flags == 0) || (flags & DVZ_DAT_FLAGS_SHARED) > 0; }
+
+static void _dat_alloc(DvzDat* dat, DvzBufferType type, uint32_t count, VkDeviceSize size)
+{
+    ASSERT(dat != NULL);
+    DvzContext* ctx = dat->context;
     ASSERT(ctx != NULL);
-    ASSERT(size > 0);
-    ASSERT(count > 0);
-    ASSERT(count <= 10); // consistency check
-
-    log_debug("allocate dat of type %d with size %s and flags %d", type, pretty_size(size), flags);
-
-    DvzDat* dat = (DvzDat*)dvz_container_alloc(&ctx->res.dats);
-    dat->context = ctx;
-    dat->flags = flags;
-    // No flags? ==> shared buffer by default.
-    bool shared = (flags == 0) || (flags & DVZ_DAT_FLAGS_SHARED) > 0;
 
     DvzBuffer* buffer = NULL;
     VkDeviceSize offset = 0; // to determine with allocator if shared buffer
     VkDeviceSize alignment = 0;
-    VkDeviceSize size_align = 0;
+    VkDeviceSize tot_size = 0;
+
+    // No flags? ==> shared buffer by default.
+    bool shared = _dat_shared(dat->flags);
 
     // Shared buffer.
     if (shared)
@@ -185,14 +190,12 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
         // Get the  unique shared buffer of the requested type.
         buffer = _get_shared_buffer(&ctx->res, type);
 
-        // Find the buffer alignment.
-        alignment = buffer->vma.alignment;
-        // Make sure the requested size is aligned.
-        size_align = _align(size, alignment);
+        // Find the buffer alignment and total aligned size.
+        tot_size = _total_aligned_size(buffer, count, size, &alignment);
 
         // Allocate a DvzDat from it.
         // NOTE: this call may resize the underlying DvzBuffer, which is slow (hard GPU sync).
-        offset = _allocate_dat(&ctx->datalloc, &ctx->res, type, count * size_align);
+        offset = _allocate_dat(&ctx->datalloc, &ctx->res, type, tot_size);
     }
 
     // Standalone buffer.
@@ -212,7 +215,42 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, uint32_t
 
     // Set the buffer region.
     dat->br = dvz_buffer_regions(buffer, count, offset, size, alignment);
+}
 
+static void _dat_dealloc(DvzDat* dat)
+{
+    ASSERT(dat != NULL);
+    DvzContext* ctx = dat->context;
+    ASSERT(ctx != NULL);
+
+    // No flags? ==> shared buffer by default.
+    bool shared = _dat_shared(dat->flags);
+
+    if (shared)
+    {
+        // Deallocate the buffer regions but keep the underlying buffer.
+        _deallocate_dat(&ctx->datalloc, dat->br.buffer->type, dat->br.offsets[0]);
+    }
+    else
+    {
+        // Destroy the standalone buffer.
+        dvz_buffer_destroy(dat->br.buffer);
+    }
+}
+
+DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, uint32_t count, VkDeviceSize size, int flags)
+{
+    ASSERT(ctx != NULL);
+    ASSERT(size > 0);
+    ASSERT(count > 0);
+    ASSERT(count <= 10); // consistency check
+
+    log_debug("allocate dat of type %d with size %s and flags %d", type, pretty_size(size), flags);
+
+    DvzDat* dat = (DvzDat*)dvz_container_alloc(&ctx->res.dats);
+    dat->context = ctx;
+    dat->flags = flags;
+    _dat_alloc(dat, type, count, size);
     dvz_obj_created(&dat->obj);
     return dat;
 }
@@ -243,12 +281,22 @@ void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data, int flags)
 
 
 
+void dvz_dat_resize(DvzDat* dat, VkDeviceSize new_size)
+{
+    ASSERT(dat != NULL);
+    ASSERT(dat->br.buffer != NULL);
+    _dat_dealloc(dat);
+    _dat_alloc(dat, dat->br.buffer->type, dat->br.count, new_size);
+}
+
+
+
 void dvz_dat_destroy(DvzDat* dat)
 {
     ASSERT(dat != NULL);
     DvzContext* ctx = dat->context;
     ASSERT(ctx != NULL);
-    _deallocate_dat(&ctx->datalloc, dat->br.buffer->type, dat->br.offsets[0]);
+    _dat_dealloc(dat);
     dvz_obj_destroyed(&dat->obj);
 }
 
