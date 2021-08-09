@@ -604,9 +604,9 @@ static void _process_image_buffer(DvzDeq* deq, void* item, void* user_data)
     ASSERT(tr->shape[1] > 0);
     ASSERT(tr->shape[2] > 0);
 
-    // TODO
-    // dvz_image_copy_to_buffer(tr->img, tr->img_offset, tr->shape, tr->br, tr->buf_offset,
-    // tr->size); Wait for the copy to be finished.
+    dvz_images_copy_to_buffer(
+        tr->img, tr->img_offset, tr->shape, tr->br, tr->buf_offset, tr->size);
+    // Wait for the copy to be finished.
     dvz_queue_wait(transfers->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 }
 
@@ -629,9 +629,8 @@ static void _process_buffer_image(DvzDeq* deq, void* item, void* user_data)
     ASSERT(tr->shape[1] > 0);
     ASSERT(tr->shape[2] > 0);
 
-    // TODO
-    // dvz_image_copy_from_buffer(
-    //     tr->img, tr->img_offset, tr->shape, tr->br, tr->buf_offset, tr->size);
+    dvz_images_copy_from_buffer(
+        tr->img, tr->img_offset, tr->shape, tr->br, tr->buf_offset, tr->size);
     // Wait for the copy to be finished.
     dvz_queue_wait(transfers->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 }
@@ -653,8 +652,7 @@ static void _process_image_copy(DvzDeq* deq, void* item, void* user_data)
 
     // Make the GPU-GPU buffer copy (block the GPU and wait for the copy to finish).
     dvz_queue_wait(transfers->gpu, DVZ_DEFAULT_QUEUE_RENDER);
-    // TODO
-    // dvz_image_copy(tr->src, tr->src_offset, tr->dst, tr->dst_offset, tr->shape);
+    dvz_images_copy(tr->src, tr->src_offset, tr->dst, tr->dst_offset, tr->shape);
     dvz_queue_wait(transfers->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 }
 

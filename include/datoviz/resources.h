@@ -111,7 +111,7 @@ struct DvzTex
     int flags;
     DvzImages* img;
 
-    DvzTex* stg; // used for persistent staging, resized when the tex is resized
+    DvzDat* stg; // used for persistent staging, resized when the tex is resized
 };
 
 

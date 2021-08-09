@@ -85,7 +85,7 @@ _total_aligned_size(DvzBuffer* buffer, uint32_t count, VkDeviceSize size, VkDevi
 /*  Dat allocation                                                                               */
 /*************************************************************************************************/
 
-static inline DvzDat* _dat_alloc_staging(DvzContext* ctx, VkDeviceSize size)
+static inline DvzDat* _alloc_staging(DvzContext* ctx, VkDeviceSize size)
 {
     ASSERT(ctx != NULL);
     return dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 0);
@@ -176,15 +176,6 @@ static inline bool _tex_persistent_staging(DvzTex* tex)
 }
 
 static inline void _copy_shape(uvec3 src, uvec3 dst) { memcpy(dst, src, sizeof(uvec3)); }
-
-
-
-static inline DvzTex*
-_tex_alloc_staging(DvzContext* ctx, DvzTexDims dims, uvec3 shape, VkFormat format)
-{
-    ASSERT(ctx != NULL);
-    return dvz_tex(ctx, dims, shape, format, 0);
-}
 
 
 
@@ -359,7 +350,7 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, int flag
     if (_dat_persistent_staging(dat))
     {
         log_debug("allocate persistent staging for dat with size %s", pretty_size(size));
-        dat->stg = _dat_alloc_staging(ctx, size);
+        dat->stg = _alloc_staging(ctx, size);
     }
 
     dvz_obj_created(&dat->obj);
@@ -383,7 +374,7 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
     {
         // Need to allocate a temporary staging buffer.
         ASSERT(!_dat_persistent_staging(dat));
-        stg = _dat_alloc_staging(ctx, size);
+        stg = _alloc_staging(ctx, size);
     }
 
     // Enqueue the transfer task corresponding to the flags.
@@ -449,7 +440,7 @@ void dvz_dat_download(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void*
     {
         // Need to allocate a temporary staging buffer.
         ASSERT(!_dat_persistent_staging(dat));
-        stg = _dat_alloc_staging(ctx, size);
+        stg = _alloc_staging(ctx, size);
     }
 
     // Enqueue the transfer task corresponding to the flags.
@@ -512,6 +503,27 @@ void dvz_dat_destroy(DvzDat* dat)
 /*  Texs                                                                                         */
 /*************************************************************************************************/
 
+static DvzDat* _tex_staging(DvzTex* tex, VkDeviceSize size)
+{
+    ASSERT(tex != NULL);
+    ASSERT(tex->context != NULL);
+    DvzDat* stg = tex->stg;
+    if (stg != NULL)
+        return stg;
+
+    // Need to allocate a staging buffer.
+    log_debug("allocate persistent staging buffer with size %s for tex", pretty_size(size));
+    stg = _alloc_staging(tex->context, size);
+
+    // If persistent staging, store it.
+    if (_tex_persistent_staging(tex))
+        tex->stg = stg;
+
+    return stg;
+}
+
+
+
 DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, VkFormat format, int flags)
 {
     ASSERT(ctx != NULL);
@@ -521,13 +533,6 @@ DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, VkFormat format, 
     tex->flags = flags;
     tex->dims = dims;
     _copy_shape(shape, tex->shape);
-
-    // Allocate a permanent staging tex.
-    if (_tex_persistent_staging(tex))
-    {
-        log_debug("allocate persistent staging for tex");
-        tex->stg = _tex_alloc_staging(ctx, dims, shape, format);
-    }
 
     // Allocate the tex.
     // TODO: GPU sync before?
@@ -540,24 +545,57 @@ DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, VkFormat format, 
 
 
 void dvz_tex_upload(
-    DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data, bool waiting)
+    DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data, bool wait)
 {
     ASSERT(tex != NULL);
-    // TODO
+    ASSERT(tex->img != NULL);
+
+    DvzContext* ctx = tex->context;
+    ASSERT(ctx != NULL);
+
+    DvzTransfers* transfers = &tex->context->transfers;
+
+    // Get the associated staging buffer.
+    DvzDat* stg = _tex_staging(tex, size);
+    ASSERT(stg != NULL);
+
+    _enqueue_image_upload(&transfers->deq, tex->img, offset, shape, stg->br, 0, size, data);
+
+    if (wait)
+    {
+        dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+    }
 }
 
 
 
 void dvz_tex_download(
-    DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data, bool waiting)
+    DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data, bool wait)
 {
     ASSERT(tex != NULL);
-    // TODO
+    ASSERT(tex->img != NULL);
+
+    DvzContext* ctx = tex->context;
+    ASSERT(ctx != NULL);
+
+    DvzTransfers* transfers = &tex->context->transfers;
+
+    // Get the associated staging buffer.
+    DvzDat* stg = _tex_staging(tex, size);
+    ASSERT(stg != NULL);
+
+    _enqueue_image_download(&transfers->deq, tex->img, offset, shape, stg->br, 0, size, data);
+
+    if (wait)
+    {
+        dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+        dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
+    }
 }
 
 
 
-void dvz_tex_resize(DvzTex* tex, uvec3 new_shape)
+void dvz_tex_resize(DvzTex* tex, uvec3 new_shape, VkDeviceSize new_size)
 {
     ASSERT(tex != NULL);
     ASSERT(tex->img != NULL);
@@ -565,9 +603,9 @@ void dvz_tex_resize(DvzTex* tex, uvec3 new_shape)
     // TODO: GPU sync before?
     dvz_images_resize(tex->img, new_shape[0], new_shape[1], new_shape[2]);
 
-    // Destroy the persistent staging tex if there is one.
+    // Resize the persistent staging tex if there is one.
     if (tex->stg != NULL)
-        dvz_tex_resize(tex->stg, new_shape);
+        dvz_dat_resize(tex->stg, new_size);
 }
 
 
@@ -581,7 +619,7 @@ void dvz_tex_destroy(DvzTex* tex)
 
     // Destroy the persistent staging tex if there is one.
     if (tex->stg != NULL)
-        dvz_tex_destroy(tex->stg);
+        dvz_dat_destroy(tex->stg);
 
     dvz_obj_destroyed(&tex->obj);
 }

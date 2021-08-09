@@ -178,10 +178,28 @@ int test_ctx_tex_1(TestContext* tc)
 
     uvec3 shape = {2, 4, 1};
     VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+    VkDeviceSize size = 4 * shape[0] * shape[1] * shape[2];
+
+    // Create a data array.
+    uint8_t data[32] = {0};
+    uint8_t data1[32] = {0};
+    ASSERT(size == 32);
+    for (uint32_t i = 0; i < size; i++)
+        data[i] = i;
 
     // Allocate a tex.
     DvzTex* tex = dvz_tex(ctx, DVZ_TEX_2D, shape, format, 0);
     ASSERT(tex != NULL);
+
+    // Upload some data.
+    dvz_tex_upload(tex, DVZ_ZERO_OFFSET, shape, size, data, true);
+
+    // Download back the data.
+    dvz_tex_download(tex, DVZ_ZERO_OFFSET, shape, size, data1, true);
+
+    for (uint32_t i = 0; i < size; i++)
+        // log_info("%d", data1[i]);
+        AT(data1[i] == i);
 
     dvz_tex_destroy(tex);
 
