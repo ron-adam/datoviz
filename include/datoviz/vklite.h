@@ -1318,10 +1318,11 @@ void dvz_buffer_regions_download(
  * @param dst the destination buffer regions
  * @param dst_offset, the offset, in bytes
  * @param size the size, in bytes
+ * @param the region idx to copy, or -1 if all regions must be copied
  */
 DVZ_EXPORT void dvz_buffer_regions_copy(
-    DvzBufferRegions* src, VkDeviceSize src_offset, //
-    DvzBufferRegions* dst, VkDeviceSize dst_offset, VkDeviceSize size);
+    DvzBufferRegions* src, uint32_t src_idx, VkDeviceSize src_offset, //
+    DvzBufferRegions* dst, uint32_t dst_idx, VkDeviceSize dst_offset, VkDeviceSize size);
 
 
 

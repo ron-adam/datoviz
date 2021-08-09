@@ -1240,13 +1240,14 @@ void dvz_buffer_regions_download(
 
 
 void dvz_buffer_regions_copy(
-    DvzBufferRegions* src, VkDeviceSize src_offset, //
-    DvzBufferRegions* dst, VkDeviceSize dst_offset, VkDeviceSize size)
+    DvzBufferRegions* src, uint32_t src_idx, VkDeviceSize src_offset, //
+    DvzBufferRegions* dst, uint32_t dst_idx, VkDeviceSize dst_offset, VkDeviceSize size)
 {
     ASSERT(src != NULL);
     ASSERT(dst != NULL);
     ASSERT(src->buffer->gpu != NULL);
     ASSERT(src->buffer->gpu == dst->buffer->gpu);
+
     DvzGpu* gpu = src->buffer->gpu;
     ASSERT(gpu != NULL);
     ASSERT(size > 0);
@@ -1260,13 +1261,27 @@ void dvz_buffer_regions_copy(
 
     // Copy buffer command.
     VkBufferCopy* regions = (VkBufferCopy*)calloc(src->count, sizeof(VkBufferCopy));
+    uint32_t cnt = 0; // how many regions to copy
+    cnt = 0;
+
+    // Copy 1 or all regions.
+    uint32_t u = 0, v = 0;
     for (uint32_t i = 0; i < src->count; i++)
     {
+        u = src_idx >= src->count ? i : src_idx;
+        v = dst_idx >= dst->count ? i : dst_idx;
+        ASSERT(u < src->count);
+        ASSERT(v < dst->count);
         regions[i].size = size;
-        regions[i].srcOffset = src->offsets[i] + src_offset;
-        regions[i].dstOffset = dst->offsets[i] + dst_offset;
+        regions[i].srcOffset = src->offsets[u] + src_offset;
+        regions[i].dstOffset = dst->offsets[v] + dst_offset;
+        cnt++;
+        if (src_idx < src->count && dst_idx < dst->count)
+            break;
     }
-    vkCmdCopyBuffer(cmds->cmds[0], src->buffer->buffer, dst->buffer->buffer, src->count, regions);
+
+    ASSERT(cnt > 0);
+    vkCmdCopyBuffer(cmds->cmds[0], src->buffer->buffer, dst->buffer->buffer, cnt, regions);
 
     dvz_cmd_end(cmds, 0);
     FREE(regions);

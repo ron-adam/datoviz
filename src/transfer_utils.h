@@ -167,7 +167,8 @@ static DvzDeqItem* _create_dup_copy(
 {
     ASSERT(src.buffer != NULL);
     ASSERT(dst.buffer != NULL);
-    ASSERT(src.count == dst.count);
+    // NOTE: for now we impose the staging (source) buffer to have a single copy of the data.
+    ASSERT(src.count == 1);
     ASSERT(size > 0);
 
     DvzTransferDup* tr = (DvzTransferDup*)calloc(1, sizeof(DvzTransferDup));
@@ -573,7 +574,8 @@ static void _process_buffer_copy(DvzDeq* deq, void* item, void* user_data)
     // waiting at every dequeued item in a given batch.
 
     dvz_queue_wait(transfers->gpu, DVZ_DEFAULT_QUEUE_RENDER);
-    dvz_buffer_regions_copy(&tr->src, tr->src_offset, &tr->dst, tr->dst_offset, tr->size);
+    dvz_buffer_regions_copy(
+        &tr->src, UINT32_MAX, tr->src_offset, &tr->dst, UINT32_MAX, tr->dst_offset, tr->size);
     dvz_queue_wait(transfers->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
 }
 

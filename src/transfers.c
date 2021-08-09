@@ -134,11 +134,16 @@ _process_pending_dup(DvzTransfers* transfers, DvzTransferDupItem* item, uint32_t
     // Dup copy.
     else if (item->tr.type == DVZ_TRANSFER_DUP_COPY)
     {
-        log_debug("copy from staging to buffer");
+        log_debug("copy from staging to buffer, region #%d", img_idx);
+
+        // NOTE: the staging buffer only need to have 1 copy (1 region) of the data. We copy it to
+        // region #img_idx of the target buffer.
+        ASSERT(item->tr.stg.count == 1);
 
         // Submit a copy for the img_idx part, from staging to target buffer, and wait.
         dvz_buffer_regions_copy(
-            &item->tr.stg, item->tr.stg_offset, br, item->tr.offset, item->tr.size);
+            &item->tr.stg, 0, item->tr.stg_offset, br, img_idx, item->tr.offset, item->tr.size);
+
         // NOTE: is the wait really necessary here? we could also use a fence, or not wait at all?
         dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     }
@@ -263,6 +268,7 @@ void dvz_upload_buffer(
     ASSERT(br.buffer != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
+    ASSERT(br.count == 1);
 
     DvzGpu* gpu = transfers->gpu;
     ASSERT(gpu != NULL);
@@ -294,6 +300,7 @@ void dvz_download_buffer(
     ASSERT(br.buffer != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
+    ASSERT(br.count == 1);
 
     DvzGpu* gpu = transfers->gpu;
     ASSERT(gpu != NULL);
@@ -330,6 +337,8 @@ void dvz_copy_buffer(
     ASSERT(transfers != NULL);
     ASSERT(src.buffer != NULL);
     ASSERT(dst.buffer != NULL);
+    ASSERT(src.count == 1);
+    ASSERT(dst.count == 1);
     ASSERT(size > 0);
 
     // Enqueue an upload transfer task.
@@ -367,6 +376,7 @@ void dvz_upload_image(
     ASSERT(img != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
+    ASSERT(img->count == 1);
 
     DvzGpu* gpu = transfers->gpu;
     ASSERT(gpu != NULL);
@@ -398,6 +408,7 @@ void dvz_download_image(
     ASSERT(img != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
+    ASSERT(img->count == 1);
 
     DvzGpu* gpu = transfers->gpu;
     ASSERT(gpu != NULL);
@@ -432,6 +443,12 @@ void dvz_copy_image(
     DvzImages* dst, uvec3 dst_offset, //
     uvec3 shape, VkDeviceSize size)
 {
+    ASSERT(transfers != NULL);
+    ASSERT(src != NULL);
+    ASSERT(dst != NULL);
+    ASSERT(src->count == 1);
+    ASSERT(dst->count == 1);
+
     _enqueue_image_copy(&transfers->deq, src, src_offset, dst, dst_offset, shape);
 
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
