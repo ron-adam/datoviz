@@ -140,7 +140,7 @@ int test_ctx_dat_1(TestContext* tc)
         DVZ_DAT_OPTIONS_NONE,       //
         DVZ_DAT_OPTIONS_STANDALONE, //
         DVZ_DAT_OPTIONS_MAPPABLE,   //
-        // DVZ_DAT_OPTIONS_DUP,
+        DVZ_DAT_OPTIONS_DUP,
     };
 
     for (uint32_t i = 0; i < sizeof(flags_tests) / sizeof(int); i++)
@@ -154,6 +154,7 @@ int test_ctx_dat_1(TestContext* tc)
 
         // Download back the data.
         dvz_dat_download(dat, 0, sizeof(data1), data1, true);
+        // log_info("%d %d %d", data1[0], data1[1], data1[2]);
         AT(data1[0] == 1);
         AT(data1[1] == 2);
         AT(data1[2] == 3);

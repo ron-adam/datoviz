@@ -331,8 +331,6 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
     DvzTransfers* transfers = &ctx->transfers;
     ASSERT(transfers != NULL);
 
-    log_debug("upload %s to dat", pretty_size(size));
-
     // Do we need a staging buffer?
     DvzDat* stg = dat->stg;
     if (_has_staging(dat) && stg == NULL)
@@ -346,6 +344,8 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
     bool dup = _is_dup(dat);
     bool staging = stg != NULL;
     DvzBufferRegions stg_br = staging ? stg->br : (DvzBufferRegions){0};
+
+    log_debug("upload %s to dat%s", pretty_size(size), staging ? " (with staging)" : "");
 
     if (!dup)
     {
@@ -373,6 +373,12 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
         _enqueue_dup_transfer(&transfers->deq, dat->br, offset, stg_br, 0, size, data);
         if (wait)
         {
+
+            // IMPORTANT: before calling the dvz_transfers_frame(), we must wait for the DUP task
+            // to be in the queue. Here we dequeue it manually. The callback will add it to the
+            // special Dups structure, and it will be correctly processed by dvz_transfer_frame().
+            dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_DUP, true);
+
             ASSERT(dat->br.count > 0);
             for (uint32_t i = 0; i < dat->br.count; i++)
                 dvz_transfers_frame(transfers, i);
@@ -391,8 +397,6 @@ void dvz_dat_download(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void*
     DvzTransfers* transfers = &ctx->transfers;
     ASSERT(transfers != NULL);
 
-    log_debug("download %s from dat", pretty_size(size));
-
     // Do we need a staging buffer?
     DvzDat* stg = dat->stg;
     if (_has_staging(dat) && stg == NULL)
@@ -403,18 +407,24 @@ void dvz_dat_download(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void*
     }
 
     // Enqueue the transfer task corresponding to the flags.
+    bool dup = _is_dup(dat);
     bool staging = stg != NULL;
     DvzBufferRegions stg_br = staging ? stg->br : (DvzBufferRegions){0};
 
+    log_debug("download %s from dat%s", pretty_size(size), staging ? " (with staging)" : "");
+
     // Enqueue a standard download task, with or without staging buffer.
     _enqueue_buffer_download(&transfers->deq, dat->br, offset, stg_br, 0, size, data);
+
     if (wait)
     {
+
         if (staging)
             dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
         else
             // dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_UD, true);
             dvz_queue_wait(ctx->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+
         // Wait until the download finished event has been raised.
         dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
     }

@@ -194,6 +194,7 @@ void dvz_transfers(DvzGpu* gpu, DvzTransfers* transfers)
 void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx)
 {
     ASSERT(transfers != NULL);
+    log_debug("transfers frame #%d", img_idx);
 
     DvzGpu* gpu = transfers->gpu;
     ASSERT(gpu != NULL);
@@ -209,7 +210,10 @@ void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx)
     // Check if there are ongoing non-recurrent dup transfers.
     DvzTransferDups* dups = &transfers->dups;
     if (_dups_empty(dups))
+    {
+        log_debug("no ongoing dup transfer");
         return;
+    }
     // HACK: should be wrapped in an interface instead.
     // Process all ongoing dups.
     DvzTransferDupItem* item = NULL;

@@ -1245,8 +1245,14 @@ void dvz_buffer_regions_copy(
 {
     ASSERT(src != NULL);
     ASSERT(dst != NULL);
+    ASSERT(src->buffer != NULL);
+    ASSERT(dst->buffer != NULL);
     ASSERT(src->buffer->gpu != NULL);
     ASSERT(src->buffer->gpu == dst->buffer->gpu);
+
+    log_debug(
+        "request copy from src region #%d (n=%d) to dst region #%d (n=%d)", //
+        src_idx, src->count, dst_idx, dst->count);
 
     DvzGpu* gpu = src->buffer->gpu;
     ASSERT(gpu != NULL);
@@ -1270,13 +1276,17 @@ void dvz_buffer_regions_copy(
     {
         u = src_idx >= src->count ? i : src_idx;
         v = dst_idx >= dst->count ? i : dst_idx;
-        // log_info("%d %d, %d %d", u, src->count, v, dst->count);
+        if (u >= src->count || v >= dst->count)
+            break;
+        log_debug("copy src region #%d to dst region #%d, size %s", u, v, pretty_size(size));
         ASSERT(u < src->count);
         ASSERT(v < dst->count);
         regions[i].size = size;
         regions[i].srcOffset = src->offsets[u] + src_offset;
         regions[i].dstOffset = dst->offsets[v] + dst_offset;
         cnt++;
+
+        // NOTE: a single region to copy if neither src_idx nor dst_idx is UINT32_MAX
         if (src_idx < src->count && dst_idx < dst->count)
             break;
     }
@@ -1293,7 +1303,7 @@ void dvz_buffer_regions_copy(
     // Submit the commands to the transfer queue.
     DvzSubmit submit = dvz_submit(gpu);
     dvz_submit_commands(&submit, cmds);
-    log_debug("copy %s between 2 buffers", pretty_size(size));
+    // log_debug("copy %s between 2 buffers", pretty_size(size));
     dvz_submit_send(&submit, 0, NULL, 0);
 
     // Wait for the transfer queue to be idle.
