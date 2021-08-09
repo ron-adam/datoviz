@@ -64,6 +64,15 @@ typedef enum
 
 
 
+// Tex options.
+typedef enum
+{
+    DVZ_TEX_OPTIONS_NONE = 0x0000,               // default
+    DVZ_TEX_OPTIONS_PERSISTENT_STAGING = 0x2000, // (or recreate the staging buffer every time)
+} DvzTexOptions;
+
+
+
 /*************************************************************************************************/
 /*  Typedefs                                                                                     */
 /*************************************************************************************************/
@@ -99,7 +108,10 @@ struct DvzTex
     DvzTexDims dims;
     uvec3 shape;
 
+    int flags;
     DvzImages* images;
+
+    DvzTex* stg; // used for persistent staging, resized when the tex is resized
 };
 
 

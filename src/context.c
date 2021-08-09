@@ -16,7 +16,7 @@
 
 
 /*************************************************************************************************/
-/*  Utils                                                                                        */
+/*  Context utils                                                                                */
 /*************************************************************************************************/
 
 static void _default_queues(DvzGpu* gpu, bool has_present_queue)
@@ -28,8 +28,6 @@ static void _default_queues(DvzGpu* gpu, bool has_present_queue)
         dvz_gpu_queue(gpu, DVZ_DEFAULT_QUEUE_PRESENT, DVZ_QUEUE_PRESENT);
 }
 
-
-
 static void _gpu_default_features(DvzGpu* gpu)
 {
     ASSERT(gpu != NULL);
@@ -38,37 +36,39 @@ static void _gpu_default_features(DvzGpu* gpu)
 
 
 
-static inline bool _is_standalone(DvzDat* dat)
+/*************************************************************************************************/
+/*  Dat utils                                                                                    */
+/*************************************************************************************************/
+
+static inline bool _dat_is_standalone(DvzDat* dat)
 {
     ASSERT(dat != NULL);
     return (dat->flags & DVZ_DAT_OPTIONS_STANDALONE) != 0;
 }
 
-static inline bool _has_staging(DvzDat* dat)
+static inline bool _dat_has_staging(DvzDat* dat)
 {
     ASSERT(dat != NULL);
     return (dat->flags & DVZ_DAT_OPTIONS_MAPPABLE) == 0;
 }
 
-static inline bool _is_dup(DvzDat* dat)
+static inline bool _dat_is_dup(DvzDat* dat)
 {
     ASSERT(dat != NULL);
     return (dat->flags & DVZ_DAT_OPTIONS_DUP) != 0;
 }
 
-static inline bool _keep_on_resize(DvzDat* dat)
+static inline bool _dat_keep_on_resize(DvzDat* dat)
 {
     ASSERT(dat != NULL);
     return (dat->flags & DVZ_DAT_OPTIONS_KEEP_ON_RESIZE) != 0;
 }
 
-static inline bool _persistent_staging(DvzDat* dat)
+static inline bool _dat_persistent_staging(DvzDat* dat)
 {
     ASSERT(dat != NULL);
     return (dat->flags & DVZ_DAT_OPTIONS_PERSISTENT_STAGING) != 0;
 }
-
-
 
 static inline VkDeviceSize
 _total_aligned_size(DvzBuffer* buffer, uint32_t count, VkDeviceSize size, VkDeviceSize* alignment)
@@ -81,12 +81,15 @@ _total_aligned_size(DvzBuffer* buffer, uint32_t count, VkDeviceSize size, VkDevi
 
 
 
-static inline DvzDat* _alloc_staging(DvzContext* ctx, VkDeviceSize size)
+/*************************************************************************************************/
+/*  Dat allocation                                                                               */
+/*************************************************************************************************/
+
+static inline DvzDat* _dat_alloc_staging(DvzContext* ctx, VkDeviceSize size)
 {
     ASSERT(ctx != NULL);
     return dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 0);
 }
-
 
 static void _dat_alloc(DvzDat* dat, DvzBufferType type, uint32_t count, VkDeviceSize size)
 {
@@ -99,8 +102,8 @@ static void _dat_alloc(DvzDat* dat, DvzBufferType type, uint32_t count, VkDevice
     VkDeviceSize alignment = 0;
     VkDeviceSize tot_size = 0;
 
-    bool shared = !_is_standalone(dat);
-    bool mappable = !_has_staging(dat);
+    bool shared = !_dat_is_standalone(dat);
+    bool mappable = !_dat_has_staging(dat);
 
     log_debug(
         "allocate dat, buffer type %d, %s%ssize %s", //
@@ -145,8 +148,8 @@ static void _dat_dealloc(DvzDat* dat)
     DvzContext* ctx = dat->context;
     ASSERT(ctx != NULL);
 
-    bool shared = !_is_standalone(dat);
-    bool mappable = !_has_staging(dat);
+    bool shared = !_dat_is_standalone(dat);
+    bool mappable = !_dat_has_staging(dat);
 
     if (shared)
     {
@@ -158,6 +161,26 @@ static void _dat_dealloc(DvzDat* dat)
         // Destroy the standalone buffer.
         dvz_buffer_destroy(dat->br.buffer);
     }
+}
+
+
+
+/*************************************************************************************************/
+/*  Tex utils                                                                                    */
+/*************************************************************************************************/
+
+static inline bool _tex_persistent_staging(DvzTex* tex)
+{
+    ASSERT(tex != NULL);
+    return (tex->flags & DVZ_TEX_OPTIONS_PERSISTENT_STAGING) != 0;
+}
+
+
+
+static inline DvzTex* _tex_alloc_staging(DvzContext* ctx, DvzTexDims dims, uvec3 shape)
+{
+    ASSERT(ctx != NULL);
+    return dvz_tex(ctx, dims, shape, 0);
 }
 
 
@@ -294,7 +317,7 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, int flag
     dat->flags = flags;
 
     // Find the number of copies.
-    uint32_t count = _is_dup(dat) ? ctx->img_count : 1;
+    uint32_t count = _dat_is_dup(dat) ? ctx->img_count : 1;
     if (count == 0)
     {
         log_warn("DvzContext.img_count is not set");
@@ -306,10 +329,10 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, int flag
 
     // Allocate a permanent staging dat.
     // TODO: staging standalone or not?
-    if (_persistent_staging(dat))
+    if (_dat_persistent_staging(dat))
     {
         log_debug("allocate persistent staging for dat with size %s", pretty_size(size));
-        dat->stg = _alloc_staging(ctx, size);
+        dat->stg = _dat_alloc_staging(ctx, size);
     }
 
     dvz_obj_created(&dat->obj);
@@ -329,15 +352,15 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
 
     // Do we need a staging buffer?
     DvzDat* stg = dat->stg;
-    if (_has_staging(dat) && stg == NULL)
+    if (_dat_has_staging(dat) && stg == NULL)
     {
         // Need to allocate a temporary staging buffer.
-        ASSERT(!_persistent_staging(dat));
-        stg = _alloc_staging(ctx, size);
+        ASSERT(!_dat_persistent_staging(dat));
+        stg = _dat_alloc_staging(ctx, size);
     }
 
     // Enqueue the transfer task corresponding to the flags.
-    bool dup = _is_dup(dat);
+    bool dup = _dat_is_dup(dat);
     bool staging = stg != NULL;
     DvzBufferRegions stg_br = staging ? stg->br : (DvzBufferRegions){0};
 
@@ -395,11 +418,11 @@ void dvz_dat_download(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void*
 
     // Do we need a staging buffer?
     DvzDat* stg = dat->stg;
-    if (_has_staging(dat) && stg == NULL)
+    if (_dat_has_staging(dat) && stg == NULL)
     {
         // Need to allocate a temporary staging buffer.
-        ASSERT(!_persistent_staging(dat));
-        stg = _alloc_staging(ctx, size);
+        ASSERT(!_dat_persistent_staging(dat));
+        stg = _dat_alloc_staging(ctx, size);
     }
 
     // Enqueue the transfer task corresponding to the flags.
@@ -465,16 +488,28 @@ void dvz_dat_destroy(DvzDat* dat)
 DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, int flags)
 {
     ASSERT(ctx != NULL);
-    // TODO
-    // create a new image
 
-    return NULL;
+    DvzTex* tex = (DvzTex*)dvz_container_alloc(&ctx->res.texs);
+    tex->context = ctx;
+    tex->flags = flags;
+
+    // Allocate a permanent staging tex.
+    if (_tex_persistent_staging(tex))
+    {
+        log_debug("allocate persistent staging for tex");
+        tex->stg = _tex_alloc_staging(ctx, dims, shape);
+    }
+
+    // TODO
+
+    dvz_obj_created(&tex->obj);
+    return tex;
 }
 
 
 
 void dvz_tex_upload(
-    DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data, int flags)
+    DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data, bool waiting)
 {
     ASSERT(tex != NULL);
     // TODO
@@ -483,7 +518,7 @@ void dvz_tex_upload(
 
 
 void dvz_tex_download(
-    DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data, int flags)
+    DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data, bool waiting)
 {
     ASSERT(tex != NULL);
     // TODO
@@ -491,10 +526,28 @@ void dvz_tex_download(
 
 
 
+void dvz_tex_resize(DvzTex* tex, uvec3 new_shape)
+{
+    ASSERT(tex != NULL);
+
+    // TODO
+
+    // Destroy the persistent staging tex if there is one.
+    if (tex->stg != NULL)
+        dvz_tex_resize(tex->stg, new_shape);
+}
+
+
+
 void dvz_tex_destroy(DvzTex* tex)
 {
     ASSERT(tex != NULL);
+
     // TODO
+
+    // Destroy the persistent staging tex if there is one.
+    if (tex->stg != NULL)
+        dvz_tex_destroy(tex->stg);
 
     dvz_obj_destroyed(&tex->obj);
 }
