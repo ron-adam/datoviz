@@ -33,6 +33,7 @@ extern "C" {
 /*  Enums                                                                                        */
 /*************************************************************************************************/
 
+// TODO: remove?
 // Dat flags.
 typedef enum
 {
@@ -57,6 +58,7 @@ typedef enum
 
 
 
+// Dat options.
 typedef enum
 {
     DVZ_DAT_OPTIONS_NONE = 0x0000,               //

@@ -317,7 +317,7 @@ int test_transfers_direct_image(TestContext* tc)
 /*  Test dup transfers                                                                           */
 /*************************************************************************************************/
 
-int test_transfers_dups_1(TestContext* tc)
+int test_transfers_dups_util(TestContext* tc)
 {
     DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
@@ -398,7 +398,7 @@ int test_transfers_dups_1(TestContext* tc)
 
 
 
-int test_transfers_dups_2(TestContext* tc)
+int test_transfers_dups_upload(TestContext* tc)
 {
     DvzTransfers* transfers = &tc->transfers;
     ASSERT(transfers != NULL);
@@ -415,7 +415,7 @@ int test_transfers_dups_2(TestContext* tc)
 
     // Enqueue a dup upload.
     uint8_t data = 42;
-    _enqueue_dup_upload(&transfers->deq, br, 0, (DvzBufferRegions){0}, 0, sizeof(data), &data);
+    _enqueue_dup_transfer(&transfers->deq, br, 0, (DvzBufferRegions){0}, 0, sizeof(data), &data);
 
     // This will upload the data to buffer region #1 but not the others.
     dvz_transfers_frame(transfers, 1);
@@ -453,6 +453,89 @@ int test_transfers_dups_2(TestContext* tc)
     AT(_dups_empty(&transfers->dups));
 
     _destroy_buffer_regions(br);
+    FREE(downloaded);
+    return 0;
+}
+
+
+
+int test_transfers_dups_copy(TestContext* tc)
+{
+    DvzTransfers* transfers = &tc->transfers;
+    ASSERT(transfers != NULL);
+
+    DvzGpu* gpu = transfers->gpu;
+    ASSERT(gpu != NULL);
+
+    uint32_t count = 3;
+    VkDeviceSize size = 16;
+    DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_VERTEX, count, size);
+    DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, count, size);
+
+    // Do nothing.
+    dvz_transfers_frame(transfers, 0);
+
+    // Enqueue a dup copy.
+    uint8_t data = 42;
+    _enqueue_dup_transfer(&transfers->deq, br, 0, stg, 0, sizeof(data), &data);
+
+    // HACK: we need to wait for the upload to occur in the background thread before we can
+    // continue with testing.
+    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
+
+    // This will upload the data to buffer region #1 but not the others.
+    dvz_transfers_frame(transfers, 1);
+
+
+    _destroy_buffer_regions(br);
+    _destroy_buffer_regions(stg);
+    return 0;
+
+
+    uint8_t* downloaded = (uint8_t*)calloc(size * count, 1);
+    uint8_t exp[3] = {0, data, 0};
+    // should download br here
+    dvz_download_buffer(transfers, stg, 0, size, downloaded);
+    for (uint32_t i = 0; i < 48; i++)
+        log_info("%d %d", i, downloaded[i]);
+
+
+
+    // for (uint32_t i = 0; i < count; i++)
+    // {
+    //     // AT(downloaded[16 * i] == exp[i]);
+    //     // AT(downloaded[16 * i + 1] == 0);
+    // }
+    // // AT(!_dups_empty(&transfers->dups));
+
+    // // This will upload the data to buffer region #2 but not the others.
+    // // dvz_transfers_frame(transfers, 2);
+
+    // exp[2] = data;
+    // dvz_download_buffer(transfers, br, 0, size, downloaded);
+    // for (uint32_t i = 0; i < count; i++)
+    // {
+    //     // AT(downloaded[16 * i] == exp[i]);
+    //     // AT(downloaded[16 * i + 1] == 0);
+    // }
+    // // AT(!_dups_empty(&transfers->dups));
+
+    // // Last buffer is #0.
+    // // dvz_transfers_frame(transfers, 0);
+
+    // exp[0] = data;
+    // dvz_download_buffer(transfers, br, 0, size, downloaded);
+    // for (uint32_t i = 0; i < count; i++)
+    // {
+    //     // AT(downloaded[16 * i] == exp[i]);
+    //     // AT(downloaded[16 * i + 1] == 0);
+    // }
+    // // AT(_dups_empty(&transfers->dups));
+
+
+
+    _destroy_buffer_regions(br);
+    _destroy_buffer_regions(stg);
     FREE(downloaded);
     return 0;
 }

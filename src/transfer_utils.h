@@ -171,7 +171,7 @@ static DvzDeqItem* _create_dup_copy(
     ASSERT(size > 0);
 
     DvzTransferDup* tr = (DvzTransferDup*)calloc(1, sizeof(DvzTransferDup));
-    tr->type = DVZ_TRANSFER_DUP_UPLOAD;
+    tr->type = DVZ_TRANSFER_DUP_COPY;
     tr->br = dst;
     tr->offset = dst_offset;
     tr->stg = src;
@@ -317,7 +317,7 @@ static void _enqueue_buffer_copy(
 /*  Dup transfer task enqueuing                                                                  */
 /*************************************************************************************************/
 
-static void _enqueue_dup_upload(
+static void _enqueue_dup_transfer(
     DvzDeq* deq,                                   //
     DvzBufferRegions br, VkDeviceSize buf_offset,  // destination buffer
     DvzBufferRegions stg, VkDeviceSize stg_offset, // optional staging buffer

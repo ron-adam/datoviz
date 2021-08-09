@@ -140,7 +140,7 @@ _process_pending_dup(DvzTransfers* transfers, DvzTransferDupItem* item, uint32_t
         dvz_buffer_regions_copy(
             &item->tr.stg, item->tr.stg_offset, br, item->tr.offset, item->tr.size);
         // NOTE: is the wait really necessary here? we could also use a fence, or not wait at all?
-        dvz_queue_wait(gpu, DVZ_QUEUE_TRANSFER);
+        dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
     }
     else
     {

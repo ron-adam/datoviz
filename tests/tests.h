@@ -88,8 +88,9 @@ int test_transfers_buffer_copy(TestContext*);
 int test_transfers_image_buffer(TestContext*);
 int test_transfers_direct_buffer(TestContext*);
 int test_transfers_direct_image(TestContext*);
-int test_transfers_dups_1(TestContext* tc);
-int test_transfers_dups_2(TestContext* tc);
+int test_transfers_dups_util(TestContext* tc);
+int test_transfers_dups_upload(TestContext* tc);
+int test_transfers_dups_copy(TestContext* tc);
 
 // Test resources.
 int test_ctx_resources_1(TestContext*);
@@ -293,8 +294,9 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(TRANSFERS, test_transfers_image_buffer),    //
     CASE_FIXTURE(TRANSFERS, test_transfers_direct_buffer),   //
     CASE_FIXTURE(TRANSFERS, test_transfers_direct_image),    //
-    CASE_FIXTURE(TRANSFERS, test_transfers_dups_1),          //
-    CASE_FIXTURE(TRANSFERS, test_transfers_dups_2),          //
+    CASE_FIXTURE(TRANSFERS, test_transfers_dups_util),       //
+    CASE_FIXTURE(TRANSFERS, test_transfers_dups_upload),     //
+    CASE_FIXTURE(TRANSFERS, test_transfers_dups_copy),       //
 
     // Resources.
     CASE_FIXTURE(CONTEXT, test_ctx_resources_1), //
