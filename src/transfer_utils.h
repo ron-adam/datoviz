@@ -327,7 +327,6 @@ static void _enqueue_dup_transfer(
     ASSERT(deq != NULL);
     ASSERT(size > 0);
     ASSERT(data != NULL);
-    log_trace("enqueue dup upload");
 
     DvzDeqItem* deq_item = NULL;
     DvzDeqItem* next_item = NULL;
@@ -335,6 +334,7 @@ static void _enqueue_dup_transfer(
     // Upload to a mappable buffer, no need for a staging buffer.
     if (stg.buffer == NULL)
     {
+        log_trace("enqueue dup direct upload");
         // Upload in one step, directly to the destination buffer that is assumed to be mappable.
 
         // NOTE: we use the COPY queue, not the UPLOAD one, because we *don't* want this task to be
@@ -347,6 +347,8 @@ static void _enqueue_dup_transfer(
     // Upload to a staging buffer first.
     else
     {
+        log_trace("enqueue upload to staging and dup copy");
+
         // First, upload to the staging buffer.
         deq_item = _create_buffer_transfer(
             DVZ_TRANSFER_BUFFER_UPLOAD, stg, stg_offset, size, data, DVZ_TRANSFER_DEQ_UL);

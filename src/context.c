@@ -45,6 +45,46 @@ static void _gpu_default_features(DvzGpu* gpu)
 
 
 
+static inline bool _is_standalone(DvzDat* dat)
+{
+    ASSERT(dat != NULL);
+    return (dat->flags & DVZ_DAT_OPTIONS_STANDALONE) > 0;
+}
+
+static inline bool _has_staging(DvzDat* dat)
+{
+    ASSERT(dat != NULL);
+    return (dat->flags & DVZ_DAT_OPTIONS_MAPPABLE) == 0;
+}
+
+static inline bool _is_dup(DvzDat* dat)
+{
+    ASSERT(dat != NULL);
+    return (dat->flags & DVZ_DAT_OPTIONS_DUP) > 0;
+}
+
+static inline bool _keep_on_resize(DvzDat* dat)
+{
+    ASSERT(dat != NULL);
+    return (dat->flags & DVZ_DAT_OPTIONS_KEEP_ON_RESIZE) > 0;
+}
+
+static inline bool _persistent_staging(DvzDat* dat)
+{
+    ASSERT(dat != NULL);
+    return (dat->flags & DVZ_DAT_OPTIONS_PERSISTENT_STAGING) > 0;
+}
+
+
+
+static inline DvzDat* _alloc_staging(DvzContext* ctx, VkDeviceSize size)
+{
+    ASSERT(ctx != NULL);
+    return dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size, 0);
+}
+
+
+
 /*************************************************************************************************/
 /*  Context                                                                                      */
 /*************************************************************************************************/
@@ -251,28 +291,72 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, uint32_t count, VkDeviceSiz
     dat->context = ctx;
     dat->flags = flags;
     _dat_alloc(dat, type, count, size);
+
+    // Allocate a permanent staging dat.
+    // TODO: staging standalone or not?
+    if (_persistent_staging(dat))
+    {
+        dat->stg = _alloc_staging(ctx, size);
+    }
+
     dvz_obj_created(&dat->obj);
     return dat;
 }
 
-
-
-void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data, int flags)
+void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data, bool wait)
 {
     ASSERT(dat != NULL);
-    // TODO
-    // asynchronous function
-    // if staging
-    //     allocate staging buffer if there isn't already one
-    // enqueue a buffer upload transfer
-    // the copy to staging will be done in a background thread automatically
-    // need the caller to call dvz_ctx_frame()
-    //     dequeue all pending copies, with hard gpu sync
+    DvzContext* ctx = dat->context;
+    ASSERT(ctx != NULL);
+
+    DvzTransfers* transfers = &ctx->transfers;
+    ASSERT(transfers != NULL);
+
+    // Do we need a staging buffer?
+    DvzDat* stg = dat->stg;
+    if (_has_staging(dat) && stg == NULL)
+    {
+        // Need to allocate a temporary staging buffer.
+        ASSERT(!_persistent_staging(dat));
+        // staging = dvz_resources_buffer(res, DVZ_BUFFER_TYPE_STAGING);
+        stg = _alloc_staging(ctx, size);
+    }
+
+    // Enqueue the copy task corresponding to the flags.
+    bool dup = _is_dup(dat);
+    bool staging = stg != NULL;
+    DvzBufferRegions stg_br = staging ? stg->br : (DvzBufferRegions){0};
+
+    if (!dup)
+    {
+        // Enqueue a standard upload task, with or without staging buffer.
+        _enqueue_buffer_upload(&transfers->deq, dat->br, offset, stg_br, 0, size, data);
+        if (wait)
+        {
+            if (staging)
+                dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+            else
+                dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_UD, true);
+        }
+    }
+
+    else
+    {
+        // Enqueue a dup transfer task, with or without staging buffer.
+        _enqueue_dup_transfer(&transfers->deq, dat->br, offset, stg_br, 0, size, data);
+        if (wait)
+        {
+            // HACK: we have no way to know the number of swapchain images here, so we just use the
+            // maximum number.
+            for (uint32_t i = 0; i < DVZ_MAX_SWAPCHAIN_IMAGES; i++)
+                dvz_transfers_frame(transfers, i);
+        }
+    }
 }
 
 
 
-void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data, int flags)
+void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data, bool wait)
 {
     ASSERT(dat != NULL);
     // TODO
@@ -296,6 +380,11 @@ void dvz_dat_destroy(DvzDat* dat)
     ASSERT(dat != NULL);
     DvzContext* ctx = dat->context;
     ASSERT(ctx != NULL);
+
+    // Destroy the persistent staging dat if there is one.
+    if (dat->stg != NULL)
+        dvz_dat_destroy(dat->stg);
+
     _dat_dealloc(dat);
     dvz_obj_destroyed(&dat->obj);
 }

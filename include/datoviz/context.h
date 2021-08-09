@@ -111,10 +111,12 @@ DVZ_EXPORT void dvz_app_reset(DvzApp* app);
 DVZ_EXPORT DvzDat*
 dvz_dat(DvzContext* ctx, DvzBufferType type, uint32_t count, VkDeviceSize size, int flags);
 
+// if not wait, one needs to call dvz_transfers_frame() for at least 1 frame for standard
+// transfers, or for all N frames for dup transfers.
 DVZ_EXPORT void
-dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data, int flags);
+dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data, bool wait);
 
-DVZ_EXPORT void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data, int flags);
+DVZ_EXPORT void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data, bool wait);
 
 DVZ_EXPORT void dvz_dat_resize(DvzDat* dat, VkDeviceSize new_size);
 
