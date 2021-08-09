@@ -331,21 +331,22 @@ int test_transfers_dups_1(TestContext* tc)
     DvzTransferDupItem* item = NULL;
 
     DvzTransferDups dups = _dups();
-    DvzTransferDup tr = {.br = br, .offset = 0, .size = size};
+    DvzTransferType type = DVZ_TRANSFER_DUP_UPLOAD;
+    DvzTransferDup tr = {.type = type, .br = br, .offset = 0, .size = size};
 
     AT(dups.count == 0);
     AT(_dups_empty(&dups));
-    AT(!_dups_has(&dups, br, 0, size));
+    AT(!_dups_has(&dups, type, br, 0, size));
 
     _dups_append(&dups, &tr);
     AT(dups.count == 1);
-    AT(_dups_get_idx(&dups, br, 0, size) == 0);
-    AT(_dups_has(&dups, br, 0, size));
+    AT(_dups_get_idx(&dups, type, br, 0, size) == 0);
+    AT(_dups_has(&dups, type, br, 0, size));
 
     br.offsets[0] = 1;
-    AT(!_dups_has(&dups, br, 0, size));
+    AT(!_dups_has(&dups, type, br, 0, size));
     br.offsets[0] = 0;
-    item = _dups_get(&dups, br, 0, size);
+    item = _dups_get(&dups, type, br, 0, size);
 
     for (uint32_t i = 0; i < count; i++)
     {
@@ -368,8 +369,8 @@ int test_transfers_dups_1(TestContext* tc)
     br1.offsets[0] = 4;
     tr.br = br1;
     _dups_append(&dups, &tr);
-    item = _dups_get(&dups, br1, 0, size);
-    AT(_dups_get_idx(&dups, br1, 0, size) == 1);
+    item = _dups_get(&dups, type, br1, 0, size);
+    AT(_dups_get_idx(&dups, type, br1, 0, size) == 1);
     AT(dups.count == 2);
     AT(!_dups_all_done(&dups, item));
 
@@ -378,17 +379,17 @@ int test_transfers_dups_1(TestContext* tc)
     AT(_dups_all_done(&dups, item));
 
     // Remove the first buffer region.
-    item = _dups_get(&dups, br, 0, size);
+    item = _dups_get(&dups, type, br, 0, size);
     _dups_remove(&dups, item);
     AT(dups.count == 1);
-    AT(_dups_get_idx(&dups, br, 0, size) == UINT32_MAX);
-    AT(_dups_get_idx(&dups, br1, 0, size) == 1);
+    AT(_dups_get_idx(&dups, type, br, 0, size) == UINT32_MAX);
+    AT(_dups_get_idx(&dups, type, br1, 0, size) == 1);
 
     tr.br = br;
     _dups_append(&dups, &tr);
-    item = _dups_get(&dups, br, 0, size);
+    item = _dups_get(&dups, type, br, 0, size);
     AT(dups.count == 2);
-    AT(_dups_get_idx(&dups, br, 0, size) == 0);
+    AT(_dups_get_idx(&dups, type, br, 0, size) == 0);
     AT(!_dups_all_done(&dups, item));
 
     _destroy_buffer_regions(br);
@@ -451,12 +452,6 @@ int test_transfers_dups_2(TestContext* tc)
     }
     AT(_dups_empty(&transfers->dups));
 
-    // DvzTransferDupItem* item = _dups_get(&transfers->dups, br, 0, sizeof(data));
-    // ASSERT(item != NULL);
-    // _dups_all_done(&transfers->dups, item);
-    // for (uint32_t i = 0; i < size; i++)
-    //     log_debug("%d", expected[i]);
-    // log_info("%d %d %d", i, downloaded[0], exp[i]);
     _destroy_buffer_regions(br);
     FREE(downloaded);
     return 0;

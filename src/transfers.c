@@ -91,12 +91,18 @@ static void _create_transfers(DvzTransfers* transfers)
     dvz_deq_callback(
         &transfers->deq, DVZ_TRANSFER_DEQ_DUP, //
         DVZ_TRANSFER_DUP_UPLOAD,               //
-        _process_dup_transfer, transfers);
+        _append_dup_item, transfers);
+
+    dvz_deq_callback(
+        &transfers->deq, DVZ_TRANSFER_DEQ_DUP, //
+        DVZ_TRANSFER_DUP_COPY,                 //
+        _append_dup_item, transfers);
 }
 
 
 
-static void _dup_process(DvzTransfers* transfers, DvzTransferDupItem* item, uint32_t img_idx)
+static void
+_process_pending_dup(DvzTransfers* transfers, DvzTransferDupItem* item, uint32_t img_idx)
 {
     ASSERT(transfers != NULL);
     ASSERT(item != NULL);
@@ -105,10 +111,8 @@ static void _dup_process(DvzTransfers* transfers, DvzTransferDupItem* item, uint
     ASSERT(gpu != NULL);
 
     DvzBufferRegions* br = &item->tr.br;
-    DvzBufferRegions* stg = &item->tr.stg;
     ASSERT(img_idx < br->count);
     bool recurrent = item->tr.recurrent;
-    bool mappable = stg->buffer == NULL; // item->mappable;
 
     // if the current buffer region is marked as done, stop immediately.
     if (!recurrent && _dups_is_done(&transfers->dups, item, img_idx))
@@ -119,24 +123,28 @@ static void _dup_process(DvzTransfers* transfers, DvzTransferDupItem* item, uint
 
     log_debug("processing dup transfer for image #%d", img_idx);
 
-    // Mappable buffer? upload directly for the current region only.
-    if (mappable)
+    // Dup upload.
+    if (item->tr.type == DVZ_TRANSFER_DUP_UPLOAD)
     {
         log_debug("direct mappable upload");
 
         // Upload the data directly (safe when this function is properly called in the event loop)
         dvz_buffer_regions_upload(br, img_idx, item->tr.offset, item->tr.size, item->tr.data);
     }
-    // Staging buffer? Make a copy.
-    else
+    // Dup copy.
+    else if (item->tr.type == DVZ_TRANSFER_DUP_COPY)
     {
         log_debug("copy from staging to buffer");
 
         // Submit a copy for the img_idx part, from staging to target buffer, and wait.
         dvz_buffer_regions_copy(
-            &item->tr.stg, item->tr.offset, br, item->tr.offset, item->tr.size);
+            &item->tr.stg, item->tr.stg_offset, br, item->tr.offset, item->tr.size);
         // NOTE: is the wait really necessary here? we could also use a fence, or not wait at all?
         dvz_queue_wait(gpu, DVZ_QUEUE_TRANSFER);
+    }
+    else
+    {
+        log_error("unknown transfer dup type");
     }
 
     if (!recurrent)
@@ -192,7 +200,6 @@ void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx)
 
     // Now, process dup transfers.
     dvz_deq_dequeue_batch(&transfers->deq, DVZ_TRANSFER_PROC_DUP);
-    // TODO: callback for this proc should append items to the Dups struct
 
     // Check if there are ongoing non-recurrent dup transfers.
     DvzTransferDups* dups = &transfers->dups;
@@ -207,7 +214,7 @@ void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx)
         ASSERT(item != NULL);
         if (item->is_set)
         {
-            _dup_process(transfers, item, img_idx);
+            _process_pending_dup(transfers, item, img_idx);
         }
     }
 }

@@ -51,7 +51,8 @@ typedef enum
     DVZ_TRANSFER_DOWNLOAD_DONE, // download is only possible from a buffer
 
     DVZ_TRANSFER_DUP_UPLOAD,
-} DvzDataTransferType;
+    DVZ_TRANSFER_DUP_COPY,
+} DvzTransferType;
 
 
 
@@ -59,14 +60,12 @@ typedef enum
 /*  Transfer typedefs                                                                            */
 /*************************************************************************************************/
 
-typedef struct DvzTransfer DvzTransfer;
 typedef struct DvzTransferBuffer DvzTransferBuffer;
 typedef struct DvzTransferBufferCopy DvzTransferBufferCopy;
 typedef struct DvzTransferBufferImage DvzTransferBufferImage;
 typedef struct DvzTransferImageCopy DvzTransferImageCopy;
 typedef struct DvzTransferDownload DvzTransferDownload;
 typedef struct DvzTransferDup DvzTransferDup;
-typedef union DvzTransferUnion DvzTransferUnion;
 typedef struct DvzTransfers DvzTransfers;
 typedef struct DvzTransferDupItem DvzTransferDupItem;
 typedef struct DvzTransferDups DvzTransferDups;
@@ -125,31 +124,17 @@ struct DvzTransferDownload
 
 struct DvzTransferDup
 {
-    DvzBufferRegions br, stg;
-    VkDeviceSize offset;
-    VkDeviceSize size;
-    void* data;
+    DvzTransferType type;
+    DvzBufferRegions br;
+    VkDeviceSize offset, size;
     bool recurrent;
-};
 
+    // For upload dup only:
+    void* data;
 
-
-union DvzTransferUnion
-{
-    DvzTransferBuffer buf;
-    DvzTransferBufferCopy buf_copy;
-    DvzTransferImageCopy img_copy;
-    DvzTransferBufferImage buf_img;
-    DvzTransferDownload download;
-    DvzTransferDup dup;
-};
-
-
-
-struct DvzTransfer
-{
-    DvzDataTransferType type;
-    DvzTransferUnion u;
+    // For copy dup only:
+    DvzBufferRegions stg;
+    VkDeviceSize stg_offset;
 };
 
 
@@ -161,12 +146,9 @@ struct DvzTransfer
 struct DvzTransferDupItem
 {
     bool is_set;
-    DvzTransferDup tr;
+    DvzTransferDup tr; // If there is a staging buffer, the Transfers know it will need to
+                       // copy the data from it
     bool done[DVZ_MAX_BUFFER_REGIONS_PER_SET];
-    // bool mappable;
-    // DvzBufferRegions br;
-    // VkDeviceSize offset, size;
-    // bool recurrent;
 };
 
 
