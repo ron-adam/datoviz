@@ -164,3 +164,26 @@ int test_ctx_dat_1(TestContext* tc)
 
     return 0;
 }
+
+
+
+int test_ctx_tex_1(TestContext* tc)
+{
+    ASSERT(tc != NULL);
+    DvzContext* ctx = tc->context;
+    ASSERT(ctx != NULL);
+
+    DvzGpu* gpu = ctx->gpu;
+    ASSERT(gpu != NULL);
+
+    uvec3 shape = {2, 4, 1};
+    VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+
+    // Allocate a tex.
+    DvzTex* tex = dvz_tex(ctx, DVZ_TEX_2D, shape, format, 0);
+    ASSERT(tex != NULL);
+
+    dvz_tex_destroy(tex);
+
+    return 0;
+}

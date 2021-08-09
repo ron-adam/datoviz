@@ -127,7 +127,7 @@ static void _dat_alloc(DvzDat* dat, DvzBufferType type, uint32_t count, VkDevice
     else
     {
         // Create a brand new buffer just for this DvzDat.
-        buffer = _make_standalone_buffer(&ctx->res, type, mappable, count * size);
+        buffer = dvz_resources_buffer(&ctx->res, type, mappable, count * size);
         // Allocate the entire buffer, so offset is 0, and the size is the requested (aligned if
         // necessary) size.
         offset = 0;
@@ -175,12 +175,39 @@ static inline bool _tex_persistent_staging(DvzTex* tex)
     return (tex->flags & DVZ_TEX_OPTIONS_PERSISTENT_STAGING) != 0;
 }
 
+static inline void _copy_shape(uvec3 src, uvec3 dst) { memcpy(dst, src, sizeof(uvec3)); }
 
 
-static inline DvzTex* _tex_alloc_staging(DvzContext* ctx, DvzTexDims dims, uvec3 shape)
+
+static inline DvzTex*
+_tex_alloc_staging(DvzContext* ctx, DvzTexDims dims, uvec3 shape, VkFormat format)
 {
     ASSERT(ctx != NULL);
-    return dvz_tex(ctx, dims, shape, 0);
+    return dvz_tex(ctx, dims, shape, format, 0);
+}
+
+
+
+static void _tex_alloc(DvzTex* tex, DvzTexDims dims, uvec3 shape, VkFormat format)
+{
+    ASSERT(tex != NULL);
+    DvzContext* ctx = tex->context;
+    ASSERT(ctx != NULL);
+
+    // Create a new image for the tex.
+    tex->img = dvz_resources_image(&ctx->res, dims, shape, format);
+}
+
+
+
+static void _tex_dealloc(DvzTex* tex)
+{
+    ASSERT(tex != NULL);
+    DvzContext* ctx = tex->context;
+    ASSERT(ctx != NULL);
+
+    // Destroy the image.
+    dvz_images_destroy(tex->img);
 }
 
 
@@ -485,22 +512,26 @@ void dvz_dat_destroy(DvzDat* dat)
 /*  Texs                                                                                         */
 /*************************************************************************************************/
 
-DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, int flags)
+DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, VkFormat format, int flags)
 {
     ASSERT(ctx != NULL);
 
     DvzTex* tex = (DvzTex*)dvz_container_alloc(&ctx->res.texs);
     tex->context = ctx;
     tex->flags = flags;
+    tex->dims = dims;
+    _copy_shape(shape, tex->shape);
 
     // Allocate a permanent staging tex.
     if (_tex_persistent_staging(tex))
     {
         log_debug("allocate persistent staging for tex");
-        tex->stg = _tex_alloc_staging(ctx, dims, shape);
+        tex->stg = _tex_alloc_staging(ctx, dims, shape, format);
     }
 
-    // TODO
+    // Allocate the tex.
+    // TODO: GPU sync before?
+    _tex_alloc(tex, dims, shape, format);
 
     dvz_obj_created(&tex->obj);
     return tex;
@@ -529,8 +560,10 @@ void dvz_tex_download(
 void dvz_tex_resize(DvzTex* tex, uvec3 new_shape)
 {
     ASSERT(tex != NULL);
+    ASSERT(tex->img != NULL);
 
-    // TODO
+    // TODO: GPU sync before?
+    dvz_images_resize(tex->img, new_shape[0], new_shape[1], new_shape[2]);
 
     // Destroy the persistent staging tex if there is one.
     if (tex->stg != NULL)
@@ -543,7 +576,8 @@ void dvz_tex_destroy(DvzTex* tex)
 {
     ASSERT(tex != NULL);
 
-    // TODO
+    // Deallocate the tex.
+    _tex_dealloc(tex);
 
     // Destroy the persistent staging tex if there is one.
     if (tex->stg != NULL)

@@ -109,7 +109,7 @@ struct DvzTex
     uvec3 shape;
 
     int flags;
-    DvzImages* images;
+    DvzImages* img;
 
     DvzTex* stg; // used for persistent staging, resized when the tex is resized
 };

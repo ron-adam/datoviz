@@ -129,7 +129,8 @@ DVZ_EXPORT void dvz_dat_resize(DvzDat* dat, VkDeviceSize new_size);
 /*  Texs                                                                                         */
 /*************************************************************************************************/
 
-DVZ_EXPORT DvzTex* dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, int flags);
+DVZ_EXPORT DvzTex*
+dvz_tex(DvzContext* ctx, DvzTexDims dims, uvec3 shape, VkFormat format, int flags);
 
 DVZ_EXPORT void dvz_tex_upload(
     DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void* data, bool waiting);
