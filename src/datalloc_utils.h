@@ -22,8 +22,11 @@ extern "C" {
 static DvzAlloc* _get_alloc(DvzDatAlloc* datalloc, DvzBufferType type, bool mappable)
 {
     ASSERT(datalloc != NULL);
-    ASSERT((uint32_t)type < DVZ_BUFFER_TYPE_COUNT);
-    return &datalloc->allocators[2 * (uint32_t)type + (uint32_t)mappable];
+    CHECK_BUFFER_TYPE
+
+    uint32_t idx = 2 * (uint32_t)(type - 1) + (uint32_t)mappable - 1;
+    ASSERT(idx < 2 * DVZ_BUFFER_TYPE_COUNT - 1);
+    return &datalloc->allocators[idx];
 }
 
 
@@ -32,7 +35,7 @@ static DvzAlloc* _make_allocator(
     DvzDatAlloc* datalloc, DvzResources* res, DvzBufferType type, bool mappable, VkDeviceSize size)
 {
     ASSERT(datalloc != NULL);
-    ASSERT((uint32_t)type < DVZ_BUFFER_TYPE_COUNT);
+    CHECK_BUFFER_TYPE
 
     DvzAlloc* alloc = _get_alloc(datalloc, type, mappable);
 
@@ -56,8 +59,8 @@ static VkDeviceSize _allocate_dat(
     VkDeviceSize req_size)
 {
     ASSERT(datalloc != NULL);
-    ASSERT(type < DVZ_BUFFER_TYPE_COUNT);
     ASSERT(req_size > 0);
+    CHECK_BUFFER_TYPE
 
     VkDeviceSize resized = 0; // will be non-zero if the buffer must be resized
     DvzAlloc* alloc = _get_alloc(datalloc, type, mappable);
@@ -82,6 +85,7 @@ static void
 _deallocate_dat(DvzDatAlloc* datalloc, DvzBufferType type, bool mappable, VkDeviceSize offset)
 {
     ASSERT(datalloc != NULL);
+    CHECK_BUFFER_TYPE
 
     // Get the abstract DvzAlloc object associated to the dat's buffer.
     DvzAlloc* alloc = _get_alloc(datalloc, type, mappable);

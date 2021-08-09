@@ -1266,10 +1266,11 @@ void dvz_buffer_regions_copy(
 
     // Copy 1 or all regions.
     uint32_t u = 0, v = 0;
-    for (uint32_t i = 0; i < src->count; i++)
+    for (uint32_t i = 0; i < MAX(src->count, dst->count); i++)
     {
         u = src_idx >= src->count ? i : src_idx;
         v = dst_idx >= dst->count ? i : dst_idx;
+        // log_info("%d %d, %d %d", u, src->count, v, dst->count);
         ASSERT(u < src->count);
         ASSERT(v < dst->count);
         regions[i].size = size;

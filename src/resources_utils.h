@@ -15,6 +15,18 @@ extern "C" {
 
 
 /*************************************************************************************************/
+/*  Allocs macros                                                                                */
+/*************************************************************************************************/
+
+#define CHECK_BUFFER_TYPE                                                                         \
+    ASSERT((uint32_t)type >= 1);                                                                  \
+    ASSERT((uint32_t)type <= DVZ_BUFFER_TYPE_COUNT);                                              \
+    if (type == DVZ_BUFFER_TYPE_STAGING)                                                          \
+        mappable = true;
+
+
+
+/*************************************************************************************************/
 /*  Default buffers                                                                              */
 /*************************************************************************************************/
 
@@ -28,9 +40,14 @@ static inline bool _is_buffer_mappable(DvzBuffer* buffer)
 
 static inline VkBufferUsageFlags _find_buffer_usage(DvzBufferType type)
 {
+    ASSERT((uint32_t)type > 0);
     VkBufferUsageFlags usage = 0;
     switch (type)
     {
+    case DVZ_BUFFER_TYPE_STAGING:
+        usage = TRANSFERABLE;
+        break;
+
     case DVZ_BUFFER_TYPE_VERTEX:
         usage = TRANSFERABLE |                      //
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | //
@@ -53,6 +70,7 @@ static inline VkBufferUsageFlags _find_buffer_usage(DvzBufferType type)
         break;
 
     default:
+        log_error("could not find buffer usage for buffer type %d", type);
         break;
     }
     return usage;
@@ -82,8 +100,12 @@ static void
 _make_shared_buffer(DvzBuffer* buffer, DvzBufferType type, bool mappable, VkDeviceSize size)
 {
     ASSERT(buffer != NULL);
+    CHECK_BUFFER_TYPE
+    ASSERT(type != DVZ_BUFFER_TYPE_STAGING);
+
     dvz_buffer_size(buffer, size);
     VkBufferUsageFlags usage = _find_buffer_usage(type);
+    ASSERT(usage != 0);
     dvz_buffer_usage(buffer, usage);
     dvz_buffer_type(buffer, type);
     dvz_buffer_vma_usage(
@@ -111,9 +133,12 @@ static DvzBuffer*
 _make_standalone_buffer(DvzResources* res, DvzBufferType type, bool mappable, VkDeviceSize size)
 {
     ASSERT(res != NULL);
+    ASSERT((uint32_t)type > 0);
+    ASSERT(size > 0);
     DvzBuffer* buffer = _make_new_buffer(res);
     if (type == DVZ_BUFFER_TYPE_STAGING)
     {
+        ASSERT(mappable);
         log_debug("create new staging buffer with size %s", pretty_size(size));
         _make_staging_buffer(buffer, size);
     }
@@ -132,13 +157,19 @@ _make_standalone_buffer(DvzResources* res, DvzBufferType type, bool mappable, Vk
 static DvzBuffer* _find_shared_buffer(DvzResources* res, DvzBufferType type, bool mappable)
 {
     ASSERT(res != NULL);
+    CHECK_BUFFER_TYPE
+
     DvzContainerIterator iter = dvz_container_iterator(&res->buffers);
     DvzBuffer* buffer = NULL;
     while (iter.item != NULL)
     {
         buffer = (DvzBuffer*)iter.item;
         ASSERT(buffer != NULL);
-        if (buffer->type == type && mappable && _is_buffer_mappable(buffer))
+        // log_trace(
+        //     "buffer %d=%d? %d=%d?", buffer->type, type, _is_buffer_mappable(buffer), mappable);
+        if (dvz_obj_is_created(&buffer->obj) && //
+            buffer->type == type &&             //
+            (_is_buffer_mappable(buffer) == mappable))
             return buffer;
         dvz_container_iter(&iter);
     }
@@ -151,9 +182,14 @@ static DvzBuffer* _find_shared_buffer(DvzResources* res, DvzBufferType type, boo
 static DvzBuffer* _get_shared_buffer(DvzResources* res, DvzBufferType type, bool mappable)
 {
     ASSERT(res != NULL);
+    CHECK_BUFFER_TYPE
+
     DvzBuffer* buffer = _find_shared_buffer(res, type, mappable);
     if (buffer == NULL)
+    {
+        log_trace("count not find shared buffer with type %d, so creating a new one", type);
         buffer = _make_standalone_buffer(res, type, mappable, DVZ_BUFFER_DEFAULT_SIZE);
+    }
     ASSERT(buffer != NULL);
     return buffer;
 }
@@ -169,6 +205,8 @@ static DvzBufferRegions
 _standalone_buffer_regions(DvzGpu* gpu, DvzBufferType type, uint32_t count, VkDeviceSize size)
 {
     ASSERT(gpu != NULL);
+    ASSERT((uint32_t)type > 0);
+
     DvzBuffer* buffer = (DvzBuffer*)calloc(1, sizeof(DvzBuffer));
     *buffer = dvz_buffer(gpu);
     if (type == DVZ_BUFFER_TYPE_STAGING)

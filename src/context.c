@@ -298,7 +298,12 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, int flag
     dat->flags = flags;
 
     // Find the number of copies.
-    uint32_t count = _is_dup(dat) ? (ctx->img_count | DVZ_MAX_SWAPCHAIN_IMAGES) : 1;
+    uint32_t count = _is_dup(dat) ? ctx->img_count : 1;
+    if (count == 0)
+    {
+        log_warn("DvzContext.img_count is not set");
+        count = DVZ_MAX_SWAPCHAIN_IMAGES;
+    }
     ASSERT(count > 0);
     ASSERT(count <= DVZ_MAX_SWAPCHAIN_IMAGES);
     _dat_alloc(dat, type, count, size);

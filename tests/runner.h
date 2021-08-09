@@ -193,6 +193,7 @@ static void _fixture_begin(TestContext* tc, TestCase* test_case)
 {
     ASSERT(tc != NULL);
     ASSERT(test_case != NULL);
+    log_debug("fixture begin");
 
     switch (test_case->fixture)
     {
@@ -232,6 +233,7 @@ static void _fixture_end(TestContext* tc, TestCase* test_case)
 {
     ASSERT(tc != NULL);
     ASSERT(test_case != NULL);
+    log_debug("fixture end");
 
     switch (test_case->fixture)
     {

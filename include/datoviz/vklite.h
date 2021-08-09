@@ -68,6 +68,8 @@ extern "C" {
 #define DVZ_MAX_VERTEX_BINDINGS             16
 #define DVZ_MAX_VERTEX_ATTRS                32
 
+#define DVZ_BUFFER_TYPE_COUNT 5
+
 
 
 /*************************************************************************************************/
@@ -145,14 +147,12 @@ typedef enum
 // NOTE: the enum index should correspond to the buffer index in the context->buffers container
 typedef enum
 {
-    // DVZ_BUFFER_TYPE_UNDEFINED,
-    DVZ_BUFFER_TYPE_STAGING,
-    DVZ_BUFFER_TYPE_VERTEX,
-    DVZ_BUFFER_TYPE_INDEX,
-    DVZ_BUFFER_TYPE_STORAGE,
-    DVZ_BUFFER_TYPE_UNIFORM,
-    // DVZ_BUFFER_TYPE_MAPPABLE,
-    DVZ_BUFFER_TYPE_COUNT,
+    DVZ_BUFFER_TYPE_UNDEFINED,
+    DVZ_BUFFER_TYPE_STAGING, // 1
+    DVZ_BUFFER_TYPE_VERTEX,  // 2
+    DVZ_BUFFER_TYPE_INDEX,   // 3
+    DVZ_BUFFER_TYPE_STORAGE, // 4
+    DVZ_BUFFER_TYPE_UNIFORM, // 5
 } DvzBufferType;
 
 

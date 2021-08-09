@@ -22,7 +22,8 @@ void dvz_datalloc(DvzGpu* gpu, DvzResources* res, DvzDatAlloc* datalloc)
     datalloc->gpu = gpu;
 
     // Initialize the allocators for all possible types of shared buffers.
-    for (uint32_t i = 0; i < DVZ_BUFFER_TYPE_COUNT; i++)
+    _make_allocator(datalloc, res, DVZ_BUFFER_TYPE_STAGING, true, DVZ_BUFFER_DEFAULT_SIZE);
+    for (uint32_t i = 2; i <= DVZ_BUFFER_TYPE_COUNT; i++)
     {
         _make_allocator(datalloc, res, (DvzBufferType)i, false, DVZ_BUFFER_DEFAULT_SIZE);
         _make_allocator(datalloc, res, (DvzBufferType)i, true, DVZ_BUFFER_DEFAULT_SIZE);
@@ -45,7 +46,7 @@ void dvz_datalloc_destroy(DvzDatAlloc* datalloc)
     ASSERT(datalloc->gpu != NULL);
 
     // Destroy the DvzDat allocators.
-    for (uint32_t i = 0; i < DVZ_BUFFER_TYPE_COUNT; i++)
+    for (uint32_t i = 0; i < 2 * DVZ_BUFFER_TYPE_COUNT - 1; i++)
         dvz_alloc_destroy(&datalloc->allocators[i]);
 
     dvz_obj_destroyed(&datalloc->obj);
