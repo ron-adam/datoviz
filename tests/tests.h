@@ -95,6 +95,7 @@ int test_transfers_dups_copy(TestContext* tc);
 // Test resources.
 int test_ctx_resources_1(TestContext*);
 int test_ctx_datalloc_1(TestContext*);
+int test_ctx_dat_1(TestContext*);
 
 // Test datalloc.
 
@@ -301,6 +302,7 @@ static TestCase TEST_CASES[] = {
     // Resources.
     CASE_FIXTURE(CONTEXT, test_ctx_resources_1), //
     CASE_FIXTURE(CONTEXT, test_ctx_datalloc_1),  //
+    CASE_FIXTURE(CONTEXT, test_ctx_dat_1),       //
 
     // Allocs.
 

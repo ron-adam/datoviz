@@ -48,7 +48,7 @@ static void _gpu_default_features(DvzGpu* gpu)
 static inline bool _is_standalone(DvzDat* dat)
 {
     ASSERT(dat != NULL);
-    return (dat->flags & DVZ_DAT_OPTIONS_STANDALONE) > 0;
+    return (dat->flags & DVZ_DAT_OPTIONS_STANDALONE) != 0;
 }
 
 static inline bool _has_staging(DvzDat* dat)
@@ -60,19 +60,19 @@ static inline bool _has_staging(DvzDat* dat)
 static inline bool _is_dup(DvzDat* dat)
 {
     ASSERT(dat != NULL);
-    return (dat->flags & DVZ_DAT_OPTIONS_DUP) > 0;
+    return (dat->flags & DVZ_DAT_OPTIONS_DUP) != 0;
 }
 
 static inline bool _keep_on_resize(DvzDat* dat)
 {
     ASSERT(dat != NULL);
-    return (dat->flags & DVZ_DAT_OPTIONS_KEEP_ON_RESIZE) > 0;
+    return (dat->flags & DVZ_DAT_OPTIONS_KEEP_ON_RESIZE) != 0;
 }
 
 static inline bool _persistent_staging(DvzDat* dat)
 {
     ASSERT(dat != NULL);
-    return (dat->flags & DVZ_DAT_OPTIONS_PERSISTENT_STAGING) > 0;
+    return (dat->flags & DVZ_DAT_OPTIONS_PERSISTENT_STAGING) != 0;
 }
 
 
@@ -80,7 +80,7 @@ static inline bool _persistent_staging(DvzDat* dat)
 static inline DvzDat* _alloc_staging(DvzContext* ctx, VkDeviceSize size)
 {
     ASSERT(ctx != NULL);
-    return dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, 1, size, 0);
+    return dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 0);
 }
 
 
@@ -156,6 +156,14 @@ void dvz_context_reset(DvzContext* ctx)
 
 
 
+void dvz_context_img_count(DvzContext* ctx, uint32_t img_count)
+{
+    ASSERT(ctx != NULL);
+    ctx->img_count = img_count;
+}
+
+
+
 void dvz_app_reset(DvzApp* app)
 {
     ASSERT(app != NULL);
@@ -208,8 +216,6 @@ _total_aligned_size(DvzBuffer* buffer, uint32_t count, VkDeviceSize size, VkDevi
     return count * _align(size, *alignment);
 }
 
-static bool _dat_shared(int flags) { return (flags == 0) || (flags & DVZ_DAT_FLAGS_SHARED) > 0; }
-
 static void _dat_alloc(DvzDat* dat, DvzBufferType type, uint32_t count, VkDeviceSize size)
 {
     ASSERT(dat != NULL);
@@ -221,28 +227,28 @@ static void _dat_alloc(DvzDat* dat, DvzBufferType type, uint32_t count, VkDevice
     VkDeviceSize alignment = 0;
     VkDeviceSize tot_size = 0;
 
-    // No flags? ==> shared buffer by default.
-    bool shared = _dat_shared(dat->flags);
+    bool shared = !_is_standalone(dat);
+    bool mappable = !_has_staging(dat);
 
     // Shared buffer.
     if (shared)
     {
-        // Get the  unique shared buffer of the requested type.
-        buffer = _get_shared_buffer(&ctx->res, type);
+        // Get the unique shared buffer of the requested type.
+        buffer = _get_shared_buffer(&ctx->res, type, mappable);
 
         // Find the buffer alignment and total aligned size.
         tot_size = _total_aligned_size(buffer, count, size, &alignment);
 
         // Allocate a DvzDat from it.
         // NOTE: this call may resize the underlying DvzBuffer, which is slow (hard GPU sync).
-        offset = _allocate_dat(&ctx->datalloc, &ctx->res, type, tot_size);
+        offset = _allocate_dat(&ctx->datalloc, &ctx->res, type, mappable, tot_size);
     }
 
     // Standalone buffer.
     else
     {
         // Create a brand new buffer just for this DvzDat.
-        buffer = _get_standalone_buffer(&ctx->res, type, count * size);
+        buffer = _make_standalone_buffer(&ctx->res, type, mappable, count * size);
         // Allocate the entire buffer, so offset is 0, and the size is the requested (aligned if
         // necessary) size.
         offset = 0;
@@ -263,13 +269,13 @@ static void _dat_dealloc(DvzDat* dat)
     DvzContext* ctx = dat->context;
     ASSERT(ctx != NULL);
 
-    // No flags? ==> shared buffer by default.
-    bool shared = _dat_shared(dat->flags);
+    bool shared = !_is_standalone(dat);
+    bool mappable = !_has_staging(dat);
 
     if (shared)
     {
         // Deallocate the buffer regions but keep the underlying buffer.
-        _deallocate_dat(&ctx->datalloc, dat->br.buffer->type, dat->br.offsets[0]);
+        _deallocate_dat(&ctx->datalloc, dat->br.buffer->type, mappable, dat->br.offsets[0]);
     }
     else
     {
@@ -278,30 +284,36 @@ static void _dat_dealloc(DvzDat* dat)
     }
 }
 
-DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, uint32_t count, VkDeviceSize size, int flags)
+DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, int flags)
 {
     ASSERT(ctx != NULL);
     ASSERT(size > 0);
-    ASSERT(count > 0);
-    ASSERT(count <= 10); // consistency check
 
     log_debug("allocate dat of type %d with size %s and flags %d", type, pretty_size(size), flags);
 
     DvzDat* dat = (DvzDat*)dvz_container_alloc(&ctx->res.dats);
     dat->context = ctx;
     dat->flags = flags;
+
+    // Find the number of copies.
+    uint32_t count = _is_dup(dat) ? (ctx->img_count | DVZ_MAX_SWAPCHAIN_IMAGES) : 1;
+    ASSERT(count > 0);
+    ASSERT(count <= DVZ_MAX_SWAPCHAIN_IMAGES);
     _dat_alloc(dat, type, count, size);
 
     // Allocate a permanent staging dat.
     // TODO: staging standalone or not?
     if (_persistent_staging(dat))
     {
+        log_debug("allocate persistent staging for dat with size %s", pretty_size(size));
         dat->stg = _alloc_staging(ctx, size);
     }
 
     dvz_obj_created(&dat->obj);
     return dat;
 }
+
+
 
 void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data, bool wait)
 {
@@ -312,17 +324,18 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
     DvzTransfers* transfers = &ctx->transfers;
     ASSERT(transfers != NULL);
 
+    log_debug("upload %s to dat", pretty_size(size));
+
     // Do we need a staging buffer?
     DvzDat* stg = dat->stg;
     if (_has_staging(dat) && stg == NULL)
     {
         // Need to allocate a temporary staging buffer.
         ASSERT(!_persistent_staging(dat));
-        // staging = dvz_resources_buffer(res, DVZ_BUFFER_TYPE_STAGING);
         stg = _alloc_staging(ctx, size);
     }
 
-    // Enqueue the copy task corresponding to the flags.
+    // Enqueue the transfer task corresponding to the flags.
     bool dup = _is_dup(dat);
     bool staging = stg != NULL;
     DvzBufferRegions stg_br = staging ? stg->br : (DvzBufferRegions){0};
@@ -336,7 +349,8 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
             if (staging)
                 dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
             else
-                dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_UD, true);
+                dvz_queue_wait(ctx->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+            // dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_UD, true);
         }
     }
 
@@ -346,9 +360,8 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
         _enqueue_dup_transfer(&transfers->deq, dat->br, offset, stg_br, 0, size, data);
         if (wait)
         {
-            // HACK: we have no way to know the number of swapchain images here, so we just use the
-            // maximum number.
-            for (uint32_t i = 0; i < DVZ_MAX_SWAPCHAIN_IMAGES; i++)
+            ASSERT(dat->br.count > 0);
+            for (uint32_t i = 0; i < dat->br.count; i++)
                 dvz_transfers_frame(transfers, i);
         }
     }
@@ -356,11 +369,42 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
 
 
 
-void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data, bool wait)
+void dvz_dat_download(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data, bool wait)
 {
     ASSERT(dat != NULL);
-    // TODO
-    // asynchronous function
+    DvzContext* ctx = dat->context;
+    ASSERT(ctx != NULL);
+
+    DvzTransfers* transfers = &ctx->transfers;
+    ASSERT(transfers != NULL);
+
+    log_debug("download %s from dat", pretty_size(size));
+
+    // Do we need a staging buffer?
+    DvzDat* stg = dat->stg;
+    if (_has_staging(dat) && stg == NULL)
+    {
+        // Need to allocate a temporary staging buffer.
+        ASSERT(!_persistent_staging(dat));
+        stg = _alloc_staging(ctx, size);
+    }
+
+    // Enqueue the transfer task corresponding to the flags.
+    bool staging = stg != NULL;
+    DvzBufferRegions stg_br = staging ? stg->br : (DvzBufferRegions){0};
+
+    // Enqueue a standard download task, with or without staging buffer.
+    _enqueue_buffer_download(&transfers->deq, dat->br, offset, stg_br, 0, size, data);
+    if (wait)
+    {
+        if (staging)
+            dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+        else
+            // dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_UD, true);
+            dvz_queue_wait(ctx->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+        // Wait until the download finished event has been raised.
+        dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
+    }
 }
 
 
@@ -370,6 +414,11 @@ void dvz_dat_resize(DvzDat* dat, VkDeviceSize new_size)
     ASSERT(dat != NULL);
     ASSERT(dat->br.buffer != NULL);
     _dat_dealloc(dat);
+
+    // Resize the persistent staging dat if there is one.
+    if (dat->stg != NULL)
+        dvz_dat_resize(dat->stg, new_size);
+
     _dat_alloc(dat, dat->br.buffer->type, dat->br.count, new_size);
 }
 
@@ -380,12 +429,12 @@ void dvz_dat_destroy(DvzDat* dat)
     ASSERT(dat != NULL);
     DvzContext* ctx = dat->context;
     ASSERT(ctx != NULL);
+    _dat_dealloc(dat);
 
     // Destroy the persistent staging dat if there is one.
     if (dat->stg != NULL)
         dvz_dat_destroy(dat->stg);
 
-    _dat_dealloc(dat);
     dvz_obj_destroyed(&dat->obj);
 }
 

@@ -21,12 +21,12 @@ void dvz_datalloc(DvzGpu* gpu, DvzResources* res, DvzDatAlloc* datalloc)
     // Create the resources.
     datalloc->gpu = gpu;
 
-    _make_allocator(datalloc, res, DVZ_BUFFER_TYPE_STAGING, DVZ_BUFFER_TYPE_STAGING_SIZE);
-    _make_allocator(datalloc, res, DVZ_BUFFER_TYPE_VERTEX, DVZ_BUFFER_TYPE_VERTEX_SIZE);
-    _make_allocator(datalloc, res, DVZ_BUFFER_TYPE_INDEX, DVZ_BUFFER_TYPE_INDEX_SIZE);
-    _make_allocator(datalloc, res, DVZ_BUFFER_TYPE_STORAGE, DVZ_BUFFER_TYPE_STORAGE_SIZE);
-    _make_allocator(datalloc, res, DVZ_BUFFER_TYPE_UNIFORM, DVZ_BUFFER_TYPE_UNIFORM_SIZE);
-    _make_allocator(datalloc, res, DVZ_BUFFER_TYPE_MAPPABLE, DVZ_BUFFER_TYPE_MAPPABLE_SIZE);
+    // Initialize the allocators for all possible types of shared buffers.
+    for (uint32_t i = 0; i < DVZ_BUFFER_TYPE_COUNT; i++)
+    {
+        _make_allocator(datalloc, res, (DvzBufferType)i, false, DVZ_BUFFER_DEFAULT_SIZE);
+        _make_allocator(datalloc, res, (DvzBufferType)i, true, DVZ_BUFFER_DEFAULT_SIZE);
+    }
 
     dvz_obj_created(&datalloc->obj);
 }

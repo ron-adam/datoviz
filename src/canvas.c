@@ -510,6 +510,12 @@ void dvz_canvas_create(DvzCanvas* canvas)
     canvas->render.swapchain = dvz_swapchain(canvas->gpu, canvas->window, min_img_count);
     _canvas_swapchain(canvas);
 
+    // Let the context know the number of images in the swapchain.
+    ASSERT(canvas->gpu != NULL);
+    ASSERT(canvas->gpu->context != NULL);
+    ASSERT(canvas->render.swapchain.img_count > 0);
+    dvz_context_img_count(canvas->gpu->context, canvas->render.swapchain.img_count);
+
     // Create the attachments.
     _canvas_attachments(canvas);
 
@@ -683,6 +689,7 @@ DvzCommands* dvz_canvas_commands(DvzCanvas* canvas, uint32_t queue_idx, uint32_t
 
 
 
+// TODO: delete this
 void dvz_canvas_buffers(
     DvzCanvas* canvas, DvzBufferRegions br, //
     VkDeviceSize offset, VkDeviceSize size, const void* data)
@@ -692,11 +699,11 @@ void dvz_canvas_buffers(
     ASSERT(data != NULL);
     ASSERT(br.buffer != NULL);
     ASSERT(br.count == canvas->render.swapchain.img_count);
-    if (br.buffer->type != DVZ_BUFFER_TYPE_MAPPABLE)
-    {
-        log_error("dvz_canvas_buffers() can only be used on mappable buffers.");
-        return;
-    }
+    // if (br.buffer->type != DVZ_BUFFER_TYPE_MAPPABLE)
+    // {
+    //     log_error("dvz_canvas_buffers() can only be used on mappable buffers.");
+    //     return;
+    // }
     ASSERT(br.buffer->mmap != NULL);
     uint32_t idx = canvas->render.swapchain.img_idx;
     ASSERT(idx < br.count);

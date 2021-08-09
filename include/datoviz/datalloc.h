@@ -39,7 +39,8 @@ struct DvzDatAlloc
     DvzObject obj;
     DvzGpu* gpu;
 
-    DvzAlloc allocators[DVZ_BUFFER_TYPE_COUNT]; // one dat allocator for each buffer
+    DvzAlloc allocators[2 * DVZ_BUFFER_TYPE_COUNT]; // one dat allocator for each buffer(each type
+                                                    // may be mappable or not)
 };
 
 

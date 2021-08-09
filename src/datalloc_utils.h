@@ -19,25 +19,25 @@ extern "C" {
 /*  Allocs utils                                                                                 */
 /*************************************************************************************************/
 
-static DvzAlloc* _get_alloc(DvzDatAlloc* datalloc, DvzBufferType type)
+static DvzAlloc* _get_alloc(DvzDatAlloc* datalloc, DvzBufferType type, bool mappable)
 {
     ASSERT(datalloc != NULL);
     ASSERT((uint32_t)type < DVZ_BUFFER_TYPE_COUNT);
-    return &datalloc->allocators[(uint32_t)type];
+    return &datalloc->allocators[2 * (uint32_t)type + (uint32_t)mappable];
 }
 
 
 
-static DvzAlloc*
-_make_allocator(DvzDatAlloc* datalloc, DvzResources* res, DvzBufferType type, VkDeviceSize size)
+static DvzAlloc* _make_allocator(
+    DvzDatAlloc* datalloc, DvzResources* res, DvzBufferType type, bool mappable, VkDeviceSize size)
 {
     ASSERT(datalloc != NULL);
     ASSERT((uint32_t)type < DVZ_BUFFER_TYPE_COUNT);
 
-    DvzAlloc* alloc = _get_alloc(datalloc, type);
+    DvzAlloc* alloc = _get_alloc(datalloc, type, mappable);
 
     // Find alignment by looking at the buffers themselves.
-    DvzBuffer* buffer = (DvzBuffer*)dvz_container_get(&res->buffers, type);
+    DvzBuffer* buffer = _get_shared_buffer(res, type, mappable);
     VkDeviceSize alignment = buffer->vma.alignment;
     ASSERT(alignment > 0);
 
@@ -47,23 +47,25 @@ _make_allocator(DvzDatAlloc* datalloc, DvzResources* res, DvzBufferType type, Vk
 
 
 
-static VkDeviceSize
-_allocate_dat(DvzDatAlloc* datalloc, DvzResources* res, DvzBufferType type, VkDeviceSize req_size)
+static VkDeviceSize _allocate_dat(
+    DvzDatAlloc* datalloc, DvzResources* res, DvzBufferType type, bool mappable,
+    VkDeviceSize req_size)
 {
     ASSERT(datalloc != NULL);
     ASSERT(type < DVZ_BUFFER_TYPE_COUNT);
     ASSERT(req_size > 0);
 
     VkDeviceSize resized = 0; // will be non-zero if the buffer must be resized
-    DvzAlloc* alloc = _get_alloc(datalloc, type);
+    DvzAlloc* alloc = _get_alloc(datalloc, type, mappable);
     // Make the allocation.
     VkDeviceSize offset = dvz_alloc_new(alloc, req_size, &resized);
 
     // Need to resize the underlying DvzBuffer.
     if (resized)
     {
-        DvzBuffer* buffer = _get_shared_buffer(res, type);
-        log_info("reallocating buffer %d to %s", type, pretty_size(resized));
+        DvzBuffer* buffer = _get_shared_buffer(res, type, mappable);
+        log_info(
+            "reallocating buffer %d (mappable: %d) to %s", type, mappable, pretty_size(resized));
         dvz_buffer_resize(buffer, resized);
     }
 
@@ -72,12 +74,13 @@ _allocate_dat(DvzDatAlloc* datalloc, DvzResources* res, DvzBufferType type, VkDe
 
 
 
-static void _deallocate_dat(DvzDatAlloc* datalloc, DvzBufferType type, VkDeviceSize offset)
+static void
+_deallocate_dat(DvzDatAlloc* datalloc, DvzBufferType type, bool mappable, VkDeviceSize offset)
 {
     ASSERT(datalloc != NULL);
 
     // Get the abstract DvzAlloc object associated to the dat's buffer.
-    DvzAlloc* alloc = _get_alloc(datalloc, type);
+    DvzAlloc* alloc = _get_alloc(datalloc, type, mappable);
     dvz_alloc_free(alloc, offset);
 }
 

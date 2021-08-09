@@ -31,9 +31,6 @@ void dvz_resources(DvzGpu* gpu, DvzResources* res)
     // Allocate memory for buffers, textures, and computes.
     _create_resources(res);
 
-    // Create the shared buffers.
-    _create_shared_buffers(res);
-
     dvz_obj_created(&res->obj);
 }
 
@@ -50,10 +47,11 @@ DvzImages* dvz_resources_image(DvzResources* res, DvzTexDims dims, uvec3 shape, 
 
 
 
-DvzBuffer* dvz_resources_buffer(DvzResources* res, DvzBufferType type, VkDeviceSize size)
+DvzBuffer*
+dvz_resources_buffer(DvzResources* res, DvzBufferType type, bool mappable, VkDeviceSize size)
 {
     ASSERT(res != NULL);
-    DvzBuffer* buffer = _get_standalone_buffer(res, type, size);
+    DvzBuffer* buffer = _make_standalone_buffer(res, type, mappable, size);
     return buffer;
 }
 

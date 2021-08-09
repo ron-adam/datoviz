@@ -53,6 +53,7 @@ struct DvzContext
 {
     DvzObject obj;
     DvzGpu* gpu;
+    uint32_t img_count;
 
     // Companion objects, all of them should be testable independently of the others and the
     // context. However, the DvzAllocs objects *depends* on the DvzResources.
@@ -86,6 +87,8 @@ DVZ_EXPORT void dvz_gpu_default(DvzGpu* gpu, DvzWindow* window);
  */
 DVZ_EXPORT DvzContext* dvz_context(DvzGpu* gpu);
 
+DVZ_EXPORT void dvz_context_img_count(DvzContext* ctx, uint32_t img_count);
+
 /**
  * Destroy all GPU resources in a GPU context.
  *
@@ -108,15 +111,15 @@ DVZ_EXPORT void dvz_app_reset(DvzApp* app);
 
 // TODO: docstrings
 
-DVZ_EXPORT DvzDat*
-dvz_dat(DvzContext* ctx, DvzBufferType type, uint32_t count, VkDeviceSize size, int flags);
+DVZ_EXPORT DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, int flags);
 
 // if not wait, one needs to call dvz_transfers_frame() for at least 1 frame for standard
 // transfers, or for all N frames for dup transfers.
 DVZ_EXPORT void
 dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data, bool wait);
 
-DVZ_EXPORT void dvz_dat_download(DvzDat* dat, VkDeviceSize size, void* data, bool wait);
+DVZ_EXPORT void
+dvz_dat_download(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data, bool wait);
 
 DVZ_EXPORT void dvz_dat_resize(DvzDat* dat, VkDeviceSize new_size);
 
