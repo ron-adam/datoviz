@@ -113,9 +113,15 @@ _make_standalone_buffer(DvzResources* res, DvzBufferType type, bool mappable, Vk
     ASSERT(res != NULL);
     DvzBuffer* buffer = _make_new_buffer(res);
     if (type == DVZ_BUFFER_TYPE_STAGING)
+    {
+        log_debug("create new staging buffer with size %s", pretty_size(size));
         _make_staging_buffer(buffer, size);
+    }
     else
     {
+        log_debug(
+            "create new buffer with type %d (mappable: %d) with size %s", //
+            type, mappable, pretty_size(size));
         _make_shared_buffer(buffer, type, mappable, size);
     }
     return buffer;

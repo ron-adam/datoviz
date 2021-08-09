@@ -139,7 +139,7 @@ int test_ctx_dat_1(TestContext* tc)
     int flags_tests[] = {
         DVZ_DAT_OPTIONS_NONE,       //
         DVZ_DAT_OPTIONS_STANDALONE, //
-        // DVZ_DAT_OPTIONS_MAPPABLE, //
+        DVZ_DAT_OPTIONS_MAPPABLE,   //
         // DVZ_DAT_OPTIONS_DUP,
     };
 

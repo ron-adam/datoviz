@@ -13,12 +13,12 @@
 
 #define TRANSFERABLE (VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT)
 
-#define DVZ_BUFFER_TYPE_STAGING_SIZE  (4 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_VERTEX_SIZE   (4 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_INDEX_SIZE    (4 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_STORAGE_SIZE  (1 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_UNIFORM_SIZE  (1 * 1024 * 1024)
-#define DVZ_BUFFER_TYPE_MAPPABLE_SIZE DVZ_BUFFER_TYPE_UNIFORM_SIZE
+// #define DVZ_BUFFER_TYPE_STAGING_SIZE  (4 * 1024 * 1024)
+// #define DVZ_BUFFER_TYPE_VERTEX_SIZE   (4 * 1024 * 1024)
+// #define DVZ_BUFFER_TYPE_INDEX_SIZE    (4 * 1024 * 1024)
+// #define DVZ_BUFFER_TYPE_STORAGE_SIZE  (1 * 1024 * 1024)
+// #define DVZ_BUFFER_TYPE_UNIFORM_SIZE  (1 * 1024 * 1024)
+// #define DVZ_BUFFER_TYPE_MAPPABLE_SIZE DVZ_BUFFER_TYPE_UNIFORM_SIZE
 
 
 
@@ -230,6 +230,10 @@ static void _dat_alloc(DvzDat* dat, DvzBufferType type, uint32_t count, VkDevice
     bool shared = !_is_standalone(dat);
     bool mappable = !_has_staging(dat);
 
+    log_debug(
+        "allocate dat, buffer type %d, %s%ssize %s", //
+        type, shared ? "shared, " : "", mappable ? "mappable, " : "", pretty_size(size));
+
     // Shared buffer.
     if (shared)
     {
@@ -289,8 +293,6 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, int flag
     ASSERT(ctx != NULL);
     ASSERT(size > 0);
 
-    log_debug("allocate dat of type %d with size %s and flags %d", type, pretty_size(size), flags);
-
     DvzDat* dat = (DvzDat*)dvz_container_alloc(&ctx->res.dats);
     dat->context = ctx;
     dat->flags = flags;
@@ -349,7 +351,13 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
             if (staging)
                 dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
             else
+            {
+                // WARNING: for mappable buffers, the transfer is done on the main thread (using
+                // the COPY queue, not the UD queue), not in the background thread, so we need to
+                // dequeue the COPY queue manually!
+                dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
                 dvz_queue_wait(ctx->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+            }
             // dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_UD, true);
         }
     }
