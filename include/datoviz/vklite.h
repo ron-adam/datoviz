@@ -1464,6 +1464,29 @@ DVZ_EXPORT void dvz_images_download(
     bool has_alpha, void* out);
 
 /**
+ * Copy part of an image to another image.
+ *
+ * This function does not involve CPU-GPU data transfers.
+ *
+ * @param src the source texture
+ * @param src_offset offset within the source texture
+ * @param dst the target texture
+ * @param dst_offset offset within the target texture
+ * @param shape shape of the part of the texture to copy
+ */
+DVZ_EXPORT void
+dvz_images_copy(DvzImages* src, uvec3 src_offset, DvzImages* dst, uvec3 dst_offset, uvec3 shape);
+
+// TODO: docstrings
+DVZ_EXPORT void dvz_images_copy_from_buffer(
+    DvzImages* img, uvec3 tex_offset, uvec3 shape, //
+    DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size);
+
+DVZ_EXPORT void dvz_images_copy_to_buffer(
+    DvzImages* img, uvec3 tex_offset, uvec3 shape, //
+    DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size);
+
+/**
  * Destroy images.
  *
  * @param images the images

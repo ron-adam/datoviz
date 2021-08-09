@@ -21,32 +21,12 @@ extern "C" {
 #define TRANSFERABLE (VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT)
 
 #define DVZ_BUFFER_DEFAULT_SIZE (1 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_STAGING_SIZE (4 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_VERTEX_SIZE  (4 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_INDEX_SIZE   (4 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_STORAGE_SIZE (1 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_UNIFORM_SIZE (1 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_MAPPABLE_SIZE DVZ_BUFFER_TYPE_UNIFORM_SIZE
 
 
 
 /*************************************************************************************************/
 /*  Enums                                                                                        */
 /*************************************************************************************************/
-
-// // TODO: remove?
-// // Dat flags.
-// typedef enum
-// {
-//     DVZ_DAT_FLAGS_SHARED = 0x01,     // by default, the Dat is allocated from the big buffer
-//     DVZ_DAT_FLAGS_STANDALONE = 0x02, // standalone DvzBuffer
-
-//     // the following are unused, may be removed
-//     DVZ_DAT_FLAGS_DYNAMIC = 0x10,   // will change often
-//     DVZ_DAT_FLAGS_RESIZABLE = 0x20, // can be resized
-// } DvzDatFlags;
-
-
 
 // Dat usage.
 // TODO: not implemented yet, going from these flags to DvzDatOptions
@@ -115,9 +95,11 @@ struct DvzTex
 {
     DvzObject obj;
     DvzContext* context;
-    DvzImages* images;
+
     DvzTexDims dims;
-    int flags;
+    uvec3 shape;
+
+    DvzImages* images;
 };
 
 

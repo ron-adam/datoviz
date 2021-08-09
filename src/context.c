@@ -13,13 +13,6 @@
 
 #define TRANSFERABLE (VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT)
 
-// #define DVZ_BUFFER_TYPE_STAGING_SIZE  (4 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_VERTEX_SIZE   (4 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_INDEX_SIZE    (4 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_STORAGE_SIZE  (1 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_UNIFORM_SIZE  (1 * 1024 * 1024)
-// #define DVZ_BUFFER_TYPE_MAPPABLE_SIZE DVZ_BUFFER_TYPE_UNIFORM_SIZE
-
 
 
 /*************************************************************************************************/
@@ -77,10 +70,94 @@ static inline bool _persistent_staging(DvzDat* dat)
 
 
 
+static inline VkDeviceSize
+_total_aligned_size(DvzBuffer* buffer, uint32_t count, VkDeviceSize size, VkDeviceSize* alignment)
+{
+    // Find the buffer alignment.
+    *alignment = buffer->vma.alignment;
+    // Make sure the requested size is aligned.
+    return count * _align(size, *alignment);
+}
+
+
+
 static inline DvzDat* _alloc_staging(DvzContext* ctx, VkDeviceSize size)
 {
     ASSERT(ctx != NULL);
     return dvz_dat(ctx, DVZ_BUFFER_TYPE_STAGING, size, 0);
+}
+
+
+static void _dat_alloc(DvzDat* dat, DvzBufferType type, uint32_t count, VkDeviceSize size)
+{
+    ASSERT(dat != NULL);
+    DvzContext* ctx = dat->context;
+    ASSERT(ctx != NULL);
+
+    DvzBuffer* buffer = NULL;
+    VkDeviceSize offset = 0; // to determine with allocator if shared buffer
+    VkDeviceSize alignment = 0;
+    VkDeviceSize tot_size = 0;
+
+    bool shared = !_is_standalone(dat);
+    bool mappable = !_has_staging(dat);
+
+    log_debug(
+        "allocate dat, buffer type %d, %s%ssize %s", //
+        type, shared ? "shared, " : "", mappable ? "mappable, " : "", pretty_size(size));
+
+    // Shared buffer.
+    if (shared)
+    {
+        // Get the unique shared buffer of the requested type.
+        buffer = _get_shared_buffer(&ctx->res, type, mappable);
+
+        // Find the buffer alignment and total aligned size.
+        tot_size = _total_aligned_size(buffer, count, size, &alignment);
+
+        // Allocate a DvzDat from it.
+        // NOTE: this call may resize the underlying DvzBuffer, which is slow (hard GPU sync).
+        offset = _allocate_dat(&ctx->datalloc, &ctx->res, type, mappable, tot_size);
+    }
+
+    // Standalone buffer.
+    else
+    {
+        // Create a brand new buffer just for this DvzDat.
+        buffer = _make_standalone_buffer(&ctx->res, type, mappable, count * size);
+        // Allocate the entire buffer, so offset is 0, and the size is the requested (aligned if
+        // necessary) size.
+        offset = 0;
+        // NOTE: for standalone buffers, we should not need to worry about alignments at this point
+    }
+
+    // Check alignment.
+    if (alignment > 0)
+        ASSERT(offset % alignment == 0);
+
+    // Set the buffer region.
+    dat->br = dvz_buffer_regions(buffer, count, offset, size, alignment);
+}
+
+static void _dat_dealloc(DvzDat* dat)
+{
+    ASSERT(dat != NULL);
+    DvzContext* ctx = dat->context;
+    ASSERT(ctx != NULL);
+
+    bool shared = !_is_standalone(dat);
+    bool mappable = !_has_staging(dat);
+
+    if (shared)
+    {
+        // Deallocate the buffer regions but keep the underlying buffer.
+        _deallocate_dat(&ctx->datalloc, dat->br.buffer->type, mappable, dat->br.offsets[0]);
+    }
+    else
+    {
+        // Destroy the standalone buffer.
+        dvz_buffer_destroy(dat->br.buffer);
+    }
 }
 
 
@@ -207,87 +284,6 @@ void dvz_context_destroy(DvzContext* ctx)
 /*  Dats                                                                                         */
 /*************************************************************************************************/
 
-static inline VkDeviceSize
-_total_aligned_size(DvzBuffer* buffer, uint32_t count, VkDeviceSize size, VkDeviceSize* alignment)
-{
-    // Find the buffer alignment.
-    *alignment = buffer->vma.alignment;
-    // Make sure the requested size is aligned.
-    return count * _align(size, *alignment);
-}
-
-static void _dat_alloc(DvzDat* dat, DvzBufferType type, uint32_t count, VkDeviceSize size)
-{
-    ASSERT(dat != NULL);
-    DvzContext* ctx = dat->context;
-    ASSERT(ctx != NULL);
-
-    DvzBuffer* buffer = NULL;
-    VkDeviceSize offset = 0; // to determine with allocator if shared buffer
-    VkDeviceSize alignment = 0;
-    VkDeviceSize tot_size = 0;
-
-    bool shared = !_is_standalone(dat);
-    bool mappable = !_has_staging(dat);
-
-    log_debug(
-        "allocate dat, buffer type %d, %s%ssize %s", //
-        type, shared ? "shared, " : "", mappable ? "mappable, " : "", pretty_size(size));
-
-    // Shared buffer.
-    if (shared)
-    {
-        // Get the unique shared buffer of the requested type.
-        buffer = _get_shared_buffer(&ctx->res, type, mappable);
-
-        // Find the buffer alignment and total aligned size.
-        tot_size = _total_aligned_size(buffer, count, size, &alignment);
-
-        // Allocate a DvzDat from it.
-        // NOTE: this call may resize the underlying DvzBuffer, which is slow (hard GPU sync).
-        offset = _allocate_dat(&ctx->datalloc, &ctx->res, type, mappable, tot_size);
-    }
-
-    // Standalone buffer.
-    else
-    {
-        // Create a brand new buffer just for this DvzDat.
-        buffer = _make_standalone_buffer(&ctx->res, type, mappable, count * size);
-        // Allocate the entire buffer, so offset is 0, and the size is the requested (aligned if
-        // necessary) size.
-        offset = 0;
-        // NOTE: for standalone buffers, we should not need to worry about alignments at this point
-    }
-
-    // Check alignment.
-    if (alignment > 0)
-        ASSERT(offset % alignment == 0);
-
-    // Set the buffer region.
-    dat->br = dvz_buffer_regions(buffer, count, offset, size, alignment);
-}
-
-static void _dat_dealloc(DvzDat* dat)
-{
-    ASSERT(dat != NULL);
-    DvzContext* ctx = dat->context;
-    ASSERT(ctx != NULL);
-
-    bool shared = !_is_standalone(dat);
-    bool mappable = !_has_staging(dat);
-
-    if (shared)
-    {
-        // Deallocate the buffer regions but keep the underlying buffer.
-        _deallocate_dat(&ctx->datalloc, dat->br.buffer->type, mappable, dat->br.offsets[0]);
-    }
-    else
-    {
-        // Destroy the standalone buffer.
-        dvz_buffer_destroy(dat->br.buffer);
-    }
-}
-
 DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, int flags)
 {
     ASSERT(ctx != NULL);
@@ -407,7 +403,6 @@ void dvz_dat_download(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void*
     }
 
     // Enqueue the transfer task corresponding to the flags.
-    bool dup = _is_dup(dat);
     bool staging = stg != NULL;
     DvzBufferRegions stg_br = staging ? stg->br : (DvzBufferRegions){0};
 

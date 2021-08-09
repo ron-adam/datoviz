@@ -1697,6 +1697,231 @@ void dvz_images_download(
 
 
 
+void dvz_images_copy(
+    DvzImages* src, uvec3 src_offset, DvzImages* dst, uvec3 dst_offset, uvec3 shape)
+{
+    ASSERT(src != NULL);
+    ASSERT(dst != NULL);
+    DvzGpu* gpu = src->gpu;
+    ASSERT(gpu != NULL);
+
+    // Take transfer cmd buf.
+    DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
+    DvzCommands* cmds = &cmds_;
+    dvz_cmd_reset(cmds, 0);
+    dvz_cmd_begin(cmds, 0);
+
+    DvzBarrier src_barrier = dvz_barrier(gpu);
+    dvz_barrier_stages(
+        &src_barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    dvz_barrier_images(&src_barrier, src);
+
+    DvzBarrier dst_barrier = dvz_barrier(gpu);
+    dvz_barrier_stages(
+        &dst_barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    dvz_barrier_images(&dst_barrier, dst);
+
+    // Source image transition.
+    if (src->layout != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+    {
+        log_trace("source image %d transition", src->images[0]);
+        dvz_barrier_images_layout(
+            &src_barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        dvz_barrier_images_access(&src_barrier, 0, VK_ACCESS_TRANSFER_READ_BIT);
+        dvz_cmd_barrier(cmds, 0, &src_barrier);
+    }
+
+    // Destination image transition.
+    {
+        log_trace("destination image %d transition", dst->images[0]);
+        dvz_barrier_images_layout(
+            &dst_barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        dvz_barrier_images_access(&dst_barrier, 0, VK_ACCESS_TRANSFER_WRITE_BIT);
+        dvz_cmd_barrier(cmds, 0, &dst_barrier);
+    }
+
+    // Copy texture command.
+    VkImageCopy copy = {0};
+    copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.srcSubresource.layerCount = 1;
+    copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    copy.dstSubresource.layerCount = 1;
+    copy.extent.width = shape[0];
+    copy.extent.height = shape[1];
+    copy.extent.depth = shape[2];
+    copy.srcOffset.x = (int32_t)src_offset[0];
+    copy.srcOffset.y = (int32_t)src_offset[1];
+    copy.srcOffset.z = (int32_t)src_offset[2];
+    copy.dstOffset.x = (int32_t)dst_offset[0];
+    copy.dstOffset.y = (int32_t)dst_offset[1];
+    copy.dstOffset.z = (int32_t)dst_offset[2];
+
+    vkCmdCopyImage(
+        cmds->cmds[0],                                        //
+        src->images[0], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, //
+        dst->images[0], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, //
+        1, &copy);
+
+    // Source image transition.
+    if (src->layout != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL &&
+        src->layout != VK_IMAGE_LAYOUT_UNDEFINED)
+    {
+        log_trace("source image transition back");
+        dvz_barrier_images_layout(&src_barrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, src->layout);
+        dvz_barrier_images_access(
+            &src_barrier, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+        dvz_cmd_barrier(cmds, 0, &src_barrier);
+    }
+
+    // Destination image transition.
+    if (dst->layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+        dst->layout != VK_IMAGE_LAYOUT_UNDEFINED)
+    {
+        log_trace("destination image transition back");
+        dvz_barrier_images_layout(&dst_barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, dst->layout);
+        dvz_barrier_images_access(&dst_barrier, VK_ACCESS_TRANSFER_WRITE_BIT, 0);
+        dvz_cmd_barrier(cmds, 0, &dst_barrier);
+    }
+
+    dvz_cmd_end(cmds, 0);
+
+    // Wait for the render queue to be idle.
+    // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_RENDER);
+
+    // Submit the commands to the transfer queue.
+    DvzSubmit submit = dvz_submit(gpu);
+    dvz_submit_commands(&submit, cmds);
+    log_debug("copy %dx%dx%d between 2 textures", shape[0], shape[1], shape[2]);
+    dvz_submit_send(&submit, 0, NULL, 0);
+
+    // Wait for the transfer queue to be idle.
+    // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+}
+
+
+
+void dvz_images_copy_from_buffer(
+    DvzImages* img, uvec3 tex_offset, uvec3 shape, //
+    DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size)
+{
+    ASSERT(img != NULL);
+    DvzGpu* gpu = img->gpu;
+    ASSERT(gpu != NULL);
+
+    DvzBuffer* buffer = br.buffer;
+    ASSERT(buffer != NULL);
+    buf_offset = br.offsets[0] + buf_offset;
+
+    ASSERT(shape[0] > 0);
+    ASSERT(shape[1] > 0);
+    ASSERT(shape[2] > 0);
+
+    ASSERT(tex_offset[0] + shape[0] <= img->width);
+    ASSERT(tex_offset[1] + shape[1] <= img->height);
+    ASSERT(tex_offset[2] + shape[2] <= img->depth);
+
+    // Take transfer cmd buf.
+    DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
+    DvzCommands* cmds = &cmds_;
+    dvz_cmd_reset(cmds, 0);
+    dvz_cmd_begin(cmds, 0);
+
+    // Image transition.
+    DvzBarrier barrier = dvz_barrier(gpu);
+    dvz_barrier_stages(&barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    ASSERT(img != NULL);
+    ASSERT(img != NULL);
+    dvz_barrier_images(&barrier, img);
+    dvz_barrier_images_layout(
+        &barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    dvz_barrier_images_access(&barrier, 0, VK_ACCESS_TRANSFER_WRITE_BIT);
+    dvz_cmd_barrier(cmds, 0, &barrier);
+
+    // Copy to staging buffer
+    dvz_cmd_copy_buffer_to_image(cmds, 0, buffer, buf_offset, img, tex_offset, shape);
+
+    // Image transition.
+    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, img->layout);
+    dvz_barrier_images_access(&barrier, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT);
+    dvz_cmd_barrier(cmds, 0, &barrier);
+
+    dvz_cmd_end(cmds, 0);
+
+    // Wait for the render queue to be idle.
+    // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_RENDER);
+
+    // Submit the commands to the transfer queue.
+    DvzSubmit submit = dvz_submit(gpu);
+    dvz_submit_commands(&submit, cmds);
+    dvz_submit_send(&submit, 0, NULL, 0);
+
+    // Wait for the transfer queue to be idle.
+    // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+}
+
+
+
+void dvz_images_copy_to_buffer(
+    DvzImages* img, uvec3 tex_offset, uvec3 shape, //
+    DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size)
+{
+    ASSERT(img != NULL);
+    DvzGpu* gpu = img->gpu;
+    ASSERT(gpu != NULL);
+
+    DvzBuffer* buffer = br.buffer;
+    ASSERT(buffer != NULL);
+    buf_offset = br.offsets[0] + buf_offset;
+
+    ASSERT(shape[0] > 0);
+    ASSERT(shape[1] > 0);
+    ASSERT(shape[2] > 0);
+
+    ASSERT(tex_offset[0] + shape[0] <= img->width);
+    ASSERT(tex_offset[1] + shape[1] <= img->height);
+    ASSERT(tex_offset[2] + shape[2] <= img->depth);
+
+    // Take transfer cmd buf.
+    DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
+    DvzCommands* cmds = &cmds_;
+    dvz_cmd_reset(cmds, 0);
+    dvz_cmd_begin(cmds, 0);
+
+    // Image transition.
+    DvzBarrier barrier = dvz_barrier(gpu);
+    dvz_barrier_stages(&barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    ASSERT(img != NULL);
+    ASSERT(img != NULL);
+    dvz_barrier_images(&barrier, img);
+    dvz_barrier_images_layout(
+        &barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    dvz_barrier_images_access(&barrier, 0, VK_ACCESS_TRANSFER_READ_BIT);
+    dvz_cmd_barrier(cmds, 0, &barrier);
+
+    // Copy to staging buffer
+    dvz_cmd_copy_image_to_buffer(cmds, 0, img, tex_offset, shape, buffer, buf_offset);
+
+    // Image transition.
+    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, img->layout);
+    dvz_barrier_images_access(&barrier, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_MEMORY_READ_BIT);
+    dvz_cmd_barrier(cmds, 0, &barrier);
+
+    dvz_cmd_end(cmds, 0);
+
+    // Wait for the render queue to be idle.
+    // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_RENDER);
+
+    // Submit the commands to the transfer queue.
+    DvzSubmit submit = dvz_submit(gpu);
+    dvz_submit_commands(&submit, cmds);
+    dvz_submit_send(&submit, 0, NULL, 0);
+
+    // Wait for the transfer queue to be idle.
+    // dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
+}
+
+
+
 void dvz_images_destroy(DvzImages* images)
 {
     ASSERT(images != NULL);
