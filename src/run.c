@@ -81,7 +81,7 @@ static void _dequeue_copies(DvzApp* app)
         // Process all copies with hard GPU synchronization before and after, as this is a sensible
         // operation (we write to GPU data that is likely to be used when rendering).
         if (gpu->context != NULL)
-            dvz_deq_dequeue(&gpu->context->deq, DVZ_TRANSFER_PROC_CPY, false);
+            dvz_deq_dequeue(&gpu->context->transfers.deq, DVZ_TRANSFER_PROC_CPY, false);
 
         dvz_container_iter(&iter);
     }

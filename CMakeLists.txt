@@ -370,7 +370,7 @@ file(GLOB sources
     "src/atlases.c"
 
     "src/canvas.c"
-    # "src/run.c"
+    "src/run.c"
 
     "external/*.c*"
     "external/imgui/*.c*"
@@ -451,7 +451,7 @@ if (DATOVIZ_WITH_CLI)
         "tests/test_context.c"
 
         "tests/test_canvas.c"
-        # "tests/test_run.c"
+        "tests/test_run.c"
     )
 
     add_executable(datovizcli ${cli})

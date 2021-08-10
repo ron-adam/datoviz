@@ -409,7 +409,10 @@ void dvz_download_image(
     ASSERT(img != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
-    ASSERT(img->count == 1);
+    if (img->count > 1)
+    {
+        log_debug("note: downloading a single copy of a multiset image");
+    }
 
     DvzGpu* gpu = transfers->gpu;
     ASSERT(gpu != NULL);

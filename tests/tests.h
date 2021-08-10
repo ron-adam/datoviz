@@ -98,12 +98,6 @@ int test_ctx_datalloc_1(TestContext*);
 int test_ctx_dat_1(TestContext*);
 int test_ctx_tex_1(TestContext*);
 
-// Test context.
-// int test_context_buffer(TestContext*);
-// int test_context_texture(TestContext*);
-// int test_context_compute(TestContext*);
-// int test_context_colormap_custom(TestContext*);
-
 // Test input.
 int test_input_mouse_raw(TestContext*);
 int test_input_mouse_drag(TestContext*);
@@ -304,26 +298,18 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(CONTEXT, test_ctx_dat_1),       //
     CASE_FIXTURE(CONTEXT, test_ctx_tex_1),       //
 
-    // Allocs.
-
-    // // Context.
-    // CASE_FIXTURE(CONTEXT, test_context_buffer),          //
-    // CASE_FIXTURE(CONTEXT, test_context_compute),         //
-    // CASE_FIXTURE(CONTEXT, test_context_texture),         //
-    // CASE_FIXTURE(CONTEXT, test_context_colormap_custom), //
-
     // Canvas.
     CASE_FIXTURE(APP, test_canvas_window),   //
     CASE_FIXTURE(APP, test_canvas_blank),    //
     CASE_FIXTURE(APP, test_canvas_triangle), //
 
-    // // Run.
-    // CASE_FIXTURE(APP, test_run_1),         //
-    // CASE_FIXTURE(APP, test_run_2),         //
-    // CASE_FIXTURE(APP, test_run_3),         //
-    // CASE_FIXTURE(APP, test_run_triangle),  //
-    // CASE_FIXTURE(APP, test_run_offscreen), //
-    // CASE_FIXTURE(APP, test_run_push),      //
+    // Run.
+    CASE_FIXTURE(APP, test_run_1),         //
+    CASE_FIXTURE(APP, test_run_2),         //
+    CASE_FIXTURE(APP, test_run_3),         //
+    CASE_FIXTURE(APP, test_run_triangle),  //
+    CASE_FIXTURE(APP, test_run_offscreen), //
+    CASE_FIXTURE(APP, test_run_push),      //
 
 
 
