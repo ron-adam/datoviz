@@ -110,6 +110,7 @@ struct DvzDeqCallbackRegister
     int type;
     DvzDeqCallback callback;
     void* user_data;
+    bool is_default; // if true, the callback will be discarded if there are other callbacks
 };
 
 struct DvzDeqProcWaitCallbackRegister
@@ -197,6 +198,8 @@ struct DvzDeq
     uint32_t proc_count;
     DvzDeqProc procs[DVZ_DEQ_MAX_PROCS];
     uint32_t q_to_proc[DVZ_DEQ_MAX_QUEUES]; // for each queue, which proc idx is handling it
+
+    bool has_default; // true if there is at least one registered default callback
 };
 
 
@@ -318,6 +321,20 @@ DVZ_EXPORT DvzDeq dvz_deq(uint32_t nq);
  * @param user_data pointer to arbitrary data to be passed to the callback
  */
 DVZ_EXPORT void dvz_deq_callback(
+    DvzDeq* deq, uint32_t deq_idx, int type, DvzDeqCallback callback, void* user_data);
+
+/**
+ * Define a default callback.
+ *
+ * The default callback is only called when there are no other callbacks. Specifically, we discard
+ * a default callback iff there are other callbacks after it in the list of callbacks.
+ *
+ * @param deq the Deq
+ * @param deq_idx the queue index
+ * @param type the type to register the callback to
+ * @param user_data pointer to arbitrary data to be passed to the callback
+ */
+DVZ_EXPORT void dvz_deq_callback_default(
     DvzDeq* deq, uint32_t deq_idx, int type, DvzDeqCallback callback, void* user_data);
 
 /**

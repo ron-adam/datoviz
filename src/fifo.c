@@ -258,13 +258,40 @@ static void _deq_callbacks(DvzDeq* deq, DvzDeqItem* item)
     ASSERT(deq != NULL);
     ASSERT(item->item != NULL);
     DvzDeqCallbackRegister* reg = NULL;
-    for (uint32_t i = 0; i < deq->callback_count; i++)
+    uint32_t n = deq->callback_count;
+
+    // First, we need to determine if there is at least one non-default callback. If so, we'll only
+    // call them. Otherwise, we call the default callbacks.
+    bool do_call_default = true;
+    if (deq->has_default)
+    {
+        for (uint32_t i = 0; i < n; i++)
+        {
+            reg = &deq->callbacks[i];
+            ASSERT(reg != NULL);
+            if (reg->deq_idx == item->deq_idx && reg->type == item->type && !reg->is_default)
+            {
+                // NOTE: we call all non-default callbacks. We only call a default callback if
+                // it's the last one in the list of callbacks. Otherwise, we assume that the
+                // other callbacks after the default will supersede it.
+                do_call_default = false;
+                break;
+            }
+        }
+    }
+
+    // Now, we go through all callbacks and we call them or not depending on whether they're
+    // default, and whether we call the default or not.
+    for (uint32_t i = 0; i < n; i++)
     {
         reg = &deq->callbacks[i];
         ASSERT(reg != NULL);
         if (reg->deq_idx == item->deq_idx && reg->type == item->type)
         {
-            reg->callback(deq, item->item, reg->user_data);
+            // NOTE: we do not call the callback if we should not call the default callbacks, and
+            // if the current callback is a default one.
+            if (do_call_default || !reg->is_default)
+                reg->callback(deq, item->item, reg->user_data);
         }
     }
 }
@@ -421,8 +448,9 @@ DvzDeq dvz_deq(uint32_t nq)
 
 
 
-void dvz_deq_callback(
-    DvzDeq* deq, uint32_t deq_idx, int type, DvzDeqCallback callback, void* user_data)
+static void _deq_callback(
+    DvzDeq* deq, uint32_t deq_idx, int type, DvzDeqCallback callback, void* user_data,
+    bool is_default)
 {
     ASSERT(deq != NULL);
     ASSERT(callback != NULL);
@@ -434,6 +462,22 @@ void dvz_deq_callback(
     reg->type = type;
     reg->callback = callback;
     reg->user_data = user_data;
+    reg->is_default = is_default;
+
+    if (is_default)
+        deq->has_default = true;
+}
+
+void dvz_deq_callback(
+    DvzDeq* deq, uint32_t deq_idx, int type, DvzDeqCallback callback, void* user_data)
+{
+    _deq_callback(deq, deq_idx, type, callback, user_data, false);
+}
+
+void dvz_deq_callback_default(
+    DvzDeq* deq, uint32_t deq_idx, int type, DvzDeqCallback callback, void* user_data)
+{
+    _deq_callback(deq, deq_idx, type, callback, user_data, true);
 }
 
 

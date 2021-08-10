@@ -160,22 +160,13 @@ static void _canvas_refill(DvzCanvas* canvas)
     dvz_deq_dequeue(&run->deq, DVZ_RUN_DEQ_REFILL, true);
 
     // Make sure the command buffer is filled.
-    if (!dvz_obj_is_created(&cmds->obj))
-    {
-        log_debug("empty command buffer #%d, filling with blank color", img_idx);
-        blank_commands(canvas, cmds, img_idx);
-    }
+    // NOTE: there is a default callback registered for the REFILL event, which fills the canvas
+    // with a blank color. If there are other FILL callbacks, this default callback is discarded.
+    ASSERT(dvz_obj_is_created(&cmds->obj));
 
     // Immediately block the command buffer so that it is not refilled at every frame if that's not
     // useful.
     cmds->blocked[img_idx] = true;
-
-    // TO DELETE: old commented code
-    // TODO: more than 1 DvzCommands (the default, render cmd)
-    // dvz_queue_wait(canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
-    // Reset all command buffers before calling the REFILL callbacks.
-    // for (int32_t i = (int32_t)canvas->render.swapchain.img_count - 1; i >= 0; i--)
-    // {
 }
 
 
