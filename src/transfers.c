@@ -257,12 +257,13 @@ void dvz_transfers_destroy(DvzTransfers* transfers)
 
 
 
-// WARNING: the functions below are convenient because they return immediately, but they are not
-// optimally efficient because of the use of hard GPU synchronization primitives.
-
 /*************************************************************************************************/
 /*  Buffer transfers                                                                             */
 /*************************************************************************************************/
+
+// WARNING: do not use the functions below except for offscreen/testing purposes.
+
+
 
 void dvz_upload_buffer(
     DvzTransfers* transfers, DvzBufferRegions br, //

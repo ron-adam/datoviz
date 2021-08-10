@@ -142,20 +142,56 @@ struct DvzResources
 /**
  * Create a resources object.
  *
+ * This object is responsible for creating new GPU buffers and images.
+ *
+ * !!! note
+ *     This is only for internal use. Users should allocate "dats" (buffer regions) and "texs"
+ *     (images) instead, which abstract away the low-level implementation of these GPU objects.
+ *
  * @param gpu the GPU
  * @param res the DvzResources pointer
  */
 DVZ_EXPORT void dvz_resources(DvzGpu* gpu, DvzResources* res);
 
+/**
+ * Create a new GPU buffer.
+ *
+ * @param res the DvzResources pointer
+ * @param type the buffer type
+ * @param mappable whether the buffer should be mappable
+ * @param mappable the buffer size
+ */
 DVZ_EXPORT DvzBuffer*
 dvz_resources_buffer(DvzResources* res, DvzBufferType type, bool mappable, VkDeviceSize size);
 
+/**
+ * Create a new GPU image.
+ *
+ * @param res the DvzResources pointer
+ * @param dims the number of dimensions (1D, 2D, or 3D)
+ * @param shape the width, height, and depth
+ * @param format the image format
+ */
 DVZ_EXPORT DvzImages*
 dvz_resources_image(DvzResources* res, DvzTexDims dims, uvec3 shape, VkFormat format);
 
+/**
+ * Create a new GPU sampler, to be used along with an image to create a texture that can be bound
+ * to a graphics pipeline.
+ *
+ * @param res the DvzResources pointer
+ * @param filter the sampler filtering
+ * @param mode the address mode (along all dimensions)
+ */
 DVZ_EXPORT DvzSampler*
 dvz_resources_sampler(DvzResources* res, VkFilter filter, VkSamplerAddressMode mode);
 
+/**
+ * Create a new compute pipeloine.
+ *
+ * @param res the DvzResources pointer
+ * @param shader_path the path to the compiled .spv compute shader
+ */
 DVZ_EXPORT DvzCompute* dvz_resources_compute(DvzResources* res, const char* shader_path);
 
 /**
@@ -167,8 +203,18 @@ DVZ_EXPORT void dvz_resources_destroy(DvzResources* res);
 
 
 
+/**
+ * Destroy a dat.
+ *
+ * @param dat the dat
+ */
 DVZ_EXPORT void dvz_dat_destroy(DvzDat* dat);
 
+/**
+ * Destroy a tex.
+ *
+ * @param tex the tex
+ */
 DVZ_EXPORT void dvz_tex_destroy(DvzTex* tex);
 
 

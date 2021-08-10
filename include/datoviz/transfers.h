@@ -182,10 +182,45 @@ struct DvzTransfers
 /*  Transfers                                                                                    */
 /*************************************************************************************************/
 
-// TODO: docstrings
-
+/**
+ * Create a transfers object.
+ *
+ * This object is responsible for the data transfers (buffers and images). The context uses it in
+ * the dat/tex data transfer functions. The idea is to only provide simple upload/download
+ * functions, with a wait boolean parameter, and let the Transfers and the Context handle the
+ * implementation.
+ *
+ * There are several ways of transferring data, particularly on GPU buffers. If a GPU buffer is
+ * mappable (host-visible and host-coherent), one can directly transfer the data. Otherwise, a
+ * staging buffer must be used. In this case, we may want this staging buffer to be persistent
+ * (useful if there will be many tranfers, but this uses more GPU memory) or recreated at every
+ * transfer. Also, there can be just one copy of the data, or N copies, where N is the number of
+ * swapchain images. Using multiple copies is useful when transferring data continuously, to avoid
+ * hard GPU synchronization (if there is a single copy of the data on the GPU, we cannot upload to
+ * it while the GPU uses it to render the image). These are called "dup transfers" (for
+ * "duplicates"). All of this must be properly synchronized within the event loop.
+ *
+ * The way it works is that the user just can call the transfer functions with the context from any
+ * thread, at any point. That enqueues transfer tasks in a queue. The event loop just has to call
+ * `dvz_transfers_frame()` at every frame, with the current swapchain image index. This function
+ * takes care of processing the pending transfers.
+ *
+ * @param transfers the DvzTransfers pointer
+ */
 DVZ_EXPORT void dvz_transfers(DvzGpu* gpu, DvzTransfers* transfers);
 
+/**
+ * Process the pending transfers within the event loop.
+ *
+ * Copying to staging buffers is done in a background thread, because these are not used for
+ * rendering. However, once the CPU->GPU transfer is done, we need to copy the contents of the
+ * staging buffers to the actual device-only buffers that are used for rendering. And we need
+ * proper synchronization for that. This is where `dvz_transfers_frame()` comes to the rescue: it
+ * processes the transfers and, since it knows which swapchain image is about to be rendered, it
+ * can safely access to the corresponding GPU buffer regions.
+ *
+ * @param transfers the DvzTransfers pointer
+ */
 DVZ_EXPORT void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx);
 
 /**
@@ -201,10 +236,13 @@ DVZ_EXPORT void dvz_transfers_destroy(DvzTransfers* transfers);
 /*  Convenient but slow transfer functions, essentially used in testing or offscreen settings    */
 /*************************************************************************************************/
 
-// WARNING: do not use except for offscreen/testing.
+// WARNING: do not use the functions below except for offscreen/testing purposes.
 
 /**
- * Upload data to 1 or N buffer regions on the GPU.
+ * Synchronously upload data from the CPU to GPU buffer regions.
+ *
+ * !!! warning
+ *     Slow and inefficient, only for debugging/testing/offscreen purposes.
  *
  * @param transfers the DvzTransfers pointer
  * @param br the buffer regions to update
@@ -217,7 +255,10 @@ DVZ_EXPORT void dvz_upload_buffer(
     VkDeviceSize offset, VkDeviceSize size, void* data);
 
 /**
- * Download data from a buffer region to the CPU.
+ * Synchronously download data from a buffer region to the CPU.
+ *
+ * !!! warning
+ *     Slow and inefficient, only for debugging/testing/offscreen purposes.
  *
  * @param transfers the DvzTransfers pointer
  * @param br the buffer regions to update
@@ -230,9 +271,10 @@ DVZ_EXPORT void dvz_download_buffer(
     VkDeviceSize offset, VkDeviceSize size, void* data);
 
 /**
- * Copy data between two GPU buffer regions.
+ * Synchronously copy data between two GPU buffer regions.
  *
- * This function does not involve GPU-CPU data transfers.
+ * !!! warning
+ *     Slow and inefficient, only for debugging/testing/offscreen purposes.
  *
  * @param transfers the DvzTransfers pointer
  * @param src the buffer region to copy from
@@ -248,7 +290,10 @@ DVZ_EXPORT void dvz_copy_buffer(
 
 
 /**
- * Upload data to a image.
+ * Synchronously upload data to a image.
+ *
+ * !!! warning
+ *     Slow and inefficient, only for debugging/testing/offscreen purposes.
  *
  * @param transfers the DvzTransfers pointer
  * @param img the image to update
@@ -262,7 +307,10 @@ DVZ_EXPORT void dvz_upload_image(
     uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
 
 /**
- * Download data from a image.
+ * Synchronously download data from a image.
+ *
+ * !!! warning
+ *     Slow and inefficient, only for debugging/testing/offscreen purposes.
  *
  * @param transfers the DvzTransfers pointer
  * @param img the image to download from
@@ -276,9 +324,10 @@ DVZ_EXPORT void dvz_download_image(
     uvec3 offset, uvec3 shape, VkDeviceSize size, void* data);
 
 /**
- * Copy part of a image to another.
+ * Synchronously copy part of a image to another.
  *
- * This function does not involve GPU-CPU data transfers.
+ * !!! warning
+ *     Slow and inefficient, only for debugging/testing/offscreen purposes.
  *
  * @param transfers the DvzTransfers pointer
  * @param src the source image
