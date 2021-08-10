@@ -186,15 +186,15 @@ int test_transfers_image_buffer(TestContext* tc)
     DvzGpu* gpu = transfers->gpu;
     ASSERT(gpu != NULL);
 
-    uvec3 shape_full = {16, 48, 1};
-    uvec3 offset = {0, 16, 0};
-    uvec3 shape = {16, 16, 1};
-    VkDeviceSize size = 256;
+    uvec3 shape_full = {8, 24, 1};
+    uvec3 offset = {0, 8, 0};
+    uvec3 shape = {8, 8, 1};
+    VkDeviceSize size = 256; // 8*8*4
     VkFormat format = VK_FORMAT_R8G8B8A8_UINT;
 
     // Texture data.
     uint8_t data[256] = {0};
-    for (uint32_t i = 0; i < 256; i++)
+    for (uint32_t i = 0; i < size; i++)
         data[i] = i;
 
     // Image.
@@ -213,6 +213,12 @@ int test_transfers_image_buffer(TestContext* tc)
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
 
+    // NOTE: we should clear the staging buffer to avoid false positives.
+    log_debug("clear staging buffer");
+    void* null = calloc(size, 1);
+    dvz_upload_buffer(transfers, stg, 0, size, null);
+    FREE(null);
+
     // Enqueue a download transfer task.
     uint8_t data2[256] = {0};
     _enqueue_image_download(&transfers->deq, img, offset, shape, stg, 0, size, data2);
@@ -224,8 +230,8 @@ int test_transfers_image_buffer(TestContext* tc)
     dvz_app_wait(tc->app);
 
     // Check.
-    AT(memcmp(data2, data, 256) == 0);
-    for (uint32_t i = 0; i < 256; i++)
+    AT(memcmp(data2, data, size) == 0);
+    for (uint32_t i = 0; i < size; i++)
         AT(data2[i] == i);
 
     _destroy_buffer_regions(stg);

@@ -1820,6 +1820,8 @@ void dvz_images_copy_from_buffer(
     ASSERT(tex_offset[1] + shape[1] <= img->height);
     ASSERT(tex_offset[2] + shape[2] <= img->depth);
 
+    log_debug("copy buffer to image (%s)", pretty_size(size));
+
     // Take transfer cmd buf.
     DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
     DvzCommands* cmds = &cmds_;
@@ -1880,6 +1882,8 @@ void dvz_images_copy_to_buffer(
     ASSERT(tex_offset[0] + shape[0] <= img->width);
     ASSERT(tex_offset[1] + shape[1] <= img->height);
     ASSERT(tex_offset[2] + shape[2] <= img->depth);
+
+    log_debug("copy image to buffer (%s)", pretty_size(size));
 
     // Take transfer cmd buf.
     DvzCommands cmds_ = dvz_commands(gpu, 0, 1);
