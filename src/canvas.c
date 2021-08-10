@@ -689,29 +689,6 @@ DvzCommands* dvz_canvas_commands(DvzCanvas* canvas, uint32_t queue_idx, uint32_t
 
 
 
-// TODO: delete this
-void dvz_canvas_buffers(
-    DvzCanvas* canvas, DvzBufferRegions br, //
-    VkDeviceSize offset, VkDeviceSize size, const void* data)
-{
-    ASSERT(canvas != NULL);
-    ASSERT(size > 0);
-    ASSERT(data != NULL);
-    ASSERT(br.buffer != NULL);
-    ASSERT(br.count == canvas->render.swapchain.img_count);
-    // if (br.buffer->type != DVZ_BUFFER_TYPE_MAPPABLE)
-    // {
-    //     log_error("dvz_canvas_buffers() can only be used on mappable buffers.");
-    //     return;
-    // }
-    ASSERT(br.buffer->mmap != NULL);
-    uint32_t idx = canvas->render.swapchain.img_idx;
-    ASSERT(idx < br.count);
-    dvz_buffer_upload(br.buffer, br.offsets[idx] + offset, size, data);
-}
-
-
-
 /*************************************************************************************************/
 /*  Screenshot                                                                                   */
 /*************************************************************************************************/
@@ -765,44 +742,27 @@ uint8_t* dvz_screenshot(DvzCanvas* canvas, bool remove_alpha)
     // Hard GPU synchronization.
     dvz_gpu_wait(gpu);
 
-    return NULL;
-    // TODO
+    DvzImages* img = canvas->render.swapchain.images;
+    if (img == NULL)
+    {
+        log_error("empty swapchain images, aborting screenshot creation");
+        return NULL;
+    }
 
-    // DvzImages* images = canvas->render.swapchain.images;
-    // if (images == NULL)
-    // {
-    //     log_error("empty swapchain images, aborting screenshot creation");
-    //     return NULL;
-    // }
+    // Staging images.
+    uint32_t ncomp = 4;
+    VkDeviceSize size = img->shape[0] * img->shape[1] * ncomp;
+    uint8_t* data = calloc(size, 1);
 
-    // // Staging images.
-    // // HACK: DvzTexture wrapper so that we can use the transfers API.
-    // DvzTexture* tex = &canvas->render.screencast_tex;
+    // TODO OPTIM: this is SLOW. We should instead keep a staging buffer automatically resized with
+    // the right shape at all times.
+    dvz_download_image(&ctx->transfers, img, DVZ_ZERO_OFFSET, img->shape, size, data);
 
-    // // NOTE: if has_alpha = false, we can only remove it at the end.
-    // uint32_t ncomp = 4;
+    bool swizzle = true; // canvas->offscreen;
+    data = _rearrange_image(img->shape[0], img->shape[1], remove_alpha, swizzle, data);
 
-    // VkDeviceSize size = images->width * images->height * ncomp;
-    // uvec3 shape = {images->width, images->height, images->depth};
-
-    // DvzBuffer* buf = &canvas->render.screencast_staging;
-    // DvzBufferRegions stg = dvz_buffer_regions(buf, 1, 0, size, 0);
-
-    // uint8_t* data = calloc(size, 1);
-
-    // _enqueue_image_download(&ctx->deq, tex, (uvec3){0}, shape, stg, 0, size, data);
-
-    // dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_CPY, true);
-    // dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_UD);
-
-    // dvz_deq_dequeue(&ctx->deq, DVZ_TRANSFER_PROC_EV, true);
-    // dvz_deq_wait(&ctx->deq, DVZ_TRANSFER_PROC_EV);
-
-    // bool swizzle = true; // canvas->offscreen;
-    // data = _rearrange_image(shape[0], shape[1], remove_alpha, swizzle, data);
-
-    // // NOTE: the caller MUST free the returned pointer.
-    // return data;
+    // NOTE: the caller MUST free the returned pointer.
+    return data;
 }
 
 

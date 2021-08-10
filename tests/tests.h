@@ -98,8 +98,6 @@ int test_ctx_datalloc_1(TestContext*);
 int test_ctx_dat_1(TestContext*);
 int test_ctx_tex_1(TestContext*);
 
-// Test datalloc.
-
 // Test context.
 // int test_context_buffer(TestContext*);
 // int test_context_texture(TestContext*);
@@ -314,10 +312,10 @@ static TestCase TEST_CASES[] = {
     // CASE_FIXTURE(CONTEXT, test_context_texture),         //
     // CASE_FIXTURE(CONTEXT, test_context_colormap_custom), //
 
-    // // Canvas.
-    // CASE_FIXTURE(APP, test_canvas_window),   //
-    // CASE_FIXTURE(APP, test_canvas_blank),    //
-    // CASE_FIXTURE(APP, test_canvas_triangle), //
+    // Canvas.
+    CASE_FIXTURE(APP, test_canvas_window),   //
+    CASE_FIXTURE(APP, test_canvas_blank),    //
+    CASE_FIXTURE(APP, test_canvas_triangle), //
 
     // // Run.
     // CASE_FIXTURE(APP, test_run_1),         //

@@ -68,10 +68,16 @@ struct TestCanvas
     DvzCompute* compute;
     DvzBindings* bindings;
     DvzGraphics* graphics;
+
+    // NOTE: this is used in vklite:
     DvzBufferRegions br;
+
+    // NOTE: this is used in canvas tests
+    DvzDat* dat;
 
     void* data;
 };
+
 
 
 struct TestVisual
@@ -83,8 +89,14 @@ struct TestVisual
     DvzCompute* compute;
     DvzBindings bindings;
     DvzBuffer buffer;
+
+    // NOTE: this is used in vklite:
     DvzBufferRegions br;
     DvzBufferRegions br_u;
+
+    // NOTE: this is used in canvas tests
+    DvzDat *dat, *dat_u;
+
     uint32_t n_vertices;
     float dt;
     void* data;
@@ -412,6 +424,7 @@ static void triangle_refill(DvzCanvas* canvas, TestVisual* visual, uint32_t idx)
     DvzCommands* cmds = &canvas->cmds_render;
     ASSERT(cmds->queue_idx == DVZ_DEFAULT_QUEUE_RENDER);
 
+    ASSERT(visual->br.buffer != NULL);
     triangle_commands(
         cmds, idx, &canvas->render.renderpass, &canvas->render.framebuffers, //
         &visual->graphics, &visual->bindings, visual->br);
@@ -427,21 +440,21 @@ static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)
     // Create the buffer.
     VkDeviceSize size = 3 * sizeof(TestVertex);
 
-    // TODO
-    // visual->br = dvz_ctx_buffers(gpu->context, DVZ_BUFFER_TYPE_VERTEX, 1, size);
+    // Allocate a dat that will contain the triangle vertices.
+    visual->dat = dvz_dat(gpu->context, DVZ_BUFFER_TYPE_VERTEX, size, 0);
+    // HACK
+    visual->br = visual->dat->br;
     TestVertex data[3] = TRIANGLE_VERTICES;
     visual->data = calloc(size, 1);
     memcpy(visual->data, data, size);
 
-    // TODO
-    // dvz_upload_buffer(gpu->context, visual->br, 0, size, visual->data);
+    // Upload the triangle data to the dat.
+    dvz_dat_upload(visual->dat, 0, size, visual->data, true);
 
     // DEBUG: Check that the data was successfully uploaded.
     TestVertex data2[3] = {0};
-    // TODO
-    // dvz_download_buffer(gpu->context, visual->br, 0, size, data2);
+    dvz_dat_download(visual->dat, 0, size, data2, true);
     ASSERT(memcmp(data, data2, size) == 0);
-    // dvz_buffer_regions_upload(&visual->br, 0, 0, size, data);
 }
 
 

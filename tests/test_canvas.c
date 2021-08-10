@@ -108,11 +108,15 @@ int test_canvas_blank(TestContext* tc)
 int test_canvas_triangle(TestContext* tc)
 {
     DvzApp* app = tc->app;
+    ASSERT(app != NULL);
     DvzGpu* gpu = dvz_gpu_best(app);
+    ASSERT(gpu != NULL);
 
     DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, DVZ_CANVAS_FLAGS_OFFSCREEN);
     ASSERT(canvas->app != NULL);
     dvz_canvas_create(canvas);
+
+    ASSERT(gpu->context != NULL);
 
     TestVisual visual = triangle(canvas, "");
 
@@ -134,7 +138,7 @@ int test_canvas_triangle(TestContext* tc)
     int res = check_canvas(canvas, "test_canvas_triangle");
 
     TestVertex data2[3] = {0};
-    dvz_download_buffer(gpu->context, visual.br, 0, sizeof(data2), data2);
+    dvz_dat_download(visual.dat, 0, sizeof(data2), data2, true);
     AT(memcmp(data2, visual.data, sizeof(data2)) == 0);
 
     destroy_visual(&visual);

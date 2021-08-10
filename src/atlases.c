@@ -44,8 +44,13 @@ void dvz_atlases(DvzContext* ctx, DvzAtlases* atlases)
     ASSERT(dvz_obj_is_created(&gpu->obj));
 
     ASSERT(atlases != NULL);
-    ASSERT(!dvz_obj_is_created(&atlases->obj));
+
     // NOTE: this function should only be called once, at context creation.
+    if (dvz_obj_is_created(&atlases->obj))
+    {
+        log_debug("skip atlases creation as they already exist");
+        return;
+    }
 
     log_trace("creating atlases");
 

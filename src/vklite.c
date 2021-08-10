@@ -1813,7 +1813,7 @@ void dvz_images_copy_from_buffer(
     for (uint32_t i = 0; i < 3; i++)
     {
         ASSERT(shape[i] > 0);
-        ASSERT(tex_offset[i] + shape[i] <= (int)img->shape[i]);
+        ASSERT(tex_offset[i] + shape[i] <= img->shape[i]);
     }
 
     log_debug("copy buffer to image (%s)", pretty_size(size));
@@ -1874,7 +1874,7 @@ void dvz_images_copy_to_buffer(
     for (uint32_t i = 0; i < 3; i++)
     {
         ASSERT(shape[i] > 0);
-        ASSERT(tex_offset[i] + shape[i] <= (int)img->shape[i]);
+        ASSERT(tex_offset[i] + shape[i] <= img->shape[i]);
     }
 
     log_debug("copy image to buffer (%s)", pretty_size(size));
@@ -3629,7 +3629,7 @@ _image_buffer_copy(DvzImages* img, VkDeviceSize buf_offset, uvec3 tex_offset, uv
 
     for (uint32_t i = 0; i < 3; i++)
     {
-        ASSERT(tex_offset[i] + shape[i] <= (int)img->shape[i]);
+        ASSERT(tex_offset[i] + shape[i] <= img->shape[i]);
     }
 
     VkBufferImageCopy region = {0};
