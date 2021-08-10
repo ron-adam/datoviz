@@ -198,7 +198,6 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
         return;
     }
 
-
     // NOTE: swapchain image acquisition happens here
 
     // We acquire the next swapchain image.

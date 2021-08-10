@@ -67,28 +67,6 @@ static void _run_wait(DvzRun* run)
 
 
 
-static void _dequeue_copies(DvzApp* app)
-{
-    ASSERT(app != NULL);
-    DvzGpu* gpu = NULL;
-    DvzContainerIterator iter = dvz_container_iterator(&app->gpus);
-    while (iter.item != NULL)
-    {
-        gpu = (DvzGpu*)iter.item;
-        ASSERT(gpu != NULL);
-        ASSERT(gpu->obj.type == DVZ_OBJECT_TYPE_GPU);
-
-        // Process all copies with hard GPU synchronization before and after, as this is a sensible
-        // operation (we write to GPU data that is likely to be used when rendering).
-        if (gpu->context != NULL)
-            dvz_deq_dequeue(&gpu->context->transfers.deq, DVZ_TRANSFER_PROC_CPY, false);
-
-        dvz_container_iter(&iter);
-    }
-}
-
-
-
 static void _gpu_sync_hack(DvzApp* app)
 {
     // BIG HACK: this call is required at every frame, otherwise the event loop randomly crashes,
@@ -104,10 +82,6 @@ static void _gpu_sync_hack(DvzApp* app)
         gpu = iterator.item;
         if (!dvz_obj_is_created(&gpu->obj))
             break;
-
-        // Pending transfers.
-        ASSERT(gpu->context != NULL);
-        // NOTE: the function below uses hard GPU synchronization primitives
 
         // IMPORTANT: we need to wait for the present queue to be idle, otherwise the GPU hangs
         // when waiting for fences (not sure why). The problem only arises when using different
@@ -176,6 +150,37 @@ static void _callback_frame(
         // TODO: optim: if multiple FRAME events for 1 canvas, make sure we call it only once.
         // One frame for one canvas.
         _canvas_frame(run, ev->canvas);
+    }
+}
+
+
+static void _callback_transfers(DvzDeq* deq, void* item, void* user_data)
+{
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+
+    DvzCanvasEventFrame* ev = (DvzCanvasEventFrame*)item;
+    ASSERT(item != NULL);
+
+    DvzCanvas* canvas = ev->canvas;
+    ASSERT(canvas != NULL);
+
+    uint32_t img_idx = canvas->render.swapchain.img_idx;
+
+    DvzGpu* gpu = NULL;
+
+    DvzContainerIterator iter = dvz_container_iterator(&app->gpus);
+    while (iter.item != NULL)
+    {
+        gpu = (DvzGpu*)iter.item;
+        ASSERT(gpu != NULL);
+        ASSERT(gpu->obj.type == DVZ_OBJECT_TYPE_GPU);
+
+        // Process the pending data transfers (copies and dup transfers that require
+        // synchronization and integration with the event loop).
+        dvz_transfers_frame(&gpu->context->transfers, img_idx);
+
+        dvz_container_iter(&iter);
     }
 }
 
@@ -277,24 +282,6 @@ static void _callback_to_refill(DvzDeq* deq, void* item, void* user_data)
 
 
 
-// To be provided by the user.
-// static void _callback_refill(DvzDeq* deq, void* item, void* user_data)
-// {
-//     ASSERT(deq != NULL);
-
-//     DvzApp* app = (DvzApp*)user_data;
-//     ASSERT(app != NULL);
-
-//     DvzCanvasEventRefill* ev = (DvzCanvasEventRefill*)item;
-//     ASSERT(ev != NULL);
-//     DvzCanvas* canvas = ev->canvas;
-//     if (!_canvas_check(canvas))
-//         return;
-//     log_debug("refill canvas");
-//     // TODO: refill cmd buf
-// }
-
-
 // backend-specific
 static void _callback_present(DvzDeq* deq, void* item, void* user_data)
 {
@@ -320,29 +307,6 @@ static void _callback_present(DvzDeq* deq, void* item, void* user_data)
 
     // Submit the command buffers and make the swapchain rendering.
     canvas_render(canvas);
-}
-
-
-
-static void _callback_copy(DvzDeq* deq, void* item, void* user_data)
-{
-    ASSERT(deq != NULL);
-    // TODO
-    // _callback_copy()
-    //     creates new copy cmd buf and fills it in
-}
-
-
-
-static void _callback_copy_batch(
-    DvzDeq* deq, DvzDeqProcBatchPosition pos, uint32_t item_count, DvzDeqItem* items,
-    void* user_data)
-{
-    ASSERT(deq != NULL);
-    // TODO
-    // _callback_copy_batch()
-    //     waits on RENDER GPU queue, then submit all cmd bufs (stored in the dequeued items), and
-    //     wait for the TRANSFER GPU queue
 }
 
 
@@ -407,6 +371,11 @@ DvzRun* dvz_run(DvzApp* app)
     dvz_deq_callback(
         &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_RECREATE, _callback_recreate, app);
 
+    // Call dvz_transfers_frame() in the main thread, at every frame, with the current canvas
+    // swapchain image index.
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_FRAME, _callback_transfers, app);
+
     // Present callbacks.
     dvz_deq_callback(
         &run->deq, DVZ_RUN_DEQ_PRESENT, (int)DVZ_RUN_CANVAS_PRESENT, _callback_present, app);
@@ -461,6 +430,8 @@ int dvz_run_frame(DvzRun* run)
         dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_FRAME);
 
         // Then, dequeue MAIN items. The ADD/VISIBLE/ACTIVE/RESIZE callbacks may be called.
+        // NOTE: pending data transfers (copies and dup transfers) happen here, in a FRAME callback
+        // in the MAIN queue (main thread).
         log_trace("dequeue batch main");
         dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_MAIN);
 
@@ -472,9 +443,6 @@ int dvz_run_frame(DvzRun* run)
     // Swapchain presentation.
     log_trace("dequeue batch present");
     dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_PRESENT);
-
-    // Dequeue the pending COPY transfers in the GPU contexts.
-    _dequeue_copies(app);
 
     _gpu_sync_hack(app);
 
