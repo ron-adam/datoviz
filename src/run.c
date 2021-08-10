@@ -257,7 +257,12 @@ static void _callback_to_refill(DvzDeq* deq, void* item, void* user_data)
 
     DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
     ASSERT(ev != NULL);
-    _canvas_refill(ev->canvas);
+    ASSERT(ev->canvas != NULL);
+    // _canvas_refill(ev->canvas);
+
+    // Unblock all command buffers so that they are refilled one by one at the next frames.
+    memset(ev->canvas->cmds_render.blocked, 0, sizeof(ev->canvas->cmds_render.blocked));
+
     // for (uint32_t i = 0; i < item_count; i++)
     // {
     //     ASSERT(items[i].type == DVZ_RUN_CANVAS_TO_REFILL);

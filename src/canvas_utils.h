@@ -175,7 +175,6 @@ static void canvas_render(DvzCanvas* canvas)
     // Reset the Submit instance before adding the command buffers.
     dvz_submit_reset(s);
 
-    // TODO: remove?
     // Render command buffers empty? Fill them with blank color by default.
     if (canvas->cmds_render.obj.status != DVZ_OBJECT_STATUS_CREATED)
     {

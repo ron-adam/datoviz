@@ -422,6 +422,7 @@ struct DvzCommands
     uint32_t queue_idx;
     uint32_t count;
     VkCommandBuffer cmds[DVZ_MAX_COMMAND_BUFFERS_PER_SET];
+    bool blocked[DVZ_MAX_COMMAND_BUFFERS_PER_SET]; // if true, no need to refill it in the FRAME
 };
 
 

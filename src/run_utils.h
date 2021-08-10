@@ -3,6 +3,7 @@
 
 #include "../include/datoviz/run.h"
 #include "../include/datoviz/vklite.h"
+#include "canvas_utils.h"
 #include "vklite_utils.h"
 
 #ifdef __cplusplus
@@ -59,7 +60,7 @@ static void _enqueue_refill(DvzRun* run, DvzCanvas* canvas, DvzCommands* cmds, u
 {
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
-    log_debug("enqueue refill #%d", cmd_idx);
+    // log_debug("enqueue refill #%d", cmd_idx);
 
     DvzCanvasEventRefill* ev = calloc(1, sizeof(DvzCanvasEventRefill));
     ev->canvas = canvas;
@@ -126,6 +127,59 @@ static bool _canvas_check(DvzCanvas* canvas)
 
 
 
+// Perform the actual user-specified command buffer refill, for the current swapchain image only.
+static void _canvas_refill(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    ASSERT(canvas->app != NULL);
+
+    DvzRun* run = canvas->app->run;
+    ASSERT(run != NULL);
+
+    if (!_canvas_check(canvas))
+        return;
+
+    // Default command buffers for the canvas.
+    DvzCommands* cmds = &canvas->cmds_render;
+    uint32_t img_idx = canvas->render.swapchain.img_idx;
+
+    // Check if the command buffer for the current swapchain image is blocked.
+    if (cmds->blocked[img_idx])
+        return;
+    log_debug("canvas refill #%d", img_idx);
+
+    // HERE we assume the command buffer is NOT blocked, so we want to refill it immediately by
+    // calling the user callback. But first, we need to reset it.
+    dvz_cmd_reset(cmds, img_idx);
+
+    // HACK: here, we want to call the user callback to REFILL directly. We need to enqueue first
+    // and dequeue immediately to be sure the callback is called and the command buffer is filled.
+    // Better to have a special deq method to call the callback and bypassing the queue altogether/
+    _enqueue_refill(run, canvas, cmds, img_idx);
+    // This will call the user callback for REFILL, for the current swapchain image.
+    dvz_deq_dequeue(&run->deq, DVZ_RUN_DEQ_REFILL, true);
+
+    // Make sure the command buffer is filled.
+    if (!dvz_obj_is_created(&cmds->obj))
+    {
+        log_debug("empty command buffer #%d, filling with blank color", img_idx);
+        blank_commands(canvas, cmds, img_idx);
+    }
+
+    // Immediately block the command buffer so that it is not refilled at every frame if that's not
+    // useful.
+    cmds->blocked[img_idx] = true;
+
+    // TO DELETE: old commented code
+    // TODO: more than 1 DvzCommands (the default, render cmd)
+    // dvz_queue_wait(canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
+    // Reset all command buffers before calling the REFILL callbacks.
+    // for (int32_t i = (int32_t)canvas->render.swapchain.img_count - 1; i >= 0; i--)
+    // {
+}
+
+
+
 // backend-specific
 static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
 {
@@ -182,35 +236,15 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
         return;
     }
 
-    // If all good, enqueue a PRESENT task for that canvas.
+    // NOTE: command buffer refill actually happens here.
+    _canvas_refill(canvas);
+
+    // If all good, enqueue a PRESENT task for that canvas. The PRESENT callback does the rendering
+    // (cmd buf submission) and send the rendered image for presentation to the swapchain.
     // log_info("enqueue present");
     _enqueue_canvas_event(run, canvas, DVZ_RUN_DEQ_PRESENT, DVZ_RUN_CANVAS_PRESENT);
 
     canvas->frame_idx++;
-}
-
-
-
-static void _canvas_refill(DvzCanvas* canvas)
-{
-    ASSERT(canvas != NULL);
-    ASSERT(canvas->app != NULL);
-    ASSERT(canvas->app->run != NULL);
-
-    if (!_canvas_check(canvas))
-        return;
-    log_debug("canvas refill");
-
-    // TODO: more than 1 DvzCommands (the default, render cmd)
-    // dvz_queue_wait(canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
-
-    // Reset all command buffers before calling the REFILL callbacks.
-    for (int32_t i = (int32_t)canvas->render.swapchain.img_count - 1; i >= 0; i--)
-    {
-        dvz_cmd_reset(&canvas->cmds_render, (uint32_t)i);
-        // blank_commands(canvas, &canvas->cmds_render, i);
-        _enqueue_refill(canvas->app->run, canvas, &canvas->cmds_render, (uint32_t)i);
-    }
 }
 
 
