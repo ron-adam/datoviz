@@ -368,9 +368,6 @@ struct DvzGpu
 
     VmaAllocator allocator;
 
-    // DvzTransfers* transfers;
-    // DvzTransfers* resources;
-    // // TODO: datalloc
     DvzContext* context;
 };
 
@@ -1473,11 +1470,30 @@ DVZ_EXPORT void dvz_images_download(
 DVZ_EXPORT void
 dvz_images_copy(DvzImages* src, uvec3 src_offset, DvzImages* dst, uvec3 dst_offset, uvec3 shape);
 
-// TODO: docstrings
+/**
+ * Copy a buffer to an image.
+ *
+ * @param img the source image
+ * @param tex_offset offset within the source texture
+ * @param shape shape of the part of the texture to copy
+ * @param br the buffer regions
+ * @param buf_offset the offset within the buffer region
+ * @param size the size of the data to copy
+ */
 DVZ_EXPORT void dvz_images_copy_from_buffer(
     DvzImages* img, uvec3 tex_offset, uvec3 shape, //
     DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size);
 
+/**
+ * Copy an image to a buffer.
+ *
+ * @param img the source image
+ * @param tex_offset offset within the source texture
+ * @param shape shape of the part of the texture to copy
+ * @param br the buffer regions
+ * @param buf_offset the offset within the buffer region
+ * @param size the size of the data to copy
+ */
 DVZ_EXPORT void dvz_images_copy_to_buffer(
     DvzImages* img, uvec3 tex_offset, uvec3 shape, //
     DvzBufferRegions br, VkDeviceSize buf_offset, VkDeviceSize size);

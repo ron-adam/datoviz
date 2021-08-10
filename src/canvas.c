@@ -4,7 +4,7 @@
 #include "../include/datoviz/input.h"
 #include "../include/datoviz/vklite.h"
 #include "canvas_utils.h"
-#include "events_utils.h"
+// #include "events_utils.h"
 #include "transfer_utils.h"
 #include "vklite_utils.h"
 
