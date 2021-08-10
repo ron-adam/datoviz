@@ -362,12 +362,9 @@ void dvz_copy_buffer(
 static void _full_tex_shape(DvzImages* img, uvec3 shape)
 {
     ASSERT(img != NULL);
-    if (shape[0] == 0)
-        shape[0] = img->width;
-    if (shape[1] == 0)
-        shape[1] = img->height;
-    if (shape[2] == 0)
-        shape[2] = img->depth;
+    for (uint32_t i = 0; i < 3; i++)
+        if (shape[i] == 0)
+            shape[i] = img->shape[i];
 }
 
 

@@ -487,7 +487,8 @@ struct DvzImages
 
     VkImageType image_type;
     VkImageViewType view_type;
-    uint32_t width, height, depth;
+    // uint32_t width, height, depth;
+    uvec3 shape; // width, height, depth
     VkFormat format;
     VkImageLayout layout;
     VkImageTiling tiling;
@@ -1357,15 +1358,12 @@ DVZ_EXPORT void dvz_images_format(DvzImages* images, VkFormat format);
 DVZ_EXPORT void dvz_images_layout(DvzImages* images, VkImageLayout layout);
 
 /**
- * Set the images size.
+ * Set the images shape.
  *
  * @param images the images
- * @param width the image width
- * @param height the image height
- * @param depth the image depth
+ * @param shape the image shape (width, height, depth)
  */
-DVZ_EXPORT void
-dvz_images_size(DvzImages* images, uint32_t width, uint32_t height, uint32_t depth);
+DVZ_EXPORT void dvz_images_size(DvzImages* images, uvec3 shape);
 
 /**
  * Set the images tiling.
@@ -1432,12 +1430,9 @@ DVZ_EXPORT void dvz_images_create(DvzImages* images);
  *     This function deletes the images contents when resizing.
  *
  * @param images the images
- * @param width the new width
- * @param height the new height
- * @param depth the new depth
+ * @param new_shape the new shape
  */
-DVZ_EXPORT void
-dvz_images_resize(DvzImages* images, uint32_t width, uint32_t height, uint32_t depth);
+DVZ_EXPORT void dvz_images_resize(DvzImages* images, uvec3 shape);
 
 /**
  * Transition the images to their layout after creation.

@@ -175,8 +175,6 @@ static inline bool _tex_persistent_staging(DvzTex* tex)
     return (tex->flags & DVZ_TEX_OPTIONS_PERSISTENT_STAGING) != 0;
 }
 
-static inline void _copy_shape(uvec3 src, uvec3 dst) { memcpy(dst, src, sizeof(uvec3)); }
-
 
 
 static void _tex_alloc(DvzTex* tex, DvzTexDims dims, uvec3 shape, VkFormat format)
@@ -601,7 +599,7 @@ void dvz_tex_resize(DvzTex* tex, uvec3 new_shape, VkDeviceSize new_size)
     ASSERT(tex->img != NULL);
 
     // TODO: GPU sync before?
-    dvz_images_resize(tex->img, new_shape[0], new_shape[1], new_shape[2]);
+    dvz_images_resize(tex->img, new_shape);
 
     // Resize the persistent staging tex if there is one.
     if (tex->stg != NULL)

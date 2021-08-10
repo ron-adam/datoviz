@@ -99,7 +99,7 @@ depth_image(DvzImages* depth_images, DvzRenderpass* renderpass, uint32_t width, 
 {
     // Depth attachment
     dvz_images_format(depth_images, renderpass->attachments[1].format);
-    dvz_images_size(depth_images, width, height, 1);
+    dvz_images_size(depth_images, (uvec3){width, height, 1});
     dvz_images_tiling(depth_images, VK_IMAGE_TILING_OPTIMAL);
     dvz_images_usage(depth_images, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
     dvz_images_memory(depth_images, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -123,7 +123,7 @@ static void* screenshot(DvzImages* images, VkDeviceSize bytes_per_component)
     DvzImages* staging = (DvzImages*)calloc(1, sizeof(DvzImages));
     *staging = staging_struct;
     dvz_images_format(staging, images->format);
-    dvz_images_size(staging, images->width, images->height, images->depth);
+    dvz_images_size(staging, images->shape);
     dvz_images_tiling(staging, VK_IMAGE_TILING_LINEAR);
     dvz_images_usage(staging, VK_IMAGE_USAGE_TRANSFER_DST_BIT);
     dvz_images_layout(staging, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -157,7 +157,7 @@ static void* screenshot(DvzImages* images, VkDeviceSize bytes_per_component)
     dvz_cmd_submit_sync(&cmds, 0);
 
     // Now, copy the staging image into CPU memory.
-    void* rgb = calloc(images->width * images->height, 3 * bytes_per_component);
+    void* rgb = calloc(images->shape[0] * images->shape[1], 3 * bytes_per_component);
     dvz_images_download(staging, 0, bytes_per_component, true, false, rgb);
 
     dvz_images_destroy(staging);
@@ -185,7 +185,7 @@ static TestCanvas offscreen(DvzGpu* gpu)
     DvzImages* images = (DvzImages*)calloc(1, sizeof(DvzImages));
     *images = images_struct;
     dvz_images_format(images, canvas.renderpass.attachments[0].format);
-    dvz_images_size(images, WIDTH, HEIGHT, 1);
+    dvz_images_size(images, (uvec3){WIDTH, HEIGHT, 1});
     dvz_images_tiling(images, VK_IMAGE_TILING_OPTIMAL);
     dvz_images_usage(
         images, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
@@ -247,7 +247,7 @@ static TestCanvas test_canvas_create(DvzGpu* gpu, DvzWindow* window)
     DvzImages depth_struct = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
     DvzImages* depth = (DvzImages*)calloc(1, sizeof(DvzImages));
     *depth = depth_struct;
-    depth_image(depth, &canvas.renderpass, canvas.images->width, canvas.images->height);
+    depth_image(depth, &canvas.renderpass, canvas.images->shape[0], canvas.images->shape[1]);
     canvas.depth = depth;
 
     // Create renderpass.
@@ -333,19 +333,19 @@ static void test_canvas_show(TestCanvas canvas, FillCallback fill_commands, uint
             // size.
             dvz_swapchain_create(swapchain);
             // Find the new framebuffer size as determined by the swapchain recreation.
-            width = swapchain->images->width;
-            height = swapchain->images->height;
+            width = swapchain->images->shape[0];
+            height = swapchain->images->shape[1];
 
             // The instance should be the same.
             ASSERT(swapchain->images == canvas.images);
 
             // Need to recreate the depth image with the new size.
-            dvz_images_size(canvas.depth, width, height, 1);
+            dvz_images_size(canvas.depth, (uvec3){width, height, 1});
             dvz_images_create(canvas.depth);
 
             // Recreate the framebuffers with the new size.
-            ASSERT(framebuffers->attachments[0]->width == width);
-            ASSERT(framebuffers->attachments[0]->height == height);
+            ASSERT(framebuffers->attachments[0]->shape[0] == width);
+            ASSERT(framebuffers->attachments[0]->shape[1] == height);
             dvz_framebuffers_create(framebuffers, renderpass);
 
             // Need to refill the command buffers.
@@ -717,7 +717,7 @@ int test_vklite_images(TestContext* tc)
 
     DvzImages images = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
     dvz_images_format(&images, VK_FORMAT_R8G8B8A8_UINT);
-    dvz_images_size(&images, 16, 16, 1);
+    dvz_images_size(&images, (uvec3){16, 16, 1});
     dvz_images_tiling(&images, VK_IMAGE_TILING_OPTIMAL);
     dvz_images_usage(&images, VK_IMAGE_USAGE_STORAGE_BIT);
     dvz_images_memory(&images, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -860,7 +860,7 @@ int test_vklite_barrier_image(TestContext* tc)
     const uint32_t img_size = 16;
     DvzImages images = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
     dvz_images_format(&images, VK_FORMAT_R8G8B8A8_UINT);
-    dvz_images_size(&images, img_size, img_size, 1);
+    dvz_images_size(&images, (uvec3){img_size, img_size, 1});
     dvz_images_tiling(&images, VK_IMAGE_TILING_OPTIMAL);
     dvz_images_usage(&images, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
     dvz_images_memory(&images, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -1185,7 +1185,7 @@ int test_vklite_graphics(TestContext* tc)
     // Make a screenshot of the color attachment.
     DvzImages* images = visual.framebuffers->attachments[0];
     uint8_t* rgba = (uint8_t*)screenshot(images, 1);
-    dvz_write_ppm(path, images->width, images->height, rgba);
+    dvz_write_ppm(path, images->shape[0], images->shape[1], rgba);
     FREE(rgba);
 
     destroy_visual(&visual);

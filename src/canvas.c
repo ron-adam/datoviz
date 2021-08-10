@@ -36,7 +36,7 @@ _staging_image(DvzCanvas* canvas, VkFormat format, uint32_t width, uint32_t heig
 
     DvzImages staging = dvz_images(canvas->gpu, VK_IMAGE_TYPE_2D, 1);
     dvz_images_format(&staging, format);
-    dvz_images_size(&staging, width, height, 1);
+    dvz_images_size(&staging, (uvec3){width, height, 1});
     dvz_images_tiling(&staging, VK_IMAGE_TILING_LINEAR);
     dvz_images_usage(&staging, VK_IMAGE_USAGE_TRANSFER_DST_BIT);
     dvz_images_layout(&staging, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -80,9 +80,9 @@ DvzViewport dvz_viewport_full(DvzCanvas* canvas)
 
     ASSERT(canvas->render.swapchain.images != NULL);
     viewport.size_framebuffer[0] = viewport.viewport.width =
-        (float)canvas->render.swapchain.images->width;
+        (float)canvas->render.swapchain.images->shape[0];
     viewport.size_framebuffer[1] = viewport.viewport.height =
-        (float)canvas->render.swapchain.images->height;
+        (float)canvas->render.swapchain.images->shape[1];
 
     if (canvas->window != NULL)
     {
@@ -320,7 +320,7 @@ static void _offscreen_images(DvzCanvas* canvas, DvzImages* images)
 
     // Color attachment
     dvz_images_format(images, canvas->render.renderpass.attachments[0].format);
-    dvz_images_size(images, canvas->init_size[0], canvas->init_size[1], 1);
+    dvz_images_size(images, (uvec3){canvas->init_size[0], canvas->init_size[1], 1});
     dvz_images_tiling(images, VK_IMAGE_TILING_OPTIMAL);
     dvz_images_usage(
         images, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
@@ -398,7 +398,7 @@ static void _canvas_attachments(DvzCanvas* canvas)
     canvas->render.depth_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
     depth_image(
         &canvas->render.depth_image, &canvas->render.renderpass, //
-        canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
+        canvas->render.swapchain.images->shape[0], canvas->render.swapchain.images->shape[1]);
 
     // Pick attachment.
     if (canvas->with_pick)
@@ -406,7 +406,7 @@ static void _canvas_attachments(DvzCanvas* canvas)
         canvas->render.pick_image = dvz_images(gpu, VK_IMAGE_TYPE_2D, 1);
         pick_image(
             &canvas->render.pick_image, &canvas->render.renderpass, //
-            canvas->render.swapchain.images->width, canvas->render.swapchain.images->height);
+            canvas->render.swapchain.images->shape[0], canvas->render.swapchain.images->shape[1]);
         canvas->render.pick_staging = _staging_image(
             canvas, canvas->render.pick_image.format, DVZ_PICK_STAGING_SIZE,
             DVZ_PICK_STAGING_SIZE);
@@ -544,8 +544,8 @@ void dvz_canvas_create(DvzCanvas* canvas)
 
     log_debug(
         "successfully created canvas of size %dx%d", //
-        canvas->render.swapchain.images->width,      //
-        canvas->render.swapchain.images->height);
+        canvas->render.swapchain.images->shape[0],   //
+        canvas->render.swapchain.images->shape[1]);
 }
 
 
@@ -595,14 +595,14 @@ void dvz_canvas_recreate(DvzCanvas* canvas)
     dvz_swapchain_recreate(swapchain);
 
     // Find the new framebuffer size as determined by the swapchain recreation.
-    width = swapchain->images->width;
-    height = swapchain->images->height;
+    width = swapchain->images->shape[0];
+    height = swapchain->images->shape[1];
 
     // Check that we use the same DvzImages struct here.
     ASSERT(swapchain->images == framebuffers->attachments[0]);
 
     // Need to recreate the depth image with the new size.
-    dvz_images_size(&canvas->render.depth_image, width, height, 1);
+    dvz_images_size(&canvas->render.depth_image, (uvec3){width, height, 1});
     dvz_images_create(&canvas->render.depth_image);
 
     // Need to recreate the staging image with the new size.
@@ -611,15 +611,15 @@ void dvz_canvas_recreate(DvzCanvas* canvas)
     if (canvas->with_pick)
     {
         // Need to recreate the pick image with the new size.
-        dvz_images_size(&canvas->render.pick_image, width, height, 1);
+        dvz_images_size(&canvas->render.pick_image, (uvec3){width, height, 1});
         dvz_images_create(&canvas->render.pick_image);
     }
 
     // Recreate the framebuffers with the new size.
     for (uint32_t i = 0; i < framebuffers->attachment_count; i++)
     {
-        ASSERT(framebuffers->attachments[i]->width == width);
-        ASSERT(framebuffers->attachments[i]->height == height);
+        ASSERT(framebuffers->attachments[i]->shape[0] == width);
+        ASSERT(framebuffers->attachments[i]->shape[1] == height);
     }
     dvz_framebuffers_create(framebuffers, renderpass);
     if (canvas->overlay)
@@ -657,8 +657,8 @@ void dvz_canvas_size(DvzCanvas* canvas, DvzCanvasSizeType type, uvec2 size)
         size[1] = canvas->window->height;
         break;
     case DVZ_CANVAS_SIZE_FRAMEBUFFER:
-        size[0] = canvas->render.framebuffers.attachments[0]->width;
-        size[1] = canvas->render.framebuffers.attachments[0]->height;
+        size[0] = canvas->render.framebuffers.attachments[0]->shape[0];
+        size[1] = canvas->render.framebuffers.attachments[0]->shape[1];
         break;
     default:
         log_warn("unknown size type %d", type);
@@ -671,10 +671,10 @@ void dvz_canvas_size(DvzCanvas* canvas, DvzCanvasSizeType type, uvec2 size)
 double dvz_canvas_aspect(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
-    ASSERT(canvas->render.swapchain.images->width > 0);
-    ASSERT(canvas->render.swapchain.images->height > 0);
-    return canvas->render.swapchain.images->width /
-           (double)canvas->render.swapchain.images->height;
+    ASSERT(canvas->render.swapchain.images->shape[0] > 0);
+    ASSERT(canvas->render.swapchain.images->shape[1] > 0);
+    return canvas->render.swapchain.images->shape[0] /
+           (double)canvas->render.swapchain.images->shape[1];
 }
 
 
@@ -821,7 +821,7 @@ void dvz_screenshot_file(DvzCanvas* canvas, const char* png_path)
         return;
     }
     DvzImages* images = canvas->render.swapchain.images;
-    dvz_write_png(png_path, images->width, images->height, rgb);
+    dvz_write_png(png_path, images->shape[0], images->shape[1], rgb);
     FREE(rgb);
 }
 

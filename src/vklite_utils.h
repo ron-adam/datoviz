@@ -1254,28 +1254,32 @@ static void make_shared(
 /*  Images                                                                                       */
 /*************************************************************************************************/
 
-static void check_dims(VkImageType image_type, uint32_t width, uint32_t height, uint32_t depth)
+static void check_dims(VkImageType image_type, uvec3 shape)
 {
-    ASSERT(width != 0);
+    ASSERT(shape[0] != 0);
     if (image_type == VK_IMAGE_TYPE_1D)
     {
-        ASSERT(height == 1);
-        ASSERT(depth == 1);
+        ASSERT(shape[1] == 1);
+        ASSERT(shape[2] == 1);
     }
     else if (image_type == VK_IMAGE_TYPE_2D)
     {
-        ASSERT(height != 0);
-        ASSERT(depth == 1);
+        ASSERT(shape[1] != 0);
+        ASSERT(shape[2] == 1);
     }
     else if (image_type == VK_IMAGE_TYPE_3D)
     {
-        ASSERT(depth != 0);
+        ASSERT(shape[2] != 0);
     }
     else
     {
         log_error("unknown image type %d", image_type);
     }
 }
+
+
+
+static inline void _copy_shape(uvec3 src, uvec3 dst) { memcpy(dst, src, sizeof(uvec3)); }
 
 
 

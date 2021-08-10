@@ -196,8 +196,8 @@ static void triangle_commands(
     ASSERT(br.buffer != NULL);
     ASSERT(br.buffer->buffer != VK_NULL_HANDLE);
 
-    uint32_t width = framebuffers->attachments[0]->width;
-    uint32_t height = framebuffers->attachments[0]->height;
+    uint32_t width = framebuffers->attachments[0]->shape[0];
+    uint32_t height = framebuffers->attachments[0]->shape[1];
     uint32_t n_vertices = br.size / sizeof(TestVertex);
     n_vertices = n_vertices > 0 ? n_vertices : 3;
     ASSERT(n_vertices > 0);

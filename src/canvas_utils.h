@@ -119,7 +119,7 @@ depth_image(DvzImages* depth_images, DvzRenderpass* renderpass, uint32_t width, 
 {
     // Depth attachment
     dvz_images_format(depth_images, renderpass->attachments[1].format);
-    dvz_images_size(depth_images, width, height, 1);
+    dvz_images_size(depth_images, (uvec3){width, height, 1});
     dvz_images_tiling(depth_images, VK_IMAGE_TILING_OPTIMAL);
     dvz_images_usage(depth_images, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
     dvz_images_memory(depth_images, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -134,7 +134,7 @@ depth_image(DvzImages* depth_images, DvzRenderpass* renderpass, uint32_t width, 
 static void pick_image(DvzImages* pick, DvzRenderpass* renderpass, uint32_t width, uint32_t height)
 {
     dvz_images_format(pick, renderpass->attachments[2].format);
-    dvz_images_size(pick, width, height, 1);
+    dvz_images_size(pick, (uvec3){width, height, 1});
     dvz_images_tiling(pick, VK_IMAGE_TILING_OPTIMAL);
     dvz_images_usage(pick, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
     dvz_images_memory(pick, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

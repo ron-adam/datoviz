@@ -355,7 +355,7 @@ static void _swapchain_create(DvzSwapchain* swapchain)
     // Actual framebuffer size in pixels, as determined by the swapchain creation process.
     ASSERT(width > 0);
     ASSERT(height > 0);
-    dvz_images_size(swapchain->images, width, height, 1);
+    dvz_images_size(swapchain->images, (uvec3){width, height, 1});
 
     // Get the number of swapchain images.
     vkGetSwapchainImagesKHR(
@@ -1343,98 +1343,96 @@ DvzImages dvz_images(DvzGpu* gpu, VkImageType type, uint32_t count)
 
 
 
-void dvz_images_format(DvzImages* images, VkFormat format)
+void dvz_images_format(DvzImages* img, VkFormat format)
 {
-    ASSERT(images != NULL);
-    images->format = format;
+    ASSERT(img != NULL);
+    img->format = format;
 }
 
 
 
-void dvz_images_layout(DvzImages* images, VkImageLayout layout)
+void dvz_images_layout(DvzImages* img, VkImageLayout layout)
 {
-    ASSERT(images != NULL);
-    images->layout = layout;
+    ASSERT(img != NULL);
+    img->layout = layout;
 }
 
 
 
-void dvz_images_size(DvzImages* images, uint32_t width, uint32_t height, uint32_t depth)
+void dvz_images_size(DvzImages* img, uvec3 shape)
 {
-    ASSERT(images != NULL);
+    ASSERT(img != NULL);
 
-    log_trace("set image size %dx%d", width, height);
-    check_dims(images->image_type, width, height, depth);
+    log_trace("set image size %dx%dx%d", shape[0], shape[1], shape[2]);
+    check_dims(img->image_type, shape);
 
-    images->width = width;
-    images->height = height;
-    images->depth = depth;
+    _copy_shape(shape, img->shape);
 }
 
 
 
-void dvz_images_tiling(DvzImages* images, VkImageTiling tiling)
+void dvz_images_tiling(DvzImages* img, VkImageTiling tiling)
 {
-    ASSERT(images != NULL);
-    images->tiling = tiling;
+    ASSERT(img != NULL);
+    img->tiling = tiling;
 }
 
 
 
-void dvz_images_usage(DvzImages* images, VkImageUsageFlags usage)
+void dvz_images_usage(DvzImages* img, VkImageUsageFlags usage)
 {
-    ASSERT(images != NULL);
-    images->usage = usage;
+    ASSERT(img != NULL);
+    img->usage = usage;
 }
 
 
 
-void dvz_images_vma_usage(DvzImages* images, VmaMemoryUsage vma_usage)
+void dvz_images_vma_usage(DvzImages* img, VmaMemoryUsage vma_usage)
 {
-    ASSERT(images != NULL);
-    for (uint32_t i = 0; i < images->count; i++)
-        images->vma[i].usage = vma_usage;
+    ASSERT(img != NULL);
+    for (uint32_t i = 0; i < img->count; i++)
+        img->vma[i].usage = vma_usage;
 }
 
 
 
-void dvz_images_memory(DvzImages* images, VkMemoryPropertyFlags memory)
+void dvz_images_memory(DvzImages* img, VkMemoryPropertyFlags memory)
 {
-    ASSERT(images != NULL);
-    images->memory = memory;
+    ASSERT(img != NULL);
+    img->memory = memory;
 }
 
 
 
-void dvz_images_aspect(DvzImages* images, VkImageAspectFlags aspect)
+void dvz_images_aspect(DvzImages* img, VkImageAspectFlags aspect)
 {
-    ASSERT(images != NULL);
-    images->aspect = aspect;
+    ASSERT(img != NULL);
+    img->aspect = aspect;
 }
 
 
 
-void dvz_images_queue_access(DvzImages* images, uint32_t queue_idx)
+void dvz_images_queue_access(DvzImages* img, uint32_t queue_idx)
 {
-    ASSERT(images != NULL);
-    ASSERT(queue_idx < images->gpu->queues.queue_count);
-    images->queues[images->queue_count++] = queue_idx;
+    ASSERT(img != NULL);
+    ASSERT(queue_idx < img->gpu->queues.queue_count);
+    img->queues[img->queue_count++] = queue_idx;
 }
 
 
 
-static void _images_create(DvzImages* images)
+static void _images_create(DvzImages* img)
 {
-    DvzGpu* gpu = images->gpu;
+    DvzGpu* gpu = img->gpu;
     VkDeviceSize size = 0;
 
     // Check whether the image format is supported.
-    if (!images->is_swapchain)
+    if (!img->is_swapchain)
     {
         VkImageFormatProperties props = {0};
         VkResult res = vkGetPhysicalDeviceImageFormatProperties(
-            gpu->physical_device, images->format, images->image_type, images->tiling, //
-            images->usage, 0, &props);
+            gpu->physical_device, img->format, img->image_type, img->tiling, //
+            img->usage, 0, &props);
         if (res != VK_SUCCESS)
         {
             log_error("unable to create image, format not supported");
@@ -1442,116 +1440,115 @@ static void _images_create(DvzImages* images)
     }
 
     // Create the images.
-    uint32_t width = images->width;
-    uint32_t height = images->height;
-    uint32_t depth = images->depth;
+    uint32_t width = img->shape[0];
+    uint32_t height = img->shape[1];
+    uint32_t depth = img->shape[2];
 
-    log_trace("create image %dD %dx%dx%d", images->image_type + 1, width, height, depth);
+    log_trace("create image %dD %dx%dx%d", img->image_type + 1, width, height, depth);
     ASSERT(width > 0);
 
     VkImageCreateInfo info = {0};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    info.imageType = images->image_type;
+    info.imageType = img->image_type;
     info.extent.width = width;
     info.extent.height = height;
     info.extent.depth = depth;
     info.mipLevels = 1;
     info.arrayLayers = 1;
-    info.format = images->format;
-    info.tiling = images->tiling;
+    info.format = img->format;
+    info.tiling = img->tiling;
     info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    info.usage = images->usage;
+    info.usage = img->usage;
     info.samples = VK_SAMPLE_COUNT_1_BIT;
 
     // Sharing mode, depending on the queues that need to access the image.
     uint32_t queue_families[DVZ_MAX_QUEUE_FAMILIES];
     make_shared(
-        &gpu->queues, images->queue_count, images->queues, //
+        &gpu->queues, img->queue_count, img->queues, //
         &info.sharingMode, &info.queueFamilyIndexCount, queue_families);
     info.pQueueFamilyIndices = queue_families;
 
     // Create the images with VMA.
     VmaAllocationCreateInfo alloc_info = {0};
     // NOTE: we assume all images in the DvzImages set share the same VMA flags and usage.
-    alloc_info.flags = images->vma[0].flags;
-    alloc_info.usage = images->vma[0].usage;
+    alloc_info.flags = img->vma[0].flags;
+    alloc_info.usage = img->vma[0].usage;
 
-    for (uint32_t i = 0; i < images->count; i++)
+    for (uint32_t i = 0; i < img->count; i++)
     {
-        if (!images->is_swapchain)
+        if (!img->is_swapchain)
         {
             vmaCreateImage(
-                gpu->allocator, &info, &alloc_info, &images->images[i], //
-                &images->vma[i].alloc, &images->vma[i].info);
-            ASSERT(images->images[i] != VK_NULL_HANDLE);
+                gpu->allocator, &info, &alloc_info, &img->images[i], //
+                &img->vma[i].alloc, &img->vma[i].info);
+            ASSERT(img->images[i] != VK_NULL_HANDLE);
 
             // Get the memory flags found by VMA and store them in the DvzBuffer instance.
-            vmaGetMemoryTypeProperties(
-                gpu->allocator, images->vma[i].info.memoryType, &images->memory);
-            ASSERT(images->memory != 0);
+            vmaGetMemoryTypeProperties(gpu->allocator, img->vma[i].info.memoryType, &img->memory);
+            ASSERT(img->memory != 0);
         }
 
         // HACK: staging images do not require an image view
-        if (images->tiling != VK_IMAGE_TILING_LINEAR)
+        if (img->tiling != VK_IMAGE_TILING_LINEAR)
             create_image_view(
-                gpu->device, images->images[i], images->view_type, images->format, images->aspect,
-                &images->image_views[i]);
+                gpu->device, img->images[i], img->view_type, img->format, img->aspect,
+                &img->image_views[i]);
 
         // Store the size in bytes of each create image (which should be the same).
         VkMemoryRequirements memRequirements = {0};
-        vkGetImageMemoryRequirements(images->gpu->device, images->images[i], &memRequirements);
+        vkGetImageMemoryRequirements(img->gpu->device, img->images[i], &memRequirements);
         if (size == 0)
             size = memRequirements.size;
         else
             ASSERT(size == memRequirements.size);
     }
-    images->size = size;
+    img->size = size;
 }
 
 
 
-static void _images_destroy(DvzImages* images)
+static void _images_destroy(DvzImages* img)
 {
-    ASSERT(images != NULL);
-    ASSERT(images->gpu != NULL);
+    ASSERT(img != NULL);
+    ASSERT(img->gpu != NULL);
 
-    for (uint32_t i = 0; i < images->count; i++)
+    for (uint32_t i = 0; i < img->count; i++)
     {
-        if (images->image_views[i] != VK_NULL_HANDLE)
+        if (img->image_views[i] != VK_NULL_HANDLE)
         {
-            vkDestroyImageView(images->gpu->device, images->image_views[i], NULL);
-            images->image_views[i] = VK_NULL_HANDLE;
+            vkDestroyImageView(img->gpu->device, img->image_views[i], NULL);
+            img->image_views[i] = VK_NULL_HANDLE;
         }
-        if (!images->is_swapchain && images->images[i] != VK_NULL_HANDLE)
+        if (!img->is_swapchain && img->images[i] != VK_NULL_HANDLE)
         {
-            vmaDestroyImage(images->gpu->allocator, images->images[i], images->vma[i].alloc);
-            images->images[i] = VK_NULL_HANDLE;
+            vmaDestroyImage(img->gpu->allocator, img->images[i], img->vma[i].alloc);
+            img->images[i] = VK_NULL_HANDLE;
         }
     }
 }
 
 
 
-void dvz_images_create(DvzImages* images)
+void dvz_images_create(DvzImages* img)
 {
-    ASSERT(images != NULL);
-    ASSERT(images->gpu != NULL);
-    ASSERT(images->gpu->device != VK_NULL_HANDLE);
+    ASSERT(img != NULL);
+    ASSERT(img->gpu != NULL);
+    ASSERT(img->gpu->device != VK_NULL_HANDLE);
 
-    check_dims(images->image_type, images->width, images->height, images->depth);
+    check_dims(img->image_type, img->shape);
 
-    log_trace("starting creation of %d images...", images->count);
-    _images_create(images);
-    dvz_obj_created(&images->obj);
-    log_trace("%d images created", images->count);
+    log_trace("starting creation of %d images...", img->count);
+    _images_create(img);
+    dvz_obj_created(&img->obj);
+    log_trace("%d images created", img->count);
 }
 
 
 
-void dvz_images_transition(DvzImages* images)
+void dvz_images_transition(DvzImages* img)
 {
-    ASSERT(images != NULL);
-    DvzGpu* gpu = images->gpu;
+    ASSERT(img != NULL);
+    DvzGpu* gpu = img->gpu;
     ASSERT(gpu != NULL);
 
     // Start the image transition command buffer.
@@ -1561,8 +1558,8 @@ void dvz_images_transition(DvzImages* images)
 
     dvz_cmd_begin(&cmds, 0);
     dvz_barrier_stages(&barrier, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-    dvz_barrier_images(&barrier, images);
-    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_UNDEFINED, images->layout);
+    dvz_barrier_images(&barrier, img);
+    dvz_barrier_images_layout(&barrier, VK_IMAGE_LAYOUT_UNDEFINED, img->layout);
     // dvz_barrier_images_access(&barrier, 0, VK_ACCESS_TRANSFER_WRITE_BIT);
     dvz_cmd_barrier(&cmds, 0, &barrier);
     dvz_cmd_end(&cmds, 0);
@@ -1573,61 +1570,62 @@ void dvz_images_transition(DvzImages* images)
 
 
 
-void dvz_images_resize(DvzImages* images, uint32_t width, uint32_t height, uint32_t depth)
+void dvz_images_resize(DvzImages* img, uvec3 new_shape)
 {
-    ASSERT(images != NULL);
+    ASSERT(img != NULL);
     log_debug(
-        "[SLOW] resize images to size %dx%dx%d, losing the data in it", width, height, depth);
-    _images_destroy(images);
-    dvz_images_size(images, width, height, depth);
-    _images_create(images);
+        "[SLOW] resize images to size %dx%dx%d, losing the data in it", //
+        new_shape[0], new_shape[1], new_shape[2]);
+    _images_destroy(img);
+    dvz_images_size(img, new_shape);
+    _images_create(img);
 }
 
 
 
 static void*
-_images_download(DvzImages* images, uint32_t idx, bool has_alpha, VkSubresourceLayout* res_layout)
+_images_download(DvzImages* img, uint32_t idx, bool has_alpha, VkSubresourceLayout* res_layout)
 {
-    ASSERT(images != NULL);
-    ASSERT(images->gpu != NULL);
+    ASSERT(img != NULL);
+    ASSERT(img->gpu != NULL);
 
     VkImageSubresource res = {0};
     res.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    vkGetImageSubresourceLayout(images->gpu->device, images->images[idx], &res, res_layout);
+    vkGetImageSubresourceLayout(img->gpu->device, img->images[idx], &res, res_layout);
 
     // Map image memory so we can start copying from it
     void* cdata = NULL;
     // vkMapMemory(images->gpu->device, images->memories[idx], 0, VK_WHOLE_SIZE, 0, &cdata);
-    vmaMapMemory(images->gpu->allocator, images->vma[idx].alloc, &cdata);
+    vmaMapMemory(img->gpu->allocator, img->vma[idx].alloc, &cdata);
     ASSERT(cdata != NULL);
     VkDeviceSize row_pitch = res_layout->rowPitch;
     ASSERT(row_pitch > 0);
 
-    uint32_t w = images->width;
-    uint32_t h = images->height;
+    uint32_t w = img->shape[0];
+    uint32_t h = img->shape[1];
 
     // Size of the buffer to copy.
     VkDeviceSize size = row_pitch * h;
     ASSERT(w > 0);
     ASSERT(h > 0);
     // Ensure that the images buffer has the right size.
-    ASSERT(images->size >= size);
+    ASSERT(img->size >= size);
 
     // First, memcopy from the GPU to the CPU.
     void* image = calloc(row_pitch * h, 1);
     memcpy(image, cdata, size);
-    vmaUnmapMemory(images->gpu->allocator, images->vma[idx].alloc);
+    vmaUnmapMemory(img->gpu->allocator, img->vma[idx].alloc);
     // vkUnmapMemory(images->gpu->device, images->memories[idx]);
 
     return image;
 }
 
 static void _pack_image_data(
-    DvzImages* images, void* imgdata, VkDeviceSize bytes_per_component, //
-    VkDeviceSize offset, VkDeviceSize row_pitch,                        //
+    DvzImages* img, void* imgdata, VkDeviceSize bytes_per_component, //
+    VkDeviceSize offset, VkDeviceSize row_pitch,                     //
     bool swizzle, bool has_alpha, void* out)
 {
-    ASSERT(images != NULL);
+    ASSERT(img != NULL);
     ASSERT(imgdata != NULL);
     ASSERT(out != NULL);
     ASSERT(row_pitch > 0);
@@ -1635,8 +1633,8 @@ static void _pack_image_data(
     // void* image_orig = images;
 
     uint32_t n_components = has_alpha ? 4 : 3;
-    uint32_t w = images->width;
-    uint32_t h = images->height;
+    uint32_t w = img->shape[0];
+    uint32_t h = img->shape[1];
 
     // Then, convert the image to the requested format, into a contiguous array of pixels.
     imgdata = (void*)((uint64_t)imgdata + offset);
@@ -1812,13 +1810,11 @@ void dvz_images_copy_from_buffer(
     ASSERT(buffer != NULL);
     buf_offset = br.offsets[0] + buf_offset;
 
-    ASSERT(shape[0] > 0);
-    ASSERT(shape[1] > 0);
-    ASSERT(shape[2] > 0);
-
-    ASSERT(tex_offset[0] + shape[0] <= img->width);
-    ASSERT(tex_offset[1] + shape[1] <= img->height);
-    ASSERT(tex_offset[2] + shape[2] <= img->depth);
+    for (uint32_t i = 0; i < 3; i++)
+    {
+        ASSERT(shape[i] > 0);
+        ASSERT(tex_offset[i] + shape[i] <= (int)img->shape[i]);
+    }
 
     log_debug("copy buffer to image (%s)", pretty_size(size));
 
@@ -1875,13 +1871,11 @@ void dvz_images_copy_to_buffer(
     ASSERT(buffer != NULL);
     buf_offset = br.offsets[0] + buf_offset;
 
-    ASSERT(shape[0] > 0);
-    ASSERT(shape[1] > 0);
-    ASSERT(shape[2] > 0);
-
-    ASSERT(tex_offset[0] + shape[0] <= img->width);
-    ASSERT(tex_offset[1] + shape[1] <= img->height);
-    ASSERT(tex_offset[2] + shape[2] <= img->depth);
+    for (uint32_t i = 0; i < 3; i++)
+    {
+        ASSERT(shape[i] > 0);
+        ASSERT(tex_offset[i] + shape[i] <= (int)img->shape[i]);
+    }
 
     log_debug("copy image to buffer (%s)", pretty_size(size));
 
@@ -1926,17 +1920,17 @@ void dvz_images_copy_to_buffer(
 
 
 
-void dvz_images_destroy(DvzImages* images)
+void dvz_images_destroy(DvzImages* img)
 {
-    ASSERT(images != NULL);
-    if (!dvz_obj_is_created(&images->obj))
+    ASSERT(img != NULL);
+    if (!dvz_obj_is_created(&img->obj))
     {
         log_trace("skip destruction of already-destroyed images");
         return;
     }
-    log_trace("destroy %d image(s) and image view(s)", images->count);
-    _images_destroy(images);
-    dvz_obj_destroyed(&images->obj);
+    log_trace("destroy %d image(s) and image view(s)", img->count);
+    _images_destroy(img);
+    dvz_obj_destroyed(&img->obj);
 }
 
 
@@ -2734,13 +2728,13 @@ void dvz_barrier_buffer_access(
 
 
 
-void dvz_barrier_images(DvzBarrier* barrier, DvzImages* images)
+void dvz_barrier_images(DvzBarrier* barrier, DvzImages* img)
 {
     ASSERT(barrier != NULL);
 
     DvzBarrierImage* b = &barrier->image_barriers[barrier->image_barrier_count++];
 
-    b->images = images;
+    b->images = img;
 }
 
 
@@ -3217,20 +3211,20 @@ DvzFramebuffers dvz_framebuffers(DvzGpu* gpu)
 
 
 void dvz_framebuffers_attachment(
-    DvzFramebuffers* framebuffers, uint32_t attachment_idx, DvzImages* images)
+    DvzFramebuffers* framebuffers, uint32_t attachment_idx, DvzImages* img)
 {
     ASSERT(framebuffers != NULL);
 
-    ASSERT(images != NULL);
-    ASSERT(images->count > 0);
-    ASSERT(images->width > 0);
-    ASSERT(images->height > 0);
+    ASSERT(img != NULL);
+    ASSERT(img->count > 0);
+    ASSERT(img->shape[0] > 0);
+    ASSERT(img->shape[1] > 0);
 
     ASSERT(attachment_idx < DVZ_MAX_ATTACHMENTS_PER_RENDERPASS);
     framebuffers->attachment_count = MAX(framebuffers->attachment_count, attachment_idx + 1);
-    framebuffers->attachments[attachment_idx] = images;
+    framebuffers->attachments[attachment_idx] = img;
 
-    framebuffers->framebuffer_count = MAX(framebuffers->framebuffer_count, images->count);
+    framebuffers->framebuffer_count = MAX(framebuffers->framebuffer_count, img->count);
 }
 
 
@@ -3243,8 +3237,8 @@ static void _framebuffers_create(DvzFramebuffers* framebuffers)
     // The actual framebuffer size in pixels is determined by the first attachment (color images)
     // as these images are created by the swapchain.
     ASSERT(framebuffers->attachment_count > 0);
-    uint32_t width = framebuffers->attachments[0]->width;
-    uint32_t height = framebuffers->attachments[0]->height;
+    uint32_t width = framebuffers->attachments[0]->shape[0];
+    uint32_t height = framebuffers->attachments[0]->shape[1];
     log_trace(
         "create %d framebuffer(s) with size %dx%d", framebuffers->framebuffer_count, width,
         height);
@@ -3252,16 +3246,16 @@ static void _framebuffers_create(DvzFramebuffers* framebuffers)
     // Loop first over the framebuffers (swapchain images).
     for (uint32_t i = 0; i < framebuffers->framebuffer_count; i++)
     {
-        DvzImages* images = NULL;
+        DvzImages* img = NULL;
         VkImageView attachments[DVZ_MAX_ATTACHMENTS_PER_RENDERPASS] = {0};
 
         // Loop over the attachments.
         for (uint32_t j = 0; j < framebuffers->attachment_count; j++)
         {
-            images = framebuffers->attachments[j];
-            attachments[j] = images->image_views[MIN(i, images->count - 1)];
+            img = framebuffers->attachments[j];
+            attachments[j] = img->image_views[MIN(i, img->count - 1)];
         }
-        ASSERT(images != NULL);
+        ASSERT(img != NULL);
 
         VkFramebufferCreateInfo info = {0};
         info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -3497,8 +3491,8 @@ void dvz_cmd_begin_renderpass(
 
     // Find the framebuffer size.
     ASSERT(framebuffers->attachment_count > 0);
-    uint32_t width = framebuffers->attachments[0]->width;
-    uint32_t height = framebuffers->attachments[0]->height;
+    uint32_t width = framebuffers->attachments[0]->shape[0];
+    uint32_t height = framebuffers->attachments[0]->shape[1];
     // log_trace("begin renderpass with size %dx%d", width, height);
 
     CMD_START_CLIP(cmds->count)
@@ -3625,17 +3619,18 @@ void dvz_cmd_barrier(DvzCommands* cmds, uint32_t idx, DvzBarrier* barrier)
 
 
 static VkBufferImageCopy
-_image_buffer_copy(DvzImages* images, VkDeviceSize buf_offset, uvec3 tex_offset, uvec3 shape)
+_image_buffer_copy(DvzImages* img, VkDeviceSize buf_offset, uvec3 tex_offset, uvec3 shape)
 {
-    ASSERT(images != NULL);
+    ASSERT(img != NULL);
 
     ASSERT(shape[0] > 0);
     ASSERT(shape[1] > 0);
     ASSERT(shape[2] > 0);
 
-    ASSERT(tex_offset[0] + shape[0] <= images->width);
-    ASSERT(tex_offset[1] + shape[1] <= images->height);
-    ASSERT(tex_offset[2] + shape[2] <= images->depth);
+    for (uint32_t i = 0; i < 3; i++)
+    {
+        ASSERT(tex_offset[i] + shape[i] <= (int)img->shape[i]);
+    }
 
     VkBufferImageCopy region = {0};
     region.bufferOffset = buf_offset;
@@ -3661,32 +3656,32 @@ _image_buffer_copy(DvzImages* images, VkDeviceSize buf_offset, uvec3 tex_offset,
 void dvz_cmd_copy_buffer_to_image(
     DvzCommands* cmds, uint32_t idx,            //
     DvzBuffer* buffer, VkDeviceSize buf_offset, //
-    DvzImages* images, uvec3 tex_offset, uvec3 shape)
+    DvzImages* img, uvec3 tex_offset, uvec3 shape)
 {
     ASSERT(cmds != NULL);
     ASSERT(buffer != NULL);
 
-    CMD_START_CLIP(images->count)
-    VkBufferImageCopy region = _image_buffer_copy(images, buf_offset, tex_offset, shape);
+    CMD_START_CLIP(img->count)
+    VkBufferImageCopy region = _image_buffer_copy(img, buf_offset, tex_offset, shape);
     vkCmdCopyBufferToImage(
-        cb, buffer->buffer, images->images[iclip], //
+        cb, buffer->buffer, img->images[iclip], //
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     CMD_END
 }
 
 void dvz_cmd_copy_image_to_buffer(
-    DvzCommands* cmds, uint32_t idx,                  //
-    DvzImages* images, uvec3 tex_offset, uvec3 shape, //
-    DvzBuffer* buffer, VkDeviceSize buf_offset        //
+    DvzCommands* cmds, uint32_t idx,               //
+    DvzImages* img, uvec3 tex_offset, uvec3 shape, //
+    DvzBuffer* buffer, VkDeviceSize buf_offset     //
 )
 {
     ASSERT(cmds != NULL);
     ASSERT(buffer != NULL);
 
-    CMD_START_CLIP(images->count)
-    VkBufferImageCopy region = _image_buffer_copy(images, buf_offset, tex_offset, shape);
+    CMD_START_CLIP(img->count)
+    VkBufferImageCopy region = _image_buffer_copy(img, buf_offset, tex_offset, shape);
     vkCmdCopyImageToBuffer(
-        cb, images->images[iclip], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, //
+        cb, img->images[iclip], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, //
         buffer->buffer, 1, &region);
     CMD_END
 }
@@ -3702,13 +3697,11 @@ void dvz_cmd_copy_image_region(
     ASSERT(src_img != NULL);
     ASSERT(dst_img != NULL);
 
-    ASSERT(src_offset[0] + (int)shape[0] <= (int)src_img->width);
-    ASSERT(src_offset[1] + (int)shape[1] <= (int)src_img->height);
-    ASSERT(src_offset[2] + (int)shape[2] <= (int)src_img->depth);
-
-    ASSERT(dst_offset[0] + (int)shape[0] <= (int)dst_img->width);
-    ASSERT(dst_offset[1] + (int)shape[1] <= (int)dst_img->height);
-    ASSERT(dst_offset[2] + (int)shape[2] <= (int)dst_img->depth);
+    for (uint32_t i = 0; i < 3; i++)
+    {
+        ASSERT(src_offset[i] + (int)shape[i] <= (int)src_img->shape[i]);
+        ASSERT(dst_offset[i] + (int)shape[i] <= (int)dst_img->shape[i]);
+    }
 
     CMD_START_CLIP(src_img->count)
 
@@ -3751,8 +3744,7 @@ void dvz_cmd_copy_image_region(
 void dvz_cmd_copy_image(DvzCommands* cmds, uint32_t idx, DvzImages* src_img, DvzImages* dst_img)
 {
     dvz_cmd_copy_image_region(
-        cmds, idx, src_img, (ivec3){0, 0, 0}, dst_img, (ivec3){0, 0, 0},
-        (uvec3){src_img->width, src_img->height, src_img->depth});
+        cmds, idx, src_img, (ivec3){0, 0, 0}, dst_img, (ivec3){0, 0, 0}, src_img->shape);
 }
 
 

@@ -277,7 +277,7 @@ static void _make_image(DvzGpu* gpu, DvzImages* img, DvzTexDims dims, uvec3 shap
 
     // Create the image.
     dvz_images_format(img, format);
-    dvz_images_size(img, shape[0], shape[1], shape[2]);
+    dvz_images_size(img, shape);
     dvz_images_tiling(img, VK_IMAGE_TILING_OPTIMAL);
     dvz_images_layout(img, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     dvz_images_usage(
