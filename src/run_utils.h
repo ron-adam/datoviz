@@ -29,7 +29,7 @@ _enqueue_canvas_event(DvzRun* run, DvzCanvas* canvas, uint32_t deq_idx, DvzCanva
 
 
 
-static void _enqueue_canvas_frame(DvzRun* run, DvzCanvas* canvas)
+static void _enqueue_canvas_frame(DvzRun* run, DvzCanvas* canvas, uint32_t q_idx)
 {
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
@@ -38,7 +38,7 @@ static void _enqueue_canvas_frame(DvzRun* run, DvzCanvas* canvas)
     DvzCanvasEventFrame* ev = calloc(1, sizeof(DvzCanvasEventFrame));
     ev->canvas = canvas;
     ev->frame_idx = ev->canvas->frame_idx;
-    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_FRAME, (int)DVZ_RUN_CANVAS_FRAME, ev);
+    dvz_deq_enqueue(&run->deq, q_idx, (int)DVZ_RUN_CANVAS_FRAME, ev);
 }
 
 
@@ -91,7 +91,7 @@ static uint32_t _enqueue_frames(DvzRun* run)
         // In that case, enqueue a FRAME event for that canvas.
         if (dvz_obj_is_created(&canvas->obj) && canvas->running)
         {
-            _enqueue_canvas_frame(run, canvas);
+            _enqueue_canvas_frame(run, canvas, DVZ_RUN_DEQ_FRAME);
             n_canvas_running++;
         }
 

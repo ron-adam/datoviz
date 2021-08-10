@@ -169,6 +169,10 @@ static void _callback_frame(
         ev = items[i].item;
         ASSERT(ev != NULL);
 
+        // We enqueue another FRAME event, but in the MAIN queue: this is the event the user
+        // callbacks will subscribe to.
+        _enqueue_canvas_frame(run, ev->canvas, DVZ_RUN_DEQ_MAIN);
+
         // TODO: optim: if multiple FRAME events for 1 canvas, make sure we call it only once.
         // One frame for one canvas.
         _canvas_frame(run, ev->canvas);
