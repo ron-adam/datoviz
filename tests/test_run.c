@@ -372,6 +372,81 @@ int test_run_push(TestContext* tc)
 
 
 
+static void _dat_cursor_callback(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    DvzCanvas* canvas = (DvzCanvas*)user_data;
+    ASSERT(canvas != NULL);
+    ASSERT(canvas->app != NULL);
+    ASSERT(canvas->app->run != NULL);
+
+    TestVisual* visual = (TestVisual*)canvas->user_data;
+    ASSERT(visual != NULL);
+    ASSERT(visual->dat != NULL);
+
+    uvec2 size = {0};
+    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
+    ASSERT(size[0] > 0);
+    ASSERT(size[1] > 0);
+
+    double x = ev.m.pos[0] / (double)size[0];
+    double y = ev.m.pos[1] / (double)size[1];
+
+    // Update the vertex buffer
+    TestVertex* vertices = (TestVertex*)visual->data;
+    for (uint32_t i = 0; i < 3; i++)
+    {
+        vertices[i].color[0] = x;
+        vertices[i].color[1] = y;
+        vertices[i].color[2] = 1;
+    }
+    ASSERT(visual->data != NULL);
+    dvz_dat_upload(visual->dat, 0, 3 * sizeof(TestVertex), visual->data, false);
+}
+
+int test_run_dat(TestContext* tc)
+{
+    DvzApp* app = tc->app;
+    DvzGpu* gpu = dvz_gpu_best(app);
+
+    // Create a canvas.
+    DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
+    dvz_canvas_create(canvas);
+
+    // Triangle visual.
+    TestVisual visual = triangle(canvas, "");
+    canvas->user_data = &visual;
+
+    // Bindings and graphics pipeline.
+    visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
+    dvz_bindings_update(&visual.bindings);
+    dvz_graphics_create(&visual.graphics);
+
+    // Triangle data.
+    triangle_upload(canvas, &visual);
+
+    // Create a run instance.
+    DvzRun* run = dvz_run(app);
+
+    // Refill callback.
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _refill_callback_triangle,
+        &visual);
+
+    // Mouse callback.
+    dvz_input_callback(&canvas->input, DVZ_INPUT_MOUSE_MOVE, _dat_cursor_callback, canvas);
+
+    // Event loop.
+    dvz_run_loop(run, N_FRAMES);
+
+    int res = check_canvas(canvas, "test_run_dat");
+
+    destroy_visual(&visual);
+    dvz_canvas_destroy(canvas);
+    return res;
+}
+
+
+
 // static void _vertex_cursor_callback(DvzCanvas* canvas, DvzEvent ev)
 // {
 //     ASSERT(canvas != NULL);

@@ -117,6 +117,7 @@ int test_run_3(TestContext*);
 int test_run_triangle(TestContext*);
 int test_run_offscreen(TestContext*);
 int test_run_push(TestContext*);
+int test_run_dat(TestContext*);
 
 // int test_canvas_multiple(TestContext*);
 // int test_canvas_events(TestContext*);
@@ -310,6 +311,7 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(APP, test_run_triangle),  //
     CASE_FIXTURE(APP, test_run_offscreen), //
     CASE_FIXTURE(APP, test_run_push),      //
+    CASE_FIXTURE(APP, test_run_dat),       //
 
 
 
