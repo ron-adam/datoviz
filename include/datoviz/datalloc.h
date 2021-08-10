@@ -50,15 +50,19 @@ struct DvzDatAlloc
 /*************************************************************************************************/
 
 /**
- * Create an datalloc object.
+ * Create a datalloc object.
+ *
+ * This object is responsible for the allocation of buffer regions on GPU buffers. It is used by
+ * the context when allocating new Dats.
  *
  * @param gpu the GPU
- * @param datalloc the datalloc
+ * @param res the DvzResources object
+ * @param datalloc the DatAlloc object
  */
 DVZ_EXPORT void dvz_datalloc(DvzGpu* gpu, DvzResources* res, DvzDatAlloc* datalloc);
 
 /**
- * Destroy an datalloc object.
+ * Destroy a datalloc object.
  *
  * @param datalloc the datalloc
  */

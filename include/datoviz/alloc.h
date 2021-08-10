@@ -251,8 +251,14 @@ static inline void _double_alloc_size(DvzAlloc* alloc)
 /*  Functions */
 /*************************************************************************************************/
 
-// TODO: docstrings
-
+/**
+ * Create an abstract allocation object.
+ *
+ * This object handles allocation on a virtual buffer of a given size. It takes care of alignment.
+ *
+ * @param size the total size of the underlying buffer
+ * @param alignment the required alignment for allocations
+ */
 DVZ_INLINE DvzAlloc dvz_alloc(VkDeviceSize size, VkDeviceSize alignment)
 {
     DvzAlloc alloc = {0};
@@ -268,9 +274,14 @@ DVZ_INLINE DvzAlloc dvz_alloc(VkDeviceSize size, VkDeviceSize alignment)
     return alloc;
 }
 
-
-
-// Return the offset of the allocation, and modify resized if needed with the new total size.
+/**
+ * Make a new allocation.
+ *
+ * @param alloc the DvzAlloc pointer
+ * @param req_size the requested size for the allocation
+ * @param[out] resized if the underlying virtual buffer had to be resized, the new size
+ * @returns the offset of the allocated item within the virtual buffer
+ */
 DVZ_INLINE VkDeviceSize
 dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize* resized)
 {
@@ -311,8 +322,12 @@ dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize* resized)
     return offset;
 }
 
-
-
+/**
+ * Remove an allocated item.
+ *
+ * @param alloc the DvzAlloc pointer
+ * @param offset the offset of the allocated item to be removed
+ */
 DVZ_INLINE void dvz_alloc_free(DvzAlloc* alloc, VkDeviceSize offset)
 {
     ASSERT(alloc != NULL);
@@ -321,8 +336,11 @@ DVZ_INLINE void dvz_alloc_free(DvzAlloc* alloc, VkDeviceSize offset)
     _change_slot(slot, false);
 }
 
-
-
+/**
+ * Clear all allocations.
+ *
+ * @param alloc the DvzAlloc pointer
+ */
 DVZ_INLINE void dvz_alloc_clear(DvzAlloc* alloc)
 {
     ASSERT(alloc != NULL);
@@ -331,7 +349,11 @@ DVZ_INLINE void dvz_alloc_clear(DvzAlloc* alloc)
 }
 
 
-
+/**
+ * Destroy a DvzAlloc instance.
+ *
+ * @param alloc the DvzAlloc pointer
+ */
 DVZ_INLINE void dvz_alloc_destroy(DvzAlloc* alloc)
 {
     ASSERT(alloc != NULL);
