@@ -301,6 +301,7 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(CONTEXT, test_ctx_dat_1),       //
     CASE_FIXTURE(CONTEXT, test_ctx_dat_resize),  //
     CASE_FIXTURE(CONTEXT, test_ctx_tex_1),       //
+    CASE_FIXTURE(CONTEXT, test_ctx_tex_resize),  //
 
     // Canvas.
     CASE_FIXTURE(APP, test_canvas_window),   //
