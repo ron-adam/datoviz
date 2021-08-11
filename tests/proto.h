@@ -280,22 +280,19 @@ static void _glfw_event_loop(GLFWwindow* w)
 
 static DvzTex* _earth_tex(DvzContext* ctx)
 {
-    return NULL;
-
-    // // TODO
-    // DvzGpu* gpu = ctx->gpu;
-    // char path[1024];
-    // snprintf(path, sizeof(path), "%s/textures/earth.jpg", DATA_DIR);
-    // int width, height, depth;
-    // uint8_t* tex_data = stbi_load(path, &width, &height, &depth, STBI_rgb_alpha);
-    // uint32_t tex_size = (uint32_t)(width * height);
-    // DvzTex* texture = dvz_ctx_texture(
-    //     gpu->context, 2, (uvec3){(uint32_t)width, (uint32_t)height, 1},
-    //     VK_FORMAT_R8G8B8A8_UNORM);
-    // dvz_upload_texture(
-    //     context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, tex_size * sizeof(cvec4), tex_data);
-    // FREE(tex_data)
-    // return texture;
+    DvzGpu* gpu = ctx->gpu;
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/textures/earth.jpg", DATA_DIR);
+    int width, height, depth;
+    uint8_t* tex_data = stbi_load(path, &width, &height, &depth, STBI_rgb_alpha);
+    uint32_t tex_size = (uint32_t)(width * height);
+    DvzTex* tex = dvz_tex(
+        gpu->context, DVZ_TEX_2D, (uvec3){(uint32_t)width, (uint32_t)height, 1},
+        VK_FORMAT_R8G8B8A8_UNORM, 0);
+    dvz_tex_upload(
+        tex, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, tex_size * sizeof(cvec4), tex_data, true);
+    FREE(tex_data)
+    return tex;
 }
 
 
@@ -303,32 +300,29 @@ static DvzTex* _earth_tex(DvzContext* ctx)
 static DvzTex* _synthetic_tex(DvzContext* ctx)
 {
     ASSERT(ctx != NULL);
-    return NULL;
+    // Texture.
+    const uint32_t S = 1024;
+    DvzTex* tex = dvz_tex(ctx, 2, (uvec3){S, S, 1}, VK_FORMAT_R32_SFLOAT, 0);
+    VkDeviceSize size = S * S * sizeof(float);
 
-    // TODO
-    // // Texture.
-    // const uint32_t S = 1024;
-    // DvzTex* texture = dvz_ctx_texture(ctx, 2, (uvec3){S, S, 1}, VK_FORMAT_R32_SFLOAT);
-    // VkDeviceSize size = S * S * sizeof(float);
+    float* tex_data = malloc(size);
+    double x = 0, y = 0;
+    uint32_t k = 0;
 
-    // float* tex_data = malloc(size);
-    // double x = 0, y = 0;
-    // uint32_t k = 0;
+    for (uint32_t i = 0; i < S; i++)
+    {
+        x = -1 + 2 * i / (double)(S - 1);
+        for (uint32_t j = 0; j < S; j++)
+        {
+            y = +1 - 2 * j / (double)(S - 1);
+            tex_data[k++] = exp(-2 * (x * x + y * y)) * cos(M_2PI * 3 * x) * sin(M_2PI * 3 * y);
+        }
+    }
 
-    // for (uint32_t i = 0; i < S; i++)
-    // {
-    //     x = -1 + 2 * i / (double)(S - 1);
-    //     for (uint32_t j = 0; j < S; j++)
-    //     {
-    //         y = +1 - 2 * j / (double)(S - 1);
-    //         tex_data[k++] = exp(-2 * (x * x + y * y)) * cos(M_2PI * 3 * x) * sin(M_2PI * 3 * y);
-    //     }
-    // }
+    dvz_tex_upload(tex, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, tex_data, true);
+    FREE(tex_data)
 
-    // dvz_upload_texture(context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, tex_data);
-    // FREE(tex_data)
-
-    // return texture;
+    return tex;
 }
 
 
@@ -336,58 +330,51 @@ static DvzTex* _synthetic_tex(DvzContext* ctx)
 static DvzTex* _mock_tex(DvzContext* ctx)
 {
     ASSERT(ctx != NULL);
-    return NULL;
-
-    // TODO
-    // DvzTex* texture = dvz_ctx_texture(ctx, 2, (uvec3){2, 2, 1}, VK_FORMAT_R8G8B8A8_UNORM);
-    // cvec4 tex_data[] = {
-    //     {255, 0, 0, 255}, //
-    //     {0, 255, 0, 255},
-    //     {0, 0, 255, 255},
-    //     {255, 255, 0, 255},
-    // };
-    // dvz_upload_texture(
-    //     context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, sizeof(tex_data), tex_data);
-    // return texture;
+    DvzTex* tex = dvz_tex(ctx, DVZ_TEX_2D, (uvec3){2, 2, 1}, VK_FORMAT_R8G8B8A8_UNORM, 0);
+    cvec4 tex_data[] = {
+        {255, 0, 0, 255}, //
+        {0, 255, 0, 255},
+        {0, 0, 255, 255},
+        {255, 255, 0, 255},
+    };
+    dvz_tex_upload(tex, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, sizeof(tex_data), tex_data, true);
+    return tex;
 }
 
 
 
 static DvzTex* _volume_tex(DvzContext* ctx, int kind)
 {
-    return NULL;
+    const uint32_t S = 64;
+    VkDeviceSize size = S * S * S * sizeof(uint8_t);
+    DvzTex* tex = dvz_tex(ctx, DVZ_TEX_3D, (uvec3){S, S, S}, VK_FORMAT_R8_UNORM, 0);
+    uint8_t* tex_data = calloc(S * S * S, sizeof(uint8_t));
+    uint32_t l = 0;
+    double x, y, z, w;
+    double c = S / 2;
+    for (uint32_t i = 0; i < S; i++)
+    {
+        for (uint32_t j = 0; j < S; j++)
+        {
+            for (uint32_t k = 0; k < S; k++)
+            {
+                x = ((double)i - c) / c;
+                y = ((double)j - c) / c;
+                z = ((double)k - c) / c;
+                w = exp(-4 * (x * x + y * y + z * z));
 
-    // // TODO
-    // const uint32_t S = 64;
-    // VkDeviceSize size = S * S * S * sizeof(uint8_t);
-    // DvzTex* texture = dvz_ctx_texture(ctx, 3, (uvec3){S, S, S}, VK_FORMAT_R8_UNORM);
-    // uint8_t* tex_data = calloc(S * S * S, sizeof(uint8_t));
-    // uint32_t l = 0;
-    // double x, y, z, w;
-    // double c = S / 2;
-    // for (uint32_t i = 0; i < S; i++)
-    // {
-    //     for (uint32_t j = 0; j < S; j++)
-    //     {
-    //         for (uint32_t k = 0; k < S; k++)
-    //         {
-    //             x = ((double)i - c) / c;
-    //             y = ((double)j - c) / c;
-    //             z = ((double)k - c) / c;
-    //             w = exp(-4 * (x * x + y * y + z * z));
+                if (kind == 0)
+                    tex_data[l++] = TO_BYTE(w);
+                else
+                    tex_data[l++] = dvz_rand_byte() % 3;
 
-    //             if (kind == 0)
-    //                 tex_data[l++] = TO_BYTE(w);
-    //             else
-    //                 tex_data[l++] = dvz_rand_byte() % 3;
-
-    //             // tex_data[l++] = (i & j) | (i & k) | (j & k) ? 0 : 32;
-    //         }
-    //     }
-    // }
-    // dvz_upload_texture(context, texture, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, tex_data);
-    // FREE(tex_data);
-    // return texture;
+                tex_data[l++] = (i & j) | (i & k) | (j & k) ? 0 : 32;
+            }
+        }
+    }
+    dvz_tex_upload(tex, DVZ_ZERO_OFFSET, DVZ_ZERO_OFFSET, size, tex_data, true);
+    FREE(tex_data);
+    return tex;
 }
 
 

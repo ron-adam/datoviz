@@ -167,6 +167,41 @@ int test_ctx_dat_1(TestContext* tc)
 
 
 
+int test_ctx_dat_resize(TestContext* tc)
+{
+    ASSERT(tc != NULL);
+    DvzContext* ctx = tc->context;
+    ASSERT(ctx != NULL);
+
+    DvzGpu* gpu = ctx->gpu;
+    ASSERT(gpu != NULL);
+
+    // Allocate a dat.
+    VkDeviceSize size = 16;
+    uint8_t data[16] = {0};
+    for (uint32_t i = 0; i < size; i++)
+        data[i] = i;
+    uint8_t data1[32] = {0};
+
+    // Upload.
+    DvzDat* dat = dvz_dat(ctx, DVZ_BUFFER_TYPE_VERTEX, size, 0);
+    dvz_dat_upload(dat, 0, sizeof(data), data, true);
+
+    // Resize.
+    VkDeviceSize new_size = 32;
+    dvz_dat_resize(dat, new_size);
+
+    // Download back the data.
+    dvz_dat_download(dat, 0, sizeof(data1), data1, true);
+
+    ASSERT(memcmp(data1, data, size) == 0);
+
+    dvz_dat_destroy(dat);
+    return 0;
+}
+
+
+
 int test_ctx_tex_1(TestContext* tc)
 {
     ASSERT(tc != NULL);

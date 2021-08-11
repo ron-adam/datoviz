@@ -96,7 +96,9 @@ int test_transfers_dups_copy(TestContext* tc);
 int test_ctx_resources_1(TestContext*);
 int test_ctx_datalloc_1(TestContext*);
 int test_ctx_dat_1(TestContext*);
+int test_ctx_dat_resize(TestContext*);
 int test_ctx_tex_1(TestContext*);
+int test_ctx_tex_resize(TestContext*);
 
 // Test input.
 int test_input_mouse_raw(TestContext*);
@@ -297,6 +299,7 @@ static TestCase TEST_CASES[] = {
     CASE_FIXTURE(CONTEXT, test_ctx_resources_1), //
     CASE_FIXTURE(CONTEXT, test_ctx_datalloc_1),  //
     CASE_FIXTURE(CONTEXT, test_ctx_dat_1),       //
+    CASE_FIXTURE(CONTEXT, test_ctx_dat_resize),  //
     CASE_FIXTURE(CONTEXT, test_ctx_tex_1),       //
 
     // Canvas.
