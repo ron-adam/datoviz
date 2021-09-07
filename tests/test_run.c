@@ -177,7 +177,11 @@ static void _on_mouse_move(DvzInput* input, DvzInputEvent ev, void* user_data)
     ASSERT(canvas->app != NULL);
     ASSERT(canvas->app->run != NULL);
     log_debug("mouse position: %.0fx%.0f", ev.m.pos[0], ev.m.pos[1]);
-    _change_clear_color(canvas, (vec3){1, ev.m.pos[0] / WIDTH, ev.m.pos[1] / HEIGHT});
+    uvec2 size = {0};
+    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
+    ASSERT(size[0] > 0);
+    ASSERT(size[1] > 0);
+    _change_clear_color(canvas, (vec3){1, ev.m.pos[0] / size[0], ev.m.pos[1] / size[1]});
 }
 
 int test_run_3(TestContext* tc)
@@ -350,8 +354,8 @@ int test_run_push(TestContext* tc)
 
     // Refill callback.
     dvz_deq_callback(
-        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _refill_callback_triangle,
-        &visual);
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, //
+        _refill_callback_triangle, &visual);
 
     // Push constant callback.
     dvz_input_callback(&canvas->input, DVZ_INPUT_MOUSE_MOVE, _push_cursor_callback, canvas);
@@ -429,8 +433,8 @@ int test_run_dat(TestContext* tc)
 
     // Refill callback.
     dvz_deq_callback(
-        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _refill_callback_triangle,
-        &visual);
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, //
+        _refill_callback_triangle, &visual);
 
     // Mouse callback.
     dvz_input_callback(&canvas->input, DVZ_INPUT_MOUSE_MOVE, _dat_cursor_callback, canvas);
