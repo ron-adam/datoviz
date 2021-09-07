@@ -175,6 +175,9 @@ static void _callback_transfers(DvzDeq* deq, void* item, void* user_data)
         gpu = (DvzGpu*)iter.item;
         ASSERT(gpu != NULL);
         ASSERT(gpu->obj.type == DVZ_OBJECT_TYPE_GPU);
+        if (!dvz_obj_is_created(&gpu->obj))
+            break;
+        ASSERT(gpu->context != NULL);
 
         // Process the pending data transfers (copies and dup transfers that require
         // synchronization and integration with the event loop).
