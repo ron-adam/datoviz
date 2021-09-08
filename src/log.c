@@ -20,6 +20,7 @@
  * IN THE SOFTWARE.
  */
 
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,6 +146,20 @@ void log_log(int level, const char* file, int line, const char* fmt, ...)
     unlock();
 }
 
+
+
+// Use a mutex for the logging lock, prevent multiple threads from simultaneously writing to the
+// standard output.
+static pthread_mutex_t mutex;
+
+static void _lock(void* udata, int lock)
+{
+    if (lock)
+        pthread_mutex_lock(&mutex);
+    else
+        pthread_mutex_unlock(&mutex);
+}
+
 void log_set_level_env(void)
 {
     const char* level = getenv("DVZ_LOG_LEVEL");
@@ -152,4 +167,6 @@ void log_set_level_env(void)
     if (level != NULL)
         level_int = strtol(level, NULL, 10);
     log_set_level(level_int);
+
+    log_set_lock(_lock);
 }
