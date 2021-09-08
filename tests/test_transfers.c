@@ -51,7 +51,7 @@ int test_transfers_buffer_mappable(TestContext* tc)
     DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1, 1024);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data);
+    _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, 128, data, NULL);
 
     // NOTE: need to wait for the upload to be finished before we download the data.
     // The DL and UL are on different queues and may be processed out of order.
@@ -99,7 +99,7 @@ int test_transfers_buffer_large(TestContext* tc)
     DvzBufferRegions stg = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_STAGING, 1, size);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data);
+    _enqueue_buffer_upload(&transfers->deq, stg, 0, (DvzBufferRegions){0}, 0, size, data, NULL);
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
 
     // Wait for the transfer thread to process both transfer tasks.
@@ -151,7 +151,7 @@ int test_transfers_buffer_copy(TestContext* tc)
     DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_VERTEX, 1, 1024);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_upload(&transfers->deq, br, 0, stg, 0, 128, data);
+    _enqueue_buffer_upload(&transfers->deq, br, 0, stg, 0, 128, data, NULL);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);

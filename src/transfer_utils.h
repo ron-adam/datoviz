@@ -128,11 +128,22 @@ static DvzDeqItem* _create_download_done(VkDeviceSize size, void* data)
 {
     ASSERT(data != NULL);
 
-    DvzTransferDownload* tr = (DvzTransferDownload*)calloc(
-        1, sizeof(DvzTransferDownload)); // will be free-ed by the callbacks
+    // will be free-ed by the callbacks:
+    DvzTransferDownload* tr = (DvzTransferDownload*)calloc(1, sizeof(DvzTransferDownload));
     tr->size = size;
     tr->data = data;
     return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_EV, (int)DVZ_TRANSFER_DOWNLOAD_DONE, tr);
+}
+
+
+
+// Create an upload done task.
+static DvzDeqItem* _create_upload_done(void* user_data)
+{
+    // will be free-ed by the callbacks:
+    DvzTransferUpload* tr = (DvzTransferUpload*)calloc(1, sizeof(DvzTransferUpload));
+    tr->user_data = user_data;
+    return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_EV, (int)DVZ_TRANSFER_UPLOAD_DONE, tr);
 }
 
 
@@ -196,7 +207,7 @@ static void _enqueue_buffer_upload(
     DvzDeq* deq,                                   //
     DvzBufferRegions br, VkDeviceSize buf_offset,  // destination buffer
     DvzBufferRegions stg, VkDeviceSize stg_offset, // optional staging buffer
-    VkDeviceSize size, void* data)
+    VkDeviceSize size, void* data, void* done_data)
 {
     ASSERT(deq != NULL);
     ASSERT(size > 0);
@@ -231,6 +242,14 @@ static void _enqueue_buffer_upload(
 
         // Dependency.
         dvz_deq_enqueue_next(deq_item, next_item, false);
+    }
+
+    // Enqueue an UPLOAD_DONE event with a custom user pointer. Used for temporary staging buffer
+    // dat deallocation after upload.
+    if (done_data != NULL)
+    {
+        DvzDeqItem* done_item = _create_upload_done(done_data);
+        dvz_deq_enqueue_next(stg.buffer == NULL ? deq_item : next_item, done_item, false);
     }
 
     dvz_deq_enqueue_submit(deq, deq_item, false);

@@ -48,7 +48,8 @@ typedef enum
     DVZ_TRANSFER_IMAGE_BUFFER,
     DVZ_TRANSFER_BUFFER_IMAGE,
 
-    DVZ_TRANSFER_DOWNLOAD_DONE, // download is only possible from a buffer
+    DVZ_TRANSFER_DOWNLOAD_DONE, // download is only possible from a buffer, not a texture
+    DVZ_TRANSFER_UPLOAD_DONE,
 
     DVZ_TRANSFER_DUP_UPLOAD,
     DVZ_TRANSFER_DUP_COPY,
@@ -65,6 +66,7 @@ typedef struct DvzTransferBufferCopy DvzTransferBufferCopy;
 typedef struct DvzTransferBufferImage DvzTransferBufferImage;
 typedef struct DvzTransferImageCopy DvzTransferImageCopy;
 typedef struct DvzTransferDownload DvzTransferDownload;
+typedef struct DvzTransferUpload DvzTransferUpload;
 typedef struct DvzTransferDup DvzTransferDup;
 typedef struct DvzTransfers DvzTransfers;
 typedef struct DvzTransferDupItem DvzTransferDupItem;
@@ -118,6 +120,13 @@ struct DvzTransferDownload
 {
     VkDeviceSize size;
     void* data;
+};
+
+
+
+struct DvzTransferUpload
+{
+    void* user_data;
 };
 
 

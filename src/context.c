@@ -388,7 +388,7 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
     if (!dup)
     {
         // Enqueue a standard upload task, with or without staging buffer.
-        _enqueue_buffer_upload(&transfers->deq, dat->br, offset, stg_br, 0, size, data);
+        _enqueue_buffer_upload(&transfers->deq, dat->br, offset, stg_br, 0, size, data, NULL);
         if (wait)
         {
             if (staging)
