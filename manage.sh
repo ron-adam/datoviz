@@ -81,6 +81,17 @@ then
     gprof build/datoviz gmon.out
 fi
 
+if [ $1 == "perftest" ]
+then
+    # on Ubuntu, need:
+    # sudo apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
+    # sudo sysctl -w kernel.perf_event_paranoid=1
+    # sudo sh -c 'echo kernel.perf_event_paranoid=1 > /etc/sysctl.d/local.conf'
+    # install AppImage hotspot: https://github.com/KDAB/hotspot/releases
+
+    perf record --call-graph dwarf ./build/datoviz test $2
+fi
+
 
 
 # -------------------------------------------------------------------------------------------------
