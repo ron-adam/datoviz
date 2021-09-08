@@ -16,6 +16,14 @@ static void _dl_done(DvzDeq* deq, void* item, void* user_data)
         *((int*)user_data) = 42;
 }
 
+static void _up_done(DvzDeq* deq, void* item, void* user_data)
+{
+    DvzTransferUpload* up = (DvzTransferUpload*)item;
+    ASSERT(up != NULL);
+    ASSERT(up->user_data != NULL);
+    *((int*)up->user_data) = 314;
+}
+
 
 
 /*************************************************************************************************/
@@ -142,6 +150,11 @@ int test_transfers_buffer_copy(TestContext* tc)
     int res = 0; // should be set to 42 by _dl_done().
     dvz_deq_callback(
         &transfers->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_DOWNLOAD_DONE, _dl_done, &res);
+    // Called at the end of the upload transfer. Will modify the int pointer passed by
+    // _enqueue_buffer_upload().
+    dvz_deq_callback(
+        &transfers->deq, DVZ_TRANSFER_DEQ_EV, DVZ_TRANSFER_UPLOAD_DONE, _up_done, NULL);
+
 
     uint8_t data[128] = {0};
     for (uint32_t i = 0; i < 128; i++)
@@ -151,10 +164,15 @@ int test_transfers_buffer_copy(TestContext* tc)
     DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_VERTEX, 1, 1024);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_upload(&transfers->deq, br, 0, stg, 0, 128, data, NULL);
+    _enqueue_buffer_upload(&transfers->deq, br, 0, stg, 0, 128, data, &res);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
+    // Wait until the upload_done event has been raised, and dequeue it.
+    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
+    AT(res == 314);
+    res = 0;
+
 
     // Enqueue a download transfer task.
     uint8_t data2[128] = {0};
@@ -164,9 +182,9 @@ int test_transfers_buffer_copy(TestContext* tc)
     // Wait until the download_done event has been raised, dequeue it, and finish the test.
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
 
-    dvz_app_wait(tc->app);
 
     // Check that the copy worked.
+    dvz_app_wait(tc->app);
     AT(data2[127] == 127);
     AT(memcmp(data2, data, 128) == 0);
     AT(res == 42);
