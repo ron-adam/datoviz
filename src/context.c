@@ -147,6 +147,7 @@ static void _dat_dealloc(DvzDat* dat)
     ASSERT(dat != NULL);
     DvzContext* ctx = dat->context;
     ASSERT(ctx != NULL);
+    log_debug("deallocate dat");
 
     bool shared = !_dat_is_standalone(dat);
     bool mappable = !_dat_has_staging(dat);
@@ -331,6 +332,7 @@ DvzDat* dvz_dat(DvzContext* ctx, DvzBufferType type, VkDeviceSize size, int flag
     DvzDat* dat = (DvzDat*)dvz_container_alloc(&ctx->res.dats);
     dat->context = ctx;
     dat->flags = flags;
+    log_debug("create dat with size %s", pretty_size(size));
 
     // Find the number of copies.
     uint32_t count = _dat_is_dup(dat) ? ctx->img_count : 1;
@@ -372,6 +374,7 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
     {
         // Need to allocate a temporary staging buffer.
         ASSERT(!_dat_persistent_staging(dat));
+        log_warn("allocate temporary staging dat, deallocation not implemented yet!");
         stg = _alloc_staging(ctx, size);
     }
 
@@ -438,6 +441,7 @@ void dvz_dat_download(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void*
     {
         // Need to allocate a temporary staging buffer.
         ASSERT(!_dat_persistent_staging(dat));
+        log_debug("allocate temporary staging dat");
         stg = _alloc_staging(ctx, size);
     }
 
@@ -470,6 +474,7 @@ void dvz_dat_resize(DvzDat* dat, VkDeviceSize new_size)
 {
     ASSERT(dat != NULL);
     ASSERT(dat->br.buffer != NULL);
+    log_debug("resize dat to size %s", pretty_size(new_size));
     _dat_dealloc(dat);
 
     // Resize the persistent staging dat if there is one.

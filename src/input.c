@@ -139,7 +139,6 @@ static void _glfw_move_callback(GLFWwindow* window, double xpos, double ypos)
 
     // NOTE: throttle the mouse move calls to avoid clogging the queue.
     double time = _clock_get(&input->clock);
-    log_info("%.5f %.5f", time, input->mouse.last_move);
     if (time - input->mouse.last_move < DVZ_MOUSE_MOVE_MIN_DELAY)
         return;
     dvz_deq_discard(&input->deq, DVZ_INPUT_DEQ_MOUSE, DVZ_MOUSE_MOVE_MAX_PENDING);

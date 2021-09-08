@@ -109,7 +109,7 @@ void log_log(int level, const char* file, int line, const char* fmt, ...)
         clock_t uptime = (clock() / (CLOCKS_PER_SEC / 1000)) % 1000;
         buf[strftime(buf, sizeof(buf), "%H:%M:%S.    ", lt)] = '\0';
         // HH:MM:SS.MMS(thread_id)
-        snprintf(&buf[9], 12, "%03d(t%03li)", (int)uptime, tid);
+        snprintf(&buf[9], 12, "%03d #%03li", (int)uptime, tid);
 
 #ifdef LOG_USE_COLOR
         fprintf(
