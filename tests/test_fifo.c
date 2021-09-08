@@ -152,12 +152,12 @@ int test_utils_fifo_discard(TestContext* tc)
     AT(dvz_fifo_size(&fifo) == 7);
     AT(*((int*)dvz_fifo_dequeue(&fifo, false)) == 0);
 
-    // Discard 2 elements (from size 7 to 5).
-    dvz_fifo_discard(&fifo, 5);
+    // Discard 4 elements (from size 7 to 3).
+    dvz_fifo_discard(&fifo, 3);
 
-    // First item is 2.
-    AT(dvz_fifo_size(&fifo) == 5);
-    AT(*((int*)dvz_fifo_dequeue(&fifo, false)) == 2);
+    // First item is 4.
+    AT(dvz_fifo_size(&fifo) == 3);
+    AT(*((int*)dvz_fifo_dequeue(&fifo, false)) == 4);
 
     dvz_fifo_destroy(&fifo);
     return 0;

@@ -71,8 +71,7 @@ static VkDeviceSize _allocate_dat(
     if (resized)
     {
         DvzBuffer* buffer = _get_shared_buffer(res, type, mappable);
-        log_info(
-            "reallocating buffer %d (mappable: %d) to %s", type, mappable, pretty_size(resized));
+        log_info("resizing buffer %d (mappable: %d) to %s", type, mappable, pretty_size(resized));
         dvz_buffer_resize(buffer, resized);
     }
 

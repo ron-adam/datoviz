@@ -11,7 +11,7 @@ DvzFifo dvz_fifo(int32_t capacity)
     log_trace("creating generic FIFO queue with a capacity of %d items", capacity);
     ASSERT(capacity >= 2);
     DvzFifo fifo = {0};
-    ASSERT(capacity <= DVZ_MAX_FIFO_CAPACITY);
+    // ASSERT(capacity <= DVZ_MAX_FIFO_CAPACITY);
     fifo.capacity = capacity;
     fifo.is_empty = true;
     fifo.items = calloc((uint32_t)capacity, sizeof(void*));
@@ -41,7 +41,7 @@ static void _fifo_resize(DvzFifo* fifo)
     {
         ASSERT(fifo->items != NULL);
         ASSERT(size == fifo->capacity - 1);
-        ASSERT(fifo->capacity <= DVZ_MAX_FIFO_CAPACITY);
+        // ASSERT(fifo->capacity <= DVZ_MAX_FIFO_CAPACITY);
 
         fifo->capacity *= 2;
         log_debug("FIFO queue is full, enlarging it to %d", fifo->capacity);
@@ -979,13 +979,29 @@ void dvz_deq_wait(DvzDeq* deq, uint32_t proc_idx)
 
 
 
+static char* _strcat(char* dest, char* src)
+{
+    while (*dest)
+        dest++;
+    while ((*dest++ = *src++))
+        ;
+    return --dest;
+}
+
 void dvz_deq_stats(DvzDeq* deq)
 {
     ASSERT(deq != NULL);
+
+    char s[1024] = {0};
+    char sn[8] = {0};
     for (uint32_t i = 0; i < deq->queue_count; i++)
     {
-        log_info("queue #%d size: %d", i, dvz_fifo_size(&deq->queues[i]));
+        snprintf(sn, sizeof(sn), "%d", dvz_fifo_size(&deq->queues[i]));
+        _strcat(s, sn);
+        if (i < deq->queue_count - 1)
+            _strcat(s, ", ");
     }
+    log_info("queue sizes: %s", s);
 }
 
 
