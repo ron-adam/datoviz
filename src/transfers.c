@@ -204,6 +204,10 @@ void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx)
     // NOTE: this call *blocks* the GPU until the copies are complete.
     dvz_deq_dequeue_batch(&transfers->deq, DVZ_TRANSFER_PROC_CPY);
 
+    // Dequeue the pending EV items, mostly used for UPLOAD_DONE events (temporary staging dat
+    // deallocation).
+    dvz_deq_dequeue_batch(&transfers->deq, DVZ_TRANSFER_PROC_EV);
+
     // Now, process dup transfers.
     dvz_deq_dequeue_batch(&transfers->deq, DVZ_TRANSFER_PROC_DUP);
 

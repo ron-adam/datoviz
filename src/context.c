@@ -164,6 +164,22 @@ static void _dat_dealloc(DvzDat* dat)
     }
 }
 
+static void _buffer_upload_done(DvzDeq* deq, void* item, void* user_data)
+{
+    DvzTransferUpload* up = (DvzTransferUpload*)item;
+    ASSERT(up != NULL);
+    DvzDat* dat = (DvzDat*)up->user_data;
+    if (dat == NULL)
+        return;
+
+    // Only for staging buffers.
+    ASSERT(dat->br.buffer != NULL);
+    ASSERT(dat->br.buffer->type == DVZ_BUFFER_TYPE_STAGING);
+    log_info("deallocate temporary staging dat with size %s", pretty_size(dat->br.size));
+    // DEBUG: UNCOMMENT
+    // dvz_dat_destroy(dat);
+}
+
 
 
 /*************************************************************************************************/
@@ -240,6 +256,14 @@ DvzContext* dvz_context(DvzGpu* gpu)
 
     // Create the transfers.
     dvz_transfers(gpu, &ctx->transfers);
+
+    // Called when a transfer upload is finished, if the temporary staging buffer needs to be
+    // deallocated.
+    dvz_deq_callback(
+        &ctx->transfers.deq, DVZ_TRANSFER_DEQ_EV, //
+        DVZ_TRANSFER_UPLOAD_DONE,                 //
+        _buffer_upload_done, NULL);
+
 
     // Create the resources.
     dvz_resources(gpu, &ctx->res);
@@ -370,12 +394,14 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
 
     // Do we need a staging buffer?
     DvzDat* stg = dat->stg;
+    bool need_dealloc_stg = false;
     if (_dat_has_staging(dat) && stg == NULL)
     {
         // Need to allocate a temporary staging buffer.
         ASSERT(!_dat_persistent_staging(dat));
         log_warn("allocate temporary staging dat, deallocation not implemented yet!");
         stg = _alloc_staging(ctx, size);
+        need_dealloc_stg = true;
     }
 
     // Enqueue the transfer task corresponding to the flags.
@@ -388,7 +414,9 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
     if (!dup)
     {
         // Enqueue a standard upload task, with or without staging buffer.
-        _enqueue_buffer_upload(&transfers->deq, dat->br, offset, stg_br, 0, size, data, NULL);
+        _enqueue_buffer_upload(
+            &transfers->deq, dat->br, offset, stg_br, 0, size, data,
+            need_dealloc_stg ? stg : NULL);
         if (wait)
         {
             if (staging)
@@ -401,7 +429,10 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
                 dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
                 dvz_queue_wait(ctx->gpu, DVZ_DEFAULT_QUEUE_TRANSFER);
             }
-            // dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_UD, true);
+
+            // Dequeue the upload_done event if needed.
+            if (need_dealloc_stg)
+                dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
         }
     }
 
