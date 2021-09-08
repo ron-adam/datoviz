@@ -979,6 +979,17 @@ void dvz_deq_wait(DvzDeq* deq, uint32_t proc_idx)
 
 
 
+void dvz_deq_stats(DvzDeq* deq)
+{
+    ASSERT(deq != NULL);
+    for (uint32_t i = 0; i < deq->queue_count; i++)
+    {
+        log_info("queue #%d size: %d", i, dvz_fifo_size(&deq->queues[i]));
+    }
+}
+
+
+
 void dvz_deq_destroy(DvzDeq* deq)
 {
     ASSERT(deq != NULL);

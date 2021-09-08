@@ -539,6 +539,13 @@ DVZ_EXPORT void dvz_deq_wait(DvzDeq* deq, uint32_t proc_idx);
  *
  * @param deq the Deq
  */
+DVZ_EXPORT void dvz_deq_stats(DvzDeq* deq);
+
+/**
+ * Destroy a Deq.
+ *
+ * @param deq the Deq
+ */
 DVZ_EXPORT void dvz_deq_destroy(DvzDeq* deq);
 
 

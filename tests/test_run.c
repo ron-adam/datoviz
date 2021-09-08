@@ -381,7 +381,12 @@ static void _dat_cursor_callback(DvzInput* input, DvzInputEvent ev, void* user_d
     DvzCanvas* canvas = (DvzCanvas*)user_data;
     ASSERT(canvas != NULL);
     ASSERT(canvas->app != NULL);
-    ASSERT(canvas->app->run != NULL);
+
+    DvzRun* run = canvas->app->run;
+    ASSERT(run != NULL);
+
+    DvzContext* ctx = canvas->gpu->context;
+    ASSERT(ctx != NULL);
 
     TestVisual* visual = (TestVisual*)canvas->user_data;
     ASSERT(visual != NULL);

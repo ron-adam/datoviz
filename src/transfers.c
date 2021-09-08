@@ -194,7 +194,7 @@ void dvz_transfers(DvzGpu* gpu, DvzTransfers* transfers)
 void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx)
 {
     ASSERT(transfers != NULL);
-    log_debug("transfers frame #%d", img_idx);
+    log_trace("transfers frame #%d", img_idx);
 
     DvzGpu* gpu = transfers->gpu;
     ASSERT(gpu != NULL);
@@ -211,7 +211,7 @@ void dvz_transfers_frame(DvzTransfers* transfers, uint32_t img_idx)
     DvzTransferDups* dups = &transfers->dups;
     if (_dups_empty(dups))
     {
-        log_debug("no ongoing dup transfer");
+        log_trace("no ongoing dup transfer");
         return;
     }
     // HACK: should be wrapped in an interface instead.
