@@ -24,7 +24,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <datoviz/log.h>
 #include <datoviz/macros.h>
@@ -94,15 +97,18 @@ void log_log(int level, const char* file, int line, const char* fmt, ...)
     /* Get current time */
     time_t t = time(NULL);
     struct tm* lt = localtime(&t);
+    long int tid =
+        syscall(__NR_gettid) % 1000; // thread idx (only the last 3 digits to save space)
 
     /* Log to stderr */
     if (!L.quiet)
     {
         va_list args;
-        char buf[16];
+        char buf[24];
         clock_t uptime = (clock() / (CLOCKS_PER_SEC / 1000)) % 1000;
         buf[strftime(buf, sizeof(buf), "%H:%M:%S.    ", lt)] = '\0';
-        snprintf(&buf[9], 4, "%03d", (int)uptime);
+        // HH:MM:SS.MMS(thread_id)
+        snprintf(&buf[9], 12, "%03d(t%03li)", (int)uptime, tid);
 
 #ifdef LOG_USE_COLOR
         fprintf(
