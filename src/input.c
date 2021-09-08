@@ -12,6 +12,8 @@
 #define DVZ_MOUSE_CLICK_MAX_DELAY        .25
 #define DVZ_MOUSE_CLICK_MAX_SHIFT        5
 #define DVZ_MOUSE_DOUBLE_CLICK_MAX_DELAY .2
+#define DVZ_MOUSE_MOVE_MAX_PENDING       16
+#define DVZ_MOUSE_MOVE_MIN_DELAY         .01
 #define DVZ_KEY_PRESS_DELAY              .05
 
 
@@ -134,11 +136,21 @@ static void _glfw_move_callback(GLFWwindow* window, double xpos, double ypos)
 {
     ASSERT(window != NULL);
     DvzInput* input = (DvzInput*)glfwGetWindowUserPointer(window);
+
+    // NOTE: throttle the mouse move calls to avoid clogging the queue.
+    double time = _clock_get(&input->clock);
+    log_info("%.5f %.5f", time, input->mouse.last_move);
+    if (time - input->mouse.last_move < DVZ_MOUSE_MOVE_MIN_DELAY)
+        return;
+    dvz_deq_discard(&input->deq, DVZ_INPUT_DEQ_MOUSE, DVZ_MOUSE_MOVE_MAX_PENDING);
+
     DvzInputEvent ev = {0};
     ev.m.pos[0] = xpos;
     ev.m.pos[1] = ypos;
     ev.m.modifiers = input->mouse.modifiers;
     dvz_input_event(input, DVZ_INPUT_MOUSE_MOVE, ev);
+
+    input->mouse.last_move = time;
 }
 
 
@@ -166,6 +178,25 @@ static void _glfw_wheel_callback(GLFWwindow* window, double dx, double dy)
     ev.w.dir[1] = dy;
     ev.w.modifiers = input->mouse.modifiers;
     dvz_input_event(input, DVZ_INPUT_MOUSE_WHEEL, ev);
+}
+
+
+
+static void _glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    ASSERT(window != NULL);
+    DvzInput* input = (DvzInput*)glfwGetWindowUserPointer(window);
+    DvzInputEvent ev = {0};
+
+    DvzInputType type =
+        action == GLFW_RELEASE ? DVZ_INPUT_KEYBOARD_RELEASE : DVZ_INPUT_KEYBOARD_PRESS;
+
+    // NOTE: we use the GLFW key codes here, should actually do a proper mapping between GLFW
+    // key codes and Datoviz key codes.
+    ev.k.key_code = key;
+    ev.k.modifiers = mods;
+
+    dvz_input_event(input, type, ev);
 }
 
 
@@ -214,25 +245,6 @@ _input_proc_post_callback(DvzDeq* deq, uint32_t deq_idx, int type, void* item, v
 
 
 
-static void _glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    ASSERT(window != NULL);
-    DvzInput* input = (DvzInput*)glfwGetWindowUserPointer(window);
-    DvzInputEvent ev = {0};
-
-    DvzInputType type =
-        action == GLFW_RELEASE ? DVZ_INPUT_KEYBOARD_RELEASE : DVZ_INPUT_KEYBOARD_PRESS;
-
-    // NOTE: we use the GLFW key codes here, should actually do a proper mapping between GLFW
-    // key codes and Datoviz key codes.
-    ev.k.key_code = key;
-    ev.k.modifiers = mods;
-
-    dvz_input_event(input, type, ev);
-}
-
-
-
 /*************************************************************************************************/
 /*  Mouse                                                                                        */
 /*************************************************************************************************/
@@ -265,6 +277,7 @@ void dvz_input_mouse_reset(DvzInputMouse* mouse)
     mouse->cur_state = DVZ_MOUSE_STATE_INACTIVE;
     mouse->press_time = DVZ_NEVER;
     mouse->click_time = DVZ_NEVER;
+    mouse->last_move = DVZ_NEVER;
     mouse->is_active = true;
 }
 

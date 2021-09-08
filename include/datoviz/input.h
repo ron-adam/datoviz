@@ -286,6 +286,7 @@ struct DvzInputMouse
 
     double press_time;
     double click_time;
+    double last_move;
     bool is_active;
 };
 
