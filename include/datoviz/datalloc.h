@@ -62,6 +62,13 @@ struct DvzDatAlloc
 DVZ_EXPORT void dvz_datalloc(DvzGpu* gpu, DvzResources* res, DvzDatAlloc* datalloc);
 
 /**
+ * Show information about the allocations.
+ *
+ * @param datalloc the DvzDatalloc pointer
+ */
+DVZ_EXPORT void dvz_datalloc_stats(DvzDatAlloc* datalloc);
+
+/**
  * Destroy a datalloc object.
  *
  * @param datalloc the datalloc

@@ -108,6 +108,7 @@ int test_ctx_datalloc_1(TestContext* tc)
     AT(dat_3->br.offsets[0] == 2 * alignment);
     AT(dat_3->br.size == new_size);
 
+    dvz_datalloc_stats(&ctx->datalloc);
 
     return 0;
 }

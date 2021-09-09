@@ -222,15 +222,15 @@ int test_utils_alloc_2(TestContext* tc)
 
     uint32_t n = 0;
     VkDeviceSize offset = 0;
-    for (uint32_t i = 0; i < 100; i++)
+    for (uint32_t i = 0; i < 1000; i++)
     {
-        n = (uint32_t)abs(dvz_rand_int());
+        n = (uint32_t)abs(dvz_rand_int()) % 16256;
         if (n % 2 == 0)
             offset = dvz_alloc_new(alloc, n, NULL);
         else
             dvz_alloc_free(alloc, offset);
     }
-    log_debug("%s", pretty_size(dvz_alloc_size(alloc)));
+    dvz_alloc_stats(alloc);
 
     dvz_alloc_destroy(alloc);
     return 0;

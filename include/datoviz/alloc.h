@@ -89,9 +89,29 @@ dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize* resized);
  */
 DVZ_EXPORT void dvz_alloc_free(DvzAlloc* alloc, VkDeviceSize offset);
 
+/**
+ * Return the size of one allocation at a given offset.
+ *
+ * @param alloc the DvzAlloc pointer
+ * @param offset the offset of the allocation
+ * @returns the size of the allocation
+ */
 DVZ_EXPORT VkDeviceSize dvz_alloc_get(DvzAlloc* alloc, VkDeviceSize offset);
 
+/**
+ * Return the total allocated size.
+ *
+ * @param alloc the DvzAlloc pointer
+ * @returns the total allocated size
+ */
 DVZ_EXPORT VkDeviceSize dvz_alloc_size(DvzAlloc* alloc);
+
+/**
+ * Show information about the allocations.
+ *
+ * @param alloc the DvzAlloc pointer
+ */
+DVZ_EXPORT void dvz_alloc_stats(DvzAlloc* alloc);
 
 /**
  * Clear all allocations.

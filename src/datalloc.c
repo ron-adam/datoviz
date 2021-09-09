@@ -34,6 +34,17 @@ void dvz_datalloc(DvzGpu* gpu, DvzResources* res, DvzDatAlloc* datalloc)
 
 
 
+void dvz_datalloc_stats(DvzDatAlloc* datalloc)
+{
+    ASSERT(datalloc != NULL);
+    for (uint32_t i = 0; i < sizeof(datalloc->allocators) / sizeof(DvzAlloc*); i++)
+    {
+        dvz_alloc_stats(datalloc->allocators[i]);
+    }
+}
+
+
+
 void dvz_datalloc_destroy(DvzDatAlloc* datalloc)
 {
     if (datalloc == NULL)

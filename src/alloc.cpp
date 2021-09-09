@@ -1,6 +1,9 @@
 #include "../include/datoviz/alloc.h"
 #include <list>
 #include <map>
+#include <numeric>
+#include <utility>
+
 
 
 /*************************************************************************************************/
@@ -114,6 +117,24 @@ VkDeviceSize dvz_alloc_size(DvzAlloc* alloc)
 {
     ASSERT(alloc != NULL);
     return alloc->alloc_size;
+}
+
+
+
+void dvz_alloc_stats(DvzAlloc* alloc)
+{
+    ASSERT(alloc != NULL);
+    uint32_t dat_count = alloc->occupied.size();
+    VkDeviceSize alloc_occupied = (VkDeviceSize)std::accumulate(
+        std::begin(alloc->occupied), std::end(alloc->occupied), 0,
+        [](const VkDeviceSize previous, const std::pair<VkDeviceSize, VkDeviceSize>& p) {
+            return previous + p.second;
+        });
+    VkDeviceSize alloc_total = alloc->alloc_size;
+    log_info(
+        "%d allocations, total size: %s / %s (%.1f%)", dat_count, //
+        pretty_size(alloc_occupied), pretty_size(alloc_total),    //
+        alloc_total ? 100 * (float)alloc_occupied / (float)alloc_total : 0);
 }
 
 
