@@ -333,6 +333,8 @@ void dvz_thread_unlock(DvzThread* thread)
 /*  Random                                                                                       */
 /*************************************************************************************************/
 
+int dvz_rand_int() { return rand(); }
+
 uint8_t dvz_rand_byte() { return rand() % 256; }
 
 float dvz_rand_float() { return (float)rand() / (float)(RAND_MAX); }

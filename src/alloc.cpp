@@ -110,9 +110,24 @@ VkDeviceSize dvz_alloc_get(DvzAlloc* alloc, VkDeviceSize offset)
 
 
 
+VkDeviceSize dvz_alloc_size(DvzAlloc* alloc)
+{
+    ASSERT(alloc != NULL);
+    return alloc->alloc_size;
+}
+
+
+
 void dvz_alloc_free(DvzAlloc* alloc, VkDeviceSize offset)
 {
     ASSERT(alloc != NULL);
+
+    if (alloc->occupied.count(offset) == 0)
+    {
+        log_debug("alloc free at offset %u failed because that slot is not occupied", offset);
+        return;
+    }
+
     // Check that the slot is occupied.
     ASSERT(alloc->occupied.count(offset) > 0);
     ASSERT(alloc->free.count(offset) == 0);

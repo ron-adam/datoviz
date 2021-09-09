@@ -861,6 +861,13 @@ static inline double _mean(uint32_t n, double* values)
 DVZ_EXPORT uint8_t dvz_rand_byte(void);
 
 /**
+ * Return a random integer number.
+ *
+ * @returns random number
+ */
+DVZ_EXPORT int dvz_rand_int(void);
+
+/**
  * Return a random floating-point number between 0 and 1.
  *
  * @returns random number

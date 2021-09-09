@@ -39,7 +39,7 @@ int test_utils_array_mvp(TestContext*);
 int test_utils_array_3D(TestContext*);
 
 int test_utils_alloc_1(TestContext*);
-// int test_utils_alloc_2(TestContext*);
+int test_utils_alloc_2(TestContext*);
 
 // int test_utils_transforms_1(TestContext*);
 // int test_utils_transforms_2(TestContext*);
@@ -239,7 +239,7 @@ static TestCase TEST_CASES[] = {
 
     // Alloc.
     CASE_FIXTURE(NONE, test_utils_alloc_1), //
-    // CASE_FIXTURE(NONE, test_utils_alloc_2), //
+    CASE_FIXTURE(NONE, test_utils_alloc_2), //
 
     // CASE_FIXTURE(NONE, test_utils_transforms_1),     //
     // CASE_FIXTURE(NONE, test_utils_transforms_2),     //

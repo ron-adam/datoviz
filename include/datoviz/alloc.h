@@ -91,6 +91,8 @@ DVZ_EXPORT void dvz_alloc_free(DvzAlloc* alloc, VkDeviceSize offset);
 
 DVZ_EXPORT VkDeviceSize dvz_alloc_get(DvzAlloc* alloc, VkDeviceSize offset);
 
+DVZ_EXPORT VkDeviceSize dvz_alloc_size(DvzAlloc* alloc);
+
 /**
  * Clear all allocations.
  *

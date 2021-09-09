@@ -155,118 +155,6 @@ int test_utils_thread(TestContext* tc)
 /*  Alloc tests                                                                                  */
 /*************************************************************************************************/
 
-// int test_utils_alloc_1(TestContext* tc)
-// {
-// VkDeviceSize size = 16;
-// DvzAlloc alloc = dvz_alloc(size, 0);
-// DvzAllocSlot* slot = NULL;
-
-// // WARNING: manipulating DvzAllocSlot* pointers is unsafe, because the underlying array may
-// be
-// // resized and therefore the pointers would become invalid. The public API of the Alloc
-// never
-// // deals with DvzAllocSlot* pointers, these are only for strictly internal use.
-
-// // Initially, a single empty slot.
-// AT(alloc.items.item_count == 1);
-
-// slot = _get_slot(alloc, 0);
-// ASSERT(slot != NULL);
-// AT(!slot->occupied);
-// AT(slot->offset == 0);
-
-// AT(_slot_idx(alloc, slot) == 0);
-// AT(dvz_alloc_get(alloc, slot) == size);
-
-// AT(_is_slot_available(alloc, slot, 1));
-// AT(_is_slot_available(alloc, slot, size - 1));
-// AT(_is_slot_available(alloc, slot, size));
-// AT(!_is_slot_available(alloc, slot, size + 1));
-// AT(!_is_slot_available(alloc, slot, size * 2));
-
-// AT(_find_slot_available(alloc, 1) == slot);
-// AT(_find_slot_available(alloc, size - 1) == slot);
-// AT(_find_slot_available(alloc, size) == slot);
-// AT(_find_slot_available(alloc, size + 1) == NULL);
-// AT(_find_slot_available(alloc, size * 2) == NULL);
-
-// AT(_last_slot(alloc) == slot);
-// AT(_next_slot(alloc, slot) == NULL);
-
-
-// // New occupied slot after the first which is empty.
-// log_debug("insert new slot");
-// _insert_slot_after(alloc, slot, size / 2, true);
-// slot = _get_slot(alloc, 0);
-// // [--------|xxxxxxxx]
-
-// // DvzAllocSlot* first_slot = _get_slot(alloc, 0);
-// DvzAllocSlot* second_slot = _get_slot(alloc, size / 2);
-// ASSERT(second_slot != NULL);
-
-// // First slot.
-// AT(!slot->occupied);
-// AT(slot->offset == 0);
-
-// AT(_slot_idx(alloc, slot) == 0);
-// AT(dvz_alloc_get(alloc, slot) == size / 2);
-
-// AT(_is_slot_available(alloc, slot, 1));
-// AT(!_is_slot_available(alloc, slot, size - 1));
-// AT(_is_slot_available(alloc, slot, size / 2));
-// AT(!_is_slot_available(alloc, slot, size / 2 + 1));
-
-// AT(_find_slot_available(alloc, 1) == slot);
-// AT(_find_slot_available(alloc, size / 2 - 1) == slot);
-// AT(_find_slot_available(alloc, size / 2) == slot);
-// AT(_find_slot_available(alloc, size / 2 + 1) == NULL);
-
-// AT(_next_slot(alloc, slot) == second_slot);
-
-
-// // Second slot.
-// AT(second_slot->occupied);
-// AT(second_slot->offset == size / 2);
-
-// AT(_slot_idx(alloc, second_slot) == 1);
-// AT(dvz_alloc_get(alloc, second_slot) == size / 2);
-
-// AT(!_is_slot_available(alloc, second_slot, 1));
-
-// AT(_find_slot_available(alloc, 1) == slot);
-// AT(_find_slot_available(alloc, size / 2 - 1) == slot);
-// AT(_find_slot_available(alloc, size / 2) == slot);
-// AT(_find_slot_available(alloc, size / 2 + 1) == NULL);
-
-// AT(_last_slot(alloc) == second_slot);
-// AT(_next_slot(alloc, slot) == second_slot);
-
-
-// // Double alloc size.
-// _double_alloc_size(alloc);
-// // [--------|xxxxxxxx|----------------]
-
-// // IMPORTANT: we need to get the slot pointers as the array was resized.
-// slot = _get_slot(alloc, 0);
-// second_slot = _get_slot(alloc, size / 2);
-// DvzAllocSlot* third_slot = _get_slot(alloc, size);
-// ASSERT(third_slot != NULL);
-
-// AT(_next_slot(alloc, slot) == second_slot);
-// AT(_last_slot(alloc) == third_slot);
-
-// AT(_find_slot_available(alloc, size / 2) == slot);
-// AT(_find_slot_available(alloc, size / 2 + 1) == third_slot);
-// AT(_find_slot_available(alloc, size) == third_slot);
-// AT(_find_slot_available(alloc, size + 1) == NULL);
-
-
-// dvz_alloc_destroy(alloc);
-// return 0;
-// }
-
-
-
 int test_utils_alloc_1(TestContext* tc)
 {
     VkDeviceSize size = 32;
@@ -319,6 +207,30 @@ int test_utils_alloc_1(TestContext* tc)
     // [XX--|XXX-|XX--|XXXX|XXXX|XXXX|X---|XXXX] [X---|...
     AT(resized);
     AT(offset == 36);
+
+    dvz_alloc_destroy(alloc);
+    return 0;
+}
+
+
+
+int test_utils_alloc_2(TestContext* tc)
+{
+    VkDeviceSize size = 1024;
+    VkDeviceSize alignment = 16;
+    DvzAlloc* alloc = dvz_alloc(size, alignment);
+
+    uint32_t n = 0;
+    VkDeviceSize offset = 0;
+    for (uint32_t i = 0; i < 100; i++)
+    {
+        n = (uint32_t)abs(dvz_rand_int());
+        if (n % 2 == 0)
+            offset = dvz_alloc_new(alloc, n, NULL);
+        else
+            dvz_alloc_free(alloc, offset);
+    }
+    log_debug("%s", pretty_size(dvz_alloc_size(alloc)));
 
     dvz_alloc_destroy(alloc);
     return 0;
