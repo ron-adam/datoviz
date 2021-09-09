@@ -428,7 +428,8 @@ static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)
     VkDeviceSize size = 3 * sizeof(TestVertex);
 
     // Allocate a dat that will contain the triangle vertices.
-    visual->dat = dvz_dat(gpu->context, DVZ_BUFFER_TYPE_VERTEX, size, 0);
+    visual->dat =
+        dvz_dat(gpu->context, DVZ_BUFFER_TYPE_VERTEX, size, DVZ_DAT_OPTIONS_PERSISTENT_STAGING);
 
     // HACK: the TestVisual has both a DvzDat* and a DvzBufferRegions struct, so as to be testable
     // by modules that do not depend on the Dat system.
