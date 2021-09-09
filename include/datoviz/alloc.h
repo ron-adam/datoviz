@@ -27,28 +27,6 @@ extern "C" {
 /*************************************************************************************************/
 
 typedef struct DvzAlloc DvzAlloc;
-// typedef struct DvzAllocSlot DvzAllocSlot;
-
-
-
-/*************************************************************************************************/
-/*  Structs                                                                                      */
-/*************************************************************************************************/
-
-// struct DvzAllocSlot
-// {
-//     VkDeviceSize offset;
-//     bool occupied;
-// };
-
-
-
-// struct DvzAlloc
-// {
-//     VkDeviceSize alignment; // alignment, in bytes
-//     DvzArray items;         // each item is a pair (offset, occupied)
-//     VkDeviceSize size;      // total size, in bytes
-// };
 
 
 

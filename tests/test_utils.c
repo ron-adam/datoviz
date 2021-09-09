@@ -283,43 +283,42 @@ int test_utils_alloc_1(TestContext* tc)
     AT(!resized);
     AT(dvz_alloc_get(alloc, offset) == 4);
 
-    // offset = dvz_alloc_new(alloc, 2, &resized);
-    // // [XX--|XX--|----|----|----|----|...
-    // AT(offset == 4);
-    // AT(!resized);
-    // AT(dvz_alloc_get(alloc, offset) == 4);
+    offset = dvz_alloc_new(alloc, 2, &resized);
+    // [XX--|XX--|----|----|----|----|...
+    AT(offset == 4);
+    AT(!resized);
+    AT(dvz_alloc_get(alloc, offset) == 4);
 
-    // offset = dvz_alloc_new(alloc, 1, &resized);
-    // // [XX--|XX--|XX--|----|----|----|...
-    // AT(offset == 8);
-    // AT(!resized);
-    // AT(dvz_alloc_get(alloc, offset) == 4);
+    offset = dvz_alloc_new(alloc, 1, &resized);
+    // [XX--|XX--|XX--|----|----|----|...
+    AT(offset == 8);
+    AT(!resized);
+    AT(dvz_alloc_get(alloc, offset) == 4);
 
-    // dvz_alloc_free(alloc, 4);
-    // // [XX--|----|XX--|----|----|----|...
+    dvz_alloc_free(alloc, 4);
+    // [XX--|----|XX--|----|----|----|...
 
-    // offset = dvz_alloc_new(alloc, 3, &resized);
-    // // [XX--|XXX-|XX--|----|----|----|...
-    // AT(offset == 4);
-    // AT(!resized);
-    // AT(dvz_alloc_get(alloc, offset) == 4);
+    offset = dvz_alloc_new(alloc, 3, &resized);
+    // [XX--|XXX-|XX--|----|----|----|...
+    AT(offset == 4);
+    AT(!resized);
+    AT(dvz_alloc_get(alloc, offset) == 4);
 
-    // offset = dvz_alloc_new(alloc, 13, &resized);
-    // // [XX--|XXX-|XX--|XXXX|XXXX|XXXX|X---|----]
-    // AT(offset == 12);
-    // AT(!resized);
-    // AT(dvz_alloc_get(alloc, _get_slot(alloc, 12)) == 16);
+    offset = dvz_alloc_new(alloc, 13, &resized);
+    // [XX--|XXX-|XX--|XXXX|XXXX|XXXX|X---|----]
+    AT(offset == 12);
+    AT(!resized);
+    AT(dvz_alloc_get(alloc, offset) == 16);
 
-    // offset = dvz_alloc_new(alloc, 5, &resized);
-    // // [XX--|XXX-|XX--|XXXX|XXXX|XXXX|X---|XXXX] [X---|...
-    // AT(resized);
-    // AT(offset == 4 * 7);
-    // AT(alloc.size == 2 * size);
+    offset = dvz_alloc_new(alloc, 5, &resized);
+    // [XX--|XXX-|XX--|XXXX|XXXX|XXXX|X---|XXXX] [X---|...
+    AT(resized);
+    AT(offset == 4 * 7);
 
-    // offset = dvz_alloc_new(alloc, 256, &resized);
-    // // [XX--|XXX-|XX--|XXXX|XXXX|XXXX|X---|XXXX] [X---|...
-    // AT(resized);
-    // AT(offset == 36);
+    offset = dvz_alloc_new(alloc, 256, &resized);
+    // [XX--|XXX-|XX--|XXXX|XXXX|XXXX|X---|XXXX] [X---|...
+    AT(resized);
+    AT(offset == 36);
 
     dvz_alloc_destroy(alloc);
     return 0;

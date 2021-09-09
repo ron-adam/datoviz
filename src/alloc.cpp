@@ -3,6 +3,9 @@
 #include <map>
 
 
+/*************************************************************************************************/
+/*  Structs                                                                                      */
+/*************************************************************************************************/
 
 extern "C" struct DvzAlloc
 {
@@ -12,6 +15,10 @@ extern "C" struct DvzAlloc
 };
 
 
+
+/*************************************************************************************************/
+/*  Functions                                                                                    */
+/*************************************************************************************************/
 
 DvzAlloc* dvz_alloc(VkDeviceSize size, VkDeviceSize alignment)
 {
@@ -67,6 +74,7 @@ VkDeviceSize dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize*
     // Ensure the new slot doesn't already exist.
     ASSERT(alloc->occupied.count(alloc->alloc_size) == 0);
     alloc->occupied[alloc->alloc_size] = req;
+    VkDeviceSize out = alloc->alloc_size;
     // Increase the total allocated size.
     alloc->alloc_size += req;
 
@@ -74,18 +82,18 @@ VkDeviceSize dvz_alloc_new(DvzAlloc* alloc, VkDeviceSize req_size, VkDeviceSize*
     if (alloc->alloc_size > alloc->buf_size)
     {
         // Double the buffer size until it is larger or equal than the allocated size.
-        VkDeviceSize new_size = alloc->buf_size;
-        while (new_size < alloc->alloc_size)
-            new_size *= 2;
+        // VkDeviceSize new_size = alloc->buf_size;
+        while (alloc->buf_size < alloc->alloc_size)
+            alloc->buf_size *= 2;
         ASSERT(alloc->alloc_size <= alloc->buf_size);
         // Change the passed pointer to let the caller know that the underlying buffer had to be
         // resized.
         if (resized != NULL)
-            *resized = new_size;
-        log_trace("will need to resize alloc buffer to %s", pretty_size(new_size));
+            *resized = alloc->buf_size;
+        log_trace("will need to resize alloc buffer to %s", pretty_size(alloc->buf_size));
     }
 
-    return 0;
+    return out;
 }
 
 
