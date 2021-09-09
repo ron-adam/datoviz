@@ -152,6 +152,6 @@ void dvz_alloc_clear(DvzAlloc* alloc)
 
 void dvz_alloc_destroy(DvzAlloc* alloc)
 {
-    ASSERT(alloc != NULL);
-    delete alloc;
+    if (alloc != NULL)
+        delete alloc;
 }

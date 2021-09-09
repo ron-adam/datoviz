@@ -19,14 +19,14 @@ extern "C" {
 /*  Allocs utils                                                                                 */
 /*************************************************************************************************/
 
-static DvzAlloc* _get_alloc(DvzDatAlloc* datalloc, DvzBufferType type, bool mappable)
+static DvzAlloc** _get_alloc(DvzDatAlloc* datalloc, DvzBufferType type, bool mappable)
 {
     ASSERT(datalloc != NULL);
     CHECK_BUFFER_TYPE
 
     uint32_t idx = 2 * (uint32_t)(type - 1) + (uint32_t)mappable - 1;
     ASSERT(idx < 2 * DVZ_BUFFER_TYPE_COUNT - 1);
-    return datalloc->allocators[idx];
+    return &datalloc->allocators[idx];
 }
 
 
@@ -37,7 +37,7 @@ static DvzAlloc* _make_allocator(
     ASSERT(datalloc != NULL);
     CHECK_BUFFER_TYPE
 
-    DvzAlloc* alloc = _get_alloc(datalloc, type, mappable);
+    DvzAlloc** alloc = _get_alloc(datalloc, type, mappable);
 
     // Find alignment by looking at the buffers themselves.
 
@@ -48,8 +48,8 @@ static DvzAlloc* _make_allocator(
     VkDeviceSize alignment = buffer->vma.alignment;
     ASSERT(alignment > 0);
 
-    alloc = dvz_alloc(size, alignment);
-    return alloc;
+    *alloc = dvz_alloc(size, alignment);
+    return *alloc;
 }
 
 
@@ -63,9 +63,9 @@ static VkDeviceSize _allocate_dat(
     CHECK_BUFFER_TYPE
 
     VkDeviceSize resized = 0; // will be non-zero if the buffer must be resized
-    DvzAlloc* alloc = _get_alloc(datalloc, type, mappable);
+    DvzAlloc** alloc = _get_alloc(datalloc, type, mappable);
     // Make the allocation.
-    VkDeviceSize offset = dvz_alloc_new(alloc, req_size, &resized);
+    VkDeviceSize offset = dvz_alloc_new(*alloc, req_size, &resized);
 
     // Need to resize the underlying DvzBuffer.
     if (resized)
@@ -87,8 +87,8 @@ _deallocate_dat(DvzDatAlloc* datalloc, DvzBufferType type, bool mappable, VkDevi
     CHECK_BUFFER_TYPE
 
     // Get the abstract DvzAlloc object associated to the dat's buffer.
-    DvzAlloc* alloc = _get_alloc(datalloc, type, mappable);
-    dvz_alloc_free(alloc, offset);
+    DvzAlloc** alloc = _get_alloc(datalloc, type, mappable);
+    dvz_alloc_free(*alloc, offset);
 }
 
 

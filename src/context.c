@@ -176,8 +176,7 @@ static void _buffer_upload_done(DvzDeq* deq, void* item, void* user_data)
     ASSERT(dat->br.buffer != NULL);
     ASSERT(dat->br.buffer->type == DVZ_BUFFER_TYPE_STAGING);
     log_info("deallocate temporary staging dat with size %s", pretty_size(dat->br.size));
-    // DEBUG: UNCOMMENT
-    // dvz_dat_destroy(dat);
+    dvz_dat_destroy(dat);
 }
 
 
@@ -399,7 +398,8 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
     {
         // Need to allocate a temporary staging buffer.
         ASSERT(!_dat_persistent_staging(dat));
-        log_warn("allocate temporary staging dat, deallocation not implemented yet!");
+        log_warn("allocate temporary staging dat, not efficient -- if this message is displayed "
+                 "frequently, you should have a permanent staging dat");
         stg = _alloc_staging(ctx, size);
         need_dealloc_stg = true;
     }
