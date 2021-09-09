@@ -47,7 +47,7 @@ void dvz_datalloc_destroy(DvzDatAlloc* datalloc)
 
     // Destroy the DvzDat allocators.
     for (uint32_t i = 0; i < 2 * DVZ_BUFFER_TYPE_COUNT - 1; i++)
-        dvz_alloc_destroy(&datalloc->allocators[i]);
+        dvz_alloc_destroy(datalloc->allocators[i]);
 
     dvz_obj_destroyed(&datalloc->obj);
 }

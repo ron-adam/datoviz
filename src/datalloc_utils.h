@@ -26,7 +26,7 @@ static DvzAlloc* _get_alloc(DvzDatAlloc* datalloc, DvzBufferType type, bool mapp
 
     uint32_t idx = 2 * (uint32_t)(type - 1) + (uint32_t)mappable - 1;
     ASSERT(idx < 2 * DVZ_BUFFER_TYPE_COUNT - 1);
-    return &datalloc->allocators[idx];
+    return datalloc->allocators[idx];
 }
 
 
@@ -48,7 +48,7 @@ static DvzAlloc* _make_allocator(
     VkDeviceSize alignment = buffer->vma.alignment;
     ASSERT(alignment > 0);
 
-    *alloc = dvz_alloc(size, alignment);
+    alloc = dvz_alloc(size, alignment);
     return alloc;
 }
 

@@ -369,6 +369,8 @@ file(GLOB sources
     "src/context.c"
     "src/atlases.c"
 
+    "src/alloc.cpp"
+
     "src/canvas.c"
     "src/run.c"
 
