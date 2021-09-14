@@ -98,8 +98,11 @@ void log_log(int level, const char* file, int line, const char* fmt, ...)
     /* Get current time */
     time_t t = time(NULL);
     struct tm* lt = localtime(&t);
-    long int tid =
-        syscall(__NR_gettid) % 1000; // thread idx (only the last 3 digits to save space)
+    // long int tid =
+    //     syscall(__NR_gettid) % 1000; // thread idx (only the last 3 digits to save space)
+    uint64_t tid_;
+    pthread_threadid_np(NULL, &tid_);
+    long int tid = tid_ % 1000;
 
     /* Log to stderr */
     if (!L.quiet)
