@@ -22,6 +22,7 @@
 
 #include <pthread.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,6 +72,25 @@ static void unlock(void)
     }
 }
 
+static uint64_t get_thread_idx()
+{
+#if OS_MACOS
+    // macOS
+    uint64_t tid;
+    pthread_threadid_np(NULL, &tid);
+    return tid;
+#elif OS_WIN32
+    // Windows
+    // TODO
+    return 0;
+#else
+    // Linux
+    uint32_t tid = (uint32_t)(syscall(__NR_gettid));
+    return tid;
+
+#endif
+}
+
 void log_set_udata(void* udata) { L.udata = udata; }
 
 void log_set_lock(log_LockFn fn) { L.lock = fn; }
@@ -98,11 +118,7 @@ void log_log(int level, const char* file, int line, const char* fmt, ...)
     /* Get current time */
     time_t t = time(NULL);
     struct tm* lt = localtime(&t);
-    // long int tid =
-    //     syscall(__NR_gettid) % 1000; // thread idx (only the last 3 digits to save space)
-    uint64_t tid_;
-    pthread_threadid_np(NULL, &tid_);
-    long int tid = tid_ % 1000;
+    uint32_t tid = get_thread_idx() % 1000;
 
     /* Log to stderr */
     if (!L.quiet)
@@ -112,7 +128,7 @@ void log_log(int level, const char* file, int line, const char* fmt, ...)
         clock_t uptime = (clock() / (CLOCKS_PER_SEC / 1000)) % 1000;
         buf[strftime(buf, sizeof(buf), "%H:%M:%S.    ", lt)] = '\0';
         // HH:MM:SS.MMS(thread_id)
-        snprintf(&buf[9], 12, "%03d #%03li", (int)uptime, tid);
+        snprintf(&buf[9], 12, "%03d #%03u", (int)uptime, tid);
 
 #ifdef LOG_USE_COLOR
         fprintf(
