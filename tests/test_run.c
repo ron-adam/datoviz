@@ -449,6 +449,8 @@ int test_run_dat(TestContext* tc)
 
     int res = check_canvas(canvas, "test_run_dat");
 
+    dvz_run_destroy(run);
+
     destroy_visual(&visual);
     dvz_canvas_destroy(canvas);
     return res;
@@ -529,6 +531,8 @@ int test_run_ubo(TestContext* tc)
     dvz_run_loop(run, N_FRAMES);
 
     int res = check_canvas(canvas, "test_run_ubo");
+
+    dvz_run_destroy(run);
 
     // HACK: visual.user_data will be FREE-ed by destroy_visual, but it is stack-allocated here.
     visual.user_data = NULL;

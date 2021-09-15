@@ -52,13 +52,21 @@ static void _autorun_launch(DvzRun* run)
 
 
 
-static void _run_wait(DvzRun* run)
+static void _run_flush(DvzRun* run)
 {
     ASSERT(run != NULL);
     ASSERT(run->app != NULL);
 
+    log_debug("flush run instance");
+
     backend_poll_events(run->app->backend, NULL);
 
+    // Flush all queues.
+    for (uint32_t i = 0; i < 4; i++)
+    {
+        log_debug("flush deq #%d", i);
+        dvz_deq_dequeue_batch(&run->deq, i);
+    }
     // for (uint32_t i = 0; i < 4; i++)
     //     dvz_deq_wait(&run->deq, i);
 
@@ -230,7 +238,7 @@ static void _callback_delete(DvzDeq* deq, void* item, void* user_data)
     // canvas->input.destroying = true;
 
     // Wait before destroying the canvas.
-    _run_wait(app->run);
+    _run_flush(app->run);
 
     // Destroy the canvas.
     dvz_canvas_destroy(canvas);
@@ -489,7 +497,7 @@ int dvz_run_loop(DvzRun* run, uint64_t frame_count)
     }
 
     // Wait.
-    _run_wait(run);
+    _run_flush(run);
 
     run->state = DVZ_RUN_STATE_PAUSED;
 
@@ -568,10 +576,11 @@ void dvz_run_destroy(DvzRun* run)
     ASSERT(run != NULL);
     DvzApp* app = run->app;
     ASSERT(app != NULL);
+    log_debug("destroy run instance");
     // run->destroying = true;
 
     // Wait.
-    _run_wait(app->run);
+    _run_flush(app->run);
 
     dvz_deq_destroy(&run->deq);
 

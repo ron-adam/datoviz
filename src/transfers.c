@@ -350,6 +350,8 @@ void dvz_copy_buffer(
     ASSERT(dst.count == 1);
     ASSERT(size > 0);
 
+    log_debug("copy %s between buffers", pretty_size(size));
+
     // Enqueue an upload transfer task.
     _enqueue_buffer_copy(&transfers->deq, src, src_offset, dst, dst_offset, size);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
@@ -437,8 +439,8 @@ void dvz_download_image(
     dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_UD);
 
     // Wait until the download is done.
-    dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
-    dvz_deq_wait(&transfers->deq, DVZ_TRANSFER_PROC_EV);
+    // dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_EV, true);
+    dvz_deq_dequeue_batch(&transfers->deq, DVZ_TRANSFER_PROC_EV);
 
     // Destroy the transient staging buffer.
     _destroy_buffer_regions(stg);
@@ -457,6 +459,8 @@ void dvz_copy_image(
     ASSERT(dst != NULL);
     ASSERT(src->count == 1);
     ASSERT(dst->count == 1);
+
+    log_debug("copy %s between images", pretty_size(size));
 
     _enqueue_image_copy(&transfers->deq, src, src_offset, dst, dst_offset, shape);
 
