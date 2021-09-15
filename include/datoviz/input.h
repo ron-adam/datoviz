@@ -364,7 +364,7 @@ struct DvzInputCallbackPayload
 struct DvzInput
 {
     DvzBackend backend;
-    // bool destroying; // true as soon as the window is being destroyed
+    bool is_blocked; // if true, no events are raised
 
     // Event queues for mouse, keyboard, and timer.
     DvzDeq deq;
@@ -493,6 +493,14 @@ DVZ_EXPORT DvzInput dvz_input(void);
  * @param window the backend-specific window object
  */
 DVZ_EXPORT void dvz_input_backend(DvzInput* input, DvzBackend backend, void* window);
+
+/**
+ * Block all inputs.
+ *
+ * @param input the input
+ * @param block block or unblock
+ */
+DVZ_EXPORT void dvz_input_block(DvzInput* input, bool block);
 
 /**
  * Register an input callback.

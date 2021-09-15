@@ -887,9 +887,9 @@ static void _input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev, b
 {
     ASSERT(input != NULL);
 
-    // // Do not enqueue input events when the input is being destroyed.
-    // if (input->destroying)
-    //     return;
+    // Do not enqueue input events if the Input instance is blocked.
+    if (input->is_blocked)
+        return;
 
     uint32_t deq_idx = _deq_from_input_type(type);
 
@@ -915,6 +915,14 @@ void dvz_input_event(DvzInput* input, DvzInputType type, DvzInputEvent ev)
 void dvz_input_event_first(DvzInput* input, DvzInputType type, DvzInputEvent ev)
 {
     _input_event(input, type, ev, true);
+}
+
+
+
+void dvz_input_block(DvzInput* input, bool block)
+{
+    ASSERT(input != NULL);
+    input->is_blocked = block;
 }
 
 

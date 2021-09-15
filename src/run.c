@@ -582,6 +582,22 @@ void dvz_run_destroy(DvzRun* run)
     // Wait.
     _run_flush(app->run);
 
+    // Block the input of all canvases.
+    {
+        DvzContainerIterator iterator = dvz_container_iterator(&app->canvases);
+        DvzCanvas* canvas = NULL;
+        while (iterator.item != NULL)
+        {
+            canvas = iterator.item;
+            ASSERT(canvas != NULL);
+            if (!dvz_obj_is_created(&canvas->obj))
+                break;
+
+            dvz_input_block(&canvas->input, true);
+            dvz_container_iter(&iterator);
+        }
+    }
+
     dvz_deq_destroy(&run->deq);
 
     FREE(run);
