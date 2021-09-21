@@ -51,8 +51,8 @@ typedef enum
     DVZ_RUN_CANVAS_RECREATE,    // need to recreate the canvas
     DVZ_RUN_CANVAS_RUNNING,     // whether to run frames or not
     DVZ_RUN_CANVAS_VISIBLE,     // to hide or show a canvas
-    DVZ_RUN_CANVAS_RESIZE,      // the canvas has been resized, need to enqueue first a REFILL
-    DVZ_RUN_CANVAS_CLEAR_COLOR, // to change the clear color, will enqueue first a REFILL
+    DVZ_RUN_CANVAS_RESIZE,      // the canvas has been resized, need to enqueue_first a REFILL
+    DVZ_RUN_CANVAS_CLEAR_COLOR, // to change the clear color, will enqueue_first a REFILL
     DVZ_RUN_CANVAS_DPI,         // change the DPI scaling of the canvas
     DVZ_RUN_CANVAS_FPS,         // whether to show or hide FPS
     DVZ_RUN_CANVAS_DELETE,      // need to delete the canvas

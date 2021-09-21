@@ -27,8 +27,8 @@ static void* _input_thread(void* user_data)
 {
     DvzInput* input = (DvzInput*)user_data;
     ASSERT(input != NULL);
-    // Process both mouse and keyboard events in that thread.
-    dvz_deq_dequeue_loop(&input->deq, DVZ_INPUT_DEQ_MOUSE);
+    // Process all events in that thread.
+    dvz_deq_dequeue_loop(&input->deq, 0);
     return NULL;
 }
 
@@ -774,7 +774,7 @@ DvzInput dvz_input()
     // Queues: mouse, keyboard, timer.
     input.deq = dvz_deq(3);
 
-    // A single proc handling both mouse and keyboard events.
+    // A single proc handling all events.
     dvz_deq_proc(
         &input.deq, 0, 3,
         (uint32_t[]){DVZ_INPUT_DEQ_MOUSE, DVZ_INPUT_DEQ_KEYBOARD, DVZ_INPUT_DEQ_TIMER});
