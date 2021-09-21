@@ -104,6 +104,8 @@ int test_run_1(TestContext* tc)
 
     int res = _check_clear_color(canvas, (cvec3){0, 8, 18});
 
+    dvz_run_destroy(run);
+
     dvz_canvas_destroy(canvas);
     return res;
 }
@@ -165,6 +167,8 @@ int test_run_2(TestContext* tc)
     // Event loop.
     dvz_run_loop(run, 5);
 
+    dvz_run_destroy(run);
+
     return 0;
 }
 
@@ -201,6 +205,8 @@ int test_run_3(TestContext* tc)
 
     // Event loop.
     dvz_run_loop(run, N_FRAMES);
+
+    dvz_run_destroy(run);
 
     dvz_canvas_destroy(canvas);
     return 0;
@@ -251,6 +257,8 @@ int test_run_triangle(TestContext* tc)
 
     int res = check_canvas(canvas, "test_run_triangle");
 
+    dvz_run_destroy(run);
+
     destroy_visual(&visual);
     dvz_canvas_destroy(canvas);
     return res;
@@ -290,6 +298,8 @@ int test_run_offscreen(TestContext* tc)
     dvz_run_loop(run, N_FRAMES);
 
     int res = check_canvas(canvas, "test_run_offscreen");
+
+    dvz_run_destroy(run);
 
     destroy_visual(&visual);
     dvz_canvas_destroy(canvas);
@@ -368,6 +378,8 @@ int test_run_push(TestContext* tc)
     // TODO
 
     int res = check_canvas(canvas, "test_run_push");
+
+    dvz_run_destroy(run);
 
     destroy_visual(&visual);
     dvz_canvas_destroy(canvas);
