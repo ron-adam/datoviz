@@ -20,6 +20,7 @@
  * IN THE SOFTWARE.
  */
 
+#include <assert.h>
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -33,6 +34,8 @@
 
 #include <datoviz/log.h>
 #include <datoviz/macros.h>
+
+#define MAX_THREADS 64
 
 #ifdef _WIN32
 BEGIN_INCL_NO_WARN
@@ -72,23 +75,36 @@ static void unlock(void)
     }
 }
 
+static uint64_t _THREADS[MAX_THREADS];
+
 static uint64_t get_thread_idx()
 {
+    uint64_t tid = 0;
 #if OS_MACOS
     // macOS
-    uint64_t tid;
     pthread_threadid_np(NULL, &tid);
-    return tid;
 #elif OS_WIN32
     // Windows
     // TODO
-    return 0;
 #else
     // Linux
-    uint32_t tid = (uint32_t)(syscall(__NR_gettid));
-    return tid;
-
+    tid = (uint64_t)(syscall(__NR_gettid));
 #endif
+    assert(tid != 0);
+
+    // Relative thread idx lookup.
+    for (uint32_t i = 0; i < MAX_THREADS; i++)
+    {
+        if (_THREADS[i] == 0)
+        {
+            _THREADS[i] = tid;
+            return i;
+        }
+        if (_THREADS[i] == tid)
+            return i;
+    }
+
+    return tid;
 }
 
 void log_set_udata(void* udata) { L.udata = udata; }
@@ -128,7 +144,7 @@ void log_log(int level, const char* file, int line, const char* fmt, ...)
         clock_t uptime = (clock() / (CLOCKS_PER_SEC / 1000)) % 1000;
         buf[strftime(buf, sizeof(buf), "%H:%M:%S.    ", lt)] = '\0';
         // HH:MM:SS.MMS(thread_id)
-        snprintf(&buf[9], 12, "%03d #%03u", (int)uptime, tid);
+        snprintf(&buf[9], 12, "%03d T%01u", (int)uptime, tid);
 
 #ifdef LOG_USE_COLOR
         fprintf(
