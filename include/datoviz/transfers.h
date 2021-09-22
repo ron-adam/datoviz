@@ -65,8 +65,8 @@ typedef struct DvzTransferBuffer DvzTransferBuffer;
 typedef struct DvzTransferBufferCopy DvzTransferBufferCopy;
 typedef struct DvzTransferBufferImage DvzTransferBufferImage;
 typedef struct DvzTransferImageCopy DvzTransferImageCopy;
-typedef struct DvzTransferDownload DvzTransferDownload;
-typedef struct DvzTransferUpload DvzTransferUpload;
+typedef struct DvzTransferDownloadDone DvzTransferDownloadDone;
+typedef struct DvzTransferUploadDone DvzTransferUploadDone;
 typedef struct DvzTransferDup DvzTransferDup;
 typedef struct DvzTransfers DvzTransfers;
 typedef struct DvzTransferDupItem DvzTransferDupItem;
@@ -116,7 +116,7 @@ struct DvzTransferBufferImage
 
 
 
-struct DvzTransferDownload
+struct DvzTransferDownloadDone
 {
     VkDeviceSize size;
     void* data;
@@ -124,7 +124,7 @@ struct DvzTransferDownload
 
 
 
-struct DvzTransferUpload
+struct DvzTransferUploadDone
 {
     void* user_data;
 };

@@ -166,7 +166,7 @@ static void _dat_dealloc(DvzDat* dat)
 
 static void _buffer_upload_done(DvzDeq* deq, void* item, void* user_data)
 {
-    DvzTransferUpload* up = (DvzTransferUpload*)item;
+    DvzTransferUploadDone* up = (DvzTransferUploadDone*)item;
     ASSERT(up != NULL);
     DvzDat* dat = (DvzDat*)up->user_data;
     if (dat == NULL)

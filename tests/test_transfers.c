@@ -18,7 +18,7 @@ static void _dl_done(DvzDeq* deq, void* item, void* user_data)
 
 static void _up_done(DvzDeq* deq, void* item, void* user_data)
 {
-    DvzTransferUpload* up = (DvzTransferUpload*)item;
+    DvzTransferUploadDone* up = (DvzTransferUploadDone*)item;
     ASSERT(up != NULL);
     ASSERT(up->user_data != NULL);
     *((int*)up->user_data) = 314;

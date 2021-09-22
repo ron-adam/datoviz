@@ -129,7 +129,8 @@ static DvzDeqItem* _create_download_done(VkDeviceSize size, void* data)
     ASSERT(data != NULL);
 
     // will be free-ed by the callbacks:
-    DvzTransferDownload* tr = (DvzTransferDownload*)calloc(1, sizeof(DvzTransferDownload));
+    DvzTransferDownloadDone* tr =
+        (DvzTransferDownloadDone*)calloc(1, sizeof(DvzTransferDownloadDone));
     tr->size = size;
     tr->data = data;
     return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_EV, (int)DVZ_TRANSFER_DOWNLOAD_DONE, tr);
@@ -141,7 +142,7 @@ static DvzDeqItem* _create_download_done(VkDeviceSize size, void* data)
 static DvzDeqItem* _create_upload_done(void* user_data)
 {
     // will be free-ed by the callbacks:
-    DvzTransferUpload* tr = (DvzTransferUpload*)calloc(1, sizeof(DvzTransferUpload));
+    DvzTransferUploadDone* tr = (DvzTransferUploadDone*)calloc(1, sizeof(DvzTransferUploadDone));
     tr->user_data = user_data;
     return dvz_deq_enqueue_custom(DVZ_TRANSFER_DEQ_EV, (int)DVZ_TRANSFER_UPLOAD_DONE, tr);
 }
