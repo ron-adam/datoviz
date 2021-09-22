@@ -1,5 +1,6 @@
 #include "../include/datoviz/context.h"
 #include "../include/datoviz/atlases.h"
+#include "../include/datoviz/fifo.h"
 #include "datalloc_utils.h"
 #include "resources_utils.h"
 #include "transfer_utils.h"
@@ -260,8 +261,7 @@ DvzContext* dvz_context(DvzGpu* gpu)
     // deallocated.
     dvz_deq_callback(
         &ctx->transfers.deq, DVZ_TRANSFER_DEQ_EV, //
-        DVZ_TRANSFER_UPLOAD_DONE,                 //
-        _buffer_upload_done, NULL);
+        DVZ_TRANSFER_UPLOAD_DONE, _buffer_upload_done, NULL);
 
 
     // Create the resources.
@@ -414,9 +414,8 @@ void dvz_dat_upload(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* d
     if (!dup)
     {
         // Enqueue a standard upload task, with or without staging buffer.
-        _enqueue_buffer_upload(
-            &transfers->deq, dat->br, offset, stg_br, 0, size, data,
-            need_dealloc_stg ? stg : NULL);
+        DvzDeqItem* done = need_dealloc_stg ? _create_upload_done(stg) : NULL;
+        _enqueue_buffer_upload(&transfers->deq, dat->br, offset, stg_br, 0, size, data, done);
         if (wait)
         {
             if (staging)

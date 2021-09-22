@@ -208,7 +208,7 @@ static void _enqueue_buffer_upload(
     DvzDeq* deq,                                   //
     DvzBufferRegions br, VkDeviceSize buf_offset,  // destination buffer
     DvzBufferRegions stg, VkDeviceSize stg_offset, // optional staging buffer
-    VkDeviceSize size, void* data, void* done_data)
+    VkDeviceSize size, void* data, DvzDeqItem* done_item)
 {
     ASSERT(deq != NULL);
     ASSERT(size > 0);
@@ -247,9 +247,8 @@ static void _enqueue_buffer_upload(
 
     // Enqueue an UPLOAD_DONE event with a custom user pointer. Used for temporary staging buffer
     // dat deallocation after upload.
-    if (done_data != NULL)
+    if (done_item != NULL)
     {
-        DvzDeqItem* done_item = _create_upload_done(done_data);
         dvz_deq_enqueue_next(stg.buffer == NULL ? deq_item : next_item, done_item, false);
     }
 

@@ -164,7 +164,7 @@ int test_transfers_buffer_copy(TestContext* tc)
     DvzBufferRegions br = _standalone_buffer_regions(gpu, DVZ_BUFFER_TYPE_VERTEX, 1, 1024);
 
     // Enqueue an upload transfer task.
-    _enqueue_buffer_upload(&transfers->deq, br, 0, stg, 0, 128, data, &res);
+    _enqueue_buffer_upload(&transfers->deq, br, 0, stg, 0, 128, data, _create_upload_done(&res));
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
     // (the background thread only processes download/upload tasks).
     dvz_deq_dequeue(&transfers->deq, DVZ_TRANSFER_PROC_CPY, true);
