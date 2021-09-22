@@ -571,7 +571,8 @@ static void _upfill_callback(DvzInput* input, DvzInputEvent ev, void* user_data)
     double y = ev.m.pos[1] / (double)size[1];
 
     // Upfill
-    // dvz_dat_upfill(canvas->app->run, canvas, dat, offset, size, data);
+    // dvz_dat_upfill(canvas->app->run, canvas, visual->dat, 0, 3 * sizeof(TestVertex),
+    // visual->data);
 }
 
 int test_run_upfill(TestContext* tc)
