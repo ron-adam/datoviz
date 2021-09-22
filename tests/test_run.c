@@ -555,6 +555,70 @@ int test_run_ubo(TestContext* tc)
 
 
 
+static void _upfill_callback(DvzInput* input, DvzInputEvent ev, void* user_data)
+{
+    DvzCanvas* canvas = (DvzCanvas*)user_data;
+    ASSERT(canvas != NULL);
+    ASSERT(canvas->app != NULL);
+    ASSERT(canvas->app->run != NULL);
+
+    uvec2 size = {0};
+    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
+    ASSERT(size[0] > 0);
+    ASSERT(size[1] > 0);
+
+    double x = ev.m.pos[0] / (double)size[0];
+    double y = ev.m.pos[1] / (double)size[1];
+
+    // Upfill
+    // dvz_dat_upfill(canvas->app->run, canvas, dat, offset, size, data);
+}
+
+int test_run_upfill(TestContext* tc)
+{
+    DvzApp* app = tc->app;
+    DvzGpu* gpu = dvz_gpu_best(app);
+
+    // Create a canvas.
+    DvzCanvas* canvas = dvz_canvas(gpu, WIDTH, HEIGHT, 0);
+    dvz_canvas_create(canvas);
+
+    // Triangle visual.
+    TestVisual visual = triangle(canvas, "");
+
+    // Bindings and graphics pipeline.
+    visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
+    dvz_bindings_update(&visual.bindings);
+    dvz_graphics_create(&visual.graphics);
+
+    // Triangle data.
+    triangle_upload(canvas, &visual);
+
+    // Create a run instance.
+    DvzRun* run = dvz_run(app);
+
+    // Refill callback.
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _refill_callback_triangle,
+        &visual);
+
+    // Upfill callback.
+    dvz_input_callback(&canvas->input, DVZ_INPUT_MOUSE_MOVE, _upfill_callback, canvas);
+
+    // Event loop.
+    dvz_run_loop(run, N_FRAMES);
+
+    int res = check_canvas(canvas, "test_run_triangle");
+
+    dvz_run_destroy(run);
+
+    destroy_visual(&visual);
+    dvz_canvas_destroy(canvas);
+    return res;
+}
+
+
+
 // // dir=0: read then write
 // // dir=1: write then read
 // static void _buffer_barrier(TestVisual* visual, DvzCommands* cmds, uint32_t idx, int dir)

@@ -293,6 +293,39 @@ static void _callback_to_refill(DvzDeq* deq, void* item, void* user_data)
 
 
 
+static void _callback_upfill(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    log_trace("callback to refill");
+
+    DvzCanvasEventUpfill* ev = (DvzCanvasEventUpfill*)item;
+    ASSERT(ev != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+    ASSERT(app->run != NULL);
+
+    ASSERT(ev->canvas != NULL);
+    ASSERT(ev->canvas->gpu != NULL);
+    ASSERT(ev->dat != NULL);
+    ASSERT(ev->data != NULL);
+    ASSERT(ev->size > 0);
+
+    // Stop rendering.
+    dvz_queue_wait(ev->canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
+
+    // Upload the data and wait.
+    DvzContext* ctx = ev->canvas->gpu->context;
+    ASSERT(ctx != NULL);
+    dvz_dat_upload(ev->dat, ev->offset, ev->size, ev->data, true);
+
+    // Enqueue to refill, which will trigger refill in the current frame (in the REFILL dequeue
+    // just after the MAIN dequeue which called the current function).
+    _enqueue_to_refill(app->run, ev->canvas);
+}
+
+
+
 // backend-specific
 static void _callback_present(DvzDeq* deq, void* item, void* user_data)
 {
@@ -371,16 +404,25 @@ DvzRun* dvz_run(DvzApp* app)
         &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _default_refill, app);
 
     // Main callbacks.
+
+    // New canvas.
     dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_NEW, _callback_new, app);
 
+    // Delete canvas.
     dvz_deq_callback(
         &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_DELETE, _callback_delete, app);
 
+    // Clear color.
     dvz_deq_callback(
         &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_CLEAR_COLOR, _callback_clear_color, app);
 
+    // Recreate.
     dvz_deq_callback(
         &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_RECREATE, _callback_recreate, app);
+
+    // Upfill.
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_UPFILL, _callback_upfill, app);
 
     // Call dvz_transfers_frame() in the main thread, at every frame, with the current canvas
     // swapchain image index.
@@ -462,6 +504,36 @@ int dvz_run_frame(DvzRun* run)
         return DVZ_RUN_FRAME_RETURN_STOP;
 
     return 0;
+}
+
+
+
+/*************************************************************************************************/
+/*  Dat upfill                                                                                   */
+/*************************************************************************************************/
+
+void dvz_dat_upfill(
+    DvzRun* run, DvzCanvas* canvas, DvzDat* dat, VkDeviceSize offset, VkDeviceSize size,
+    void* data)
+{
+    ASSERT(run != NULL);
+    ASSERT(canvas != NULL);
+    ASSERT(canvas->gpu != NULL);
+    ASSERT(dat != NULL);
+    ASSERT(data != NULL);
+    ASSERT(size > 0);
+
+    // Stop rendering.
+    dvz_queue_wait(canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
+
+    // Upload the data and wait.
+    DvzContext* ctx = canvas->gpu->context;
+    ASSERT(ctx != NULL);
+    dvz_dat_upload(dat, offset, size, data, true);
+
+    // Enqueue to refill, which will trigger refill in the current frame (in the REFILL dequeue
+    // just after the MAIN dequeue which called the current function).
+    _enqueue_to_refill(run, canvas);
 }
 
 

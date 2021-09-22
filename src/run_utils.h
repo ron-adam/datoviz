@@ -44,6 +44,25 @@ static void _enqueue_canvas_frame(DvzRun* run, DvzCanvas* canvas, uint32_t q_idx
 
 
 
+static void _enqueue_upfill(
+    DvzRun* run, DvzCanvas* canvas, DvzDat* dat, //
+    VkDeviceSize offset, VkDeviceSize size, void* data)
+{
+    ASSERT(run != NULL);
+    ASSERT(canvas != NULL);
+
+    log_info("upfill");
+    DvzCanvasEventUpfill* ev = calloc(1, sizeof(DvzCanvasEventUpfill));
+    ev->canvas = canvas;
+    ev->dat = dat;
+    ev->offset = offset;
+    ev->size = size;
+    ev->data = data;
+    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_UPFILL, ev);
+}
+
+
+
 static void _enqueue_to_refill(DvzRun* run, DvzCanvas* canvas)
 {
     ASSERT(run != NULL);

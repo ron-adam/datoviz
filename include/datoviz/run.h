@@ -55,6 +55,7 @@ typedef enum
     DVZ_RUN_CANVAS_CLEAR_COLOR, // to change the clear color, will enqueue_first a REFILL
     DVZ_RUN_CANVAS_DPI,         // change the DPI scaling of the canvas
     DVZ_RUN_CANVAS_FPS,         // whether to show or hide FPS
+    DVZ_RUN_CANVAS_UPFILL,      // a Dat upload immediately followed by a REFILL
     DVZ_RUN_CANVAS_DELETE,      // need to delete the canvas
 
     // REFILL queue
@@ -81,6 +82,7 @@ typedef struct DvzCanvasEventFrame DvzCanvasEventFrame;
 typedef struct DvzCanvasEventRefill DvzCanvasEventRefill;
 typedef struct DvzCanvasEventNew DvzCanvasEventNew;
 typedef struct DvzCanvasEventClearColor DvzCanvasEventClearColor;
+typedef struct DvzCanvasEventUpfill DvzCanvasEventUpfill;
 typedef struct DvzCanvasEvent DvzCanvasEvent;
 
 
@@ -126,6 +128,17 @@ struct DvzCanvasEventClearColor
 {
     DvzCanvas* canvas;
     float r, g, b;
+};
+
+
+
+struct DvzCanvasEventUpfill
+{
+    DvzCanvas* canvas;
+    DvzDat* dat;
+    VkDeviceSize offset;
+    VkDeviceSize size;
+    void* data;
 };
 
 
@@ -210,6 +223,9 @@ DVZ_EXPORT void dvz_run_setupenv(DvzRun* run);
  */
 DVZ_EXPORT int dvz_run_auto(DvzRun* run);
 
+DVZ_EXPORT void dvz_dat_upfill(
+    DvzRun* run, DvzCanvas* canvas, DvzDat* dat, //
+    VkDeviceSize offset, VkDeviceSize size, void* data);
 
 
 #ifdef __cplusplus
