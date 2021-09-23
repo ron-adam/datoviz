@@ -59,9 +59,9 @@ typedef enum
     DVZ_RUN_CANVAS_DELETE,      // need to delete the canvas
 
     // REFILL queue
-    DVZ_RUN_CANVAS_TO_REFILL, // need to refill the canvas, the user should have registered a
-                              // callback
-    DVZ_RUN_CANVAS_REFILL,
+    DVZ_RUN_CANVAS_TO_REFILL,   // trigger a REFILL for the next few frames
+    DVZ_RUN_CANVAS_REFILL_WRAP, // internal event used to implement TO_REFILL/REFILL block
+    DVZ_RUN_CANVAS_REFILL,      // MAJOR EVENT: user callback that does the cmd buf refill
 
     // PRESENT queue
     DVZ_RUN_CANVAS_PRESENT, // need to present the frame to the swapchain

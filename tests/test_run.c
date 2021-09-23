@@ -555,7 +555,7 @@ int test_run_ubo(TestContext* tc)
 
 
 
-static uint32_t MAX_TRIANGLES = 8;
+static uint32_t MAX_TRIANGLES = 16;
 
 static void _upfill_callback(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
@@ -653,7 +653,7 @@ int test_run_upfill(TestContext* tc)
     dvz_input_callback(&canvas->input, DVZ_INPUT_TIMER_TICK, _upfill_callback, canvas);
 
     // Add a timer.
-    dvz_input_event(&canvas->input, DVZ_INPUT_TIMER_ADD, (DvzInputEvent){.ta = {.period = 200}});
+    dvz_input_event(&canvas->input, DVZ_INPUT_TIMER_ADD, (DvzInputEvent){.ta = {.period = 100}});
 
     // Event loop.
     dvz_run_loop(run, N_FRAMES);

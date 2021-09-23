@@ -98,6 +98,11 @@ DvzRun* dvz_run(DvzApp* app)
     dvz_deq_callback(
         &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_TO_REFILL, _callback_to_refill, app);
 
+    // REFILL_WRAP, that calls the REFILL callback if the current cmd buf is not blocked.
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL_WRAP, //
+        _callback_refill_wrap, app);
+
     // Default refill callback.
     // NOTE: this is a default callback: it will be discarded if the user registers other command
     // buffer refill callbacks.
@@ -142,7 +147,7 @@ int dvz_run_frame(DvzRun* run)
     DvzApp* app = run->app;
     ASSERT(app != NULL);
 
-    log_info("frame #%06d", run->global_frame_idx);
+    log_trace("frame #%06d", run->global_frame_idx);
 
     // Go through all canvases to find out which are active, and enqueue a FRAME event for them.
     uint32_t n_canvas_running = _enqueue_frames(run);
