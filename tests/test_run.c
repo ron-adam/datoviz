@@ -601,7 +601,7 @@ static void _upfill_callback(DvzInput* input, DvzInputEvent ev, void* user_data)
     }
 
     // Upfill
-    dvz_dat_upfill(canvas->app->run, canvas, visual->dat, 0, size, visual->data);
+    dvz_dat_upfill(canvas, visual->dat, 0, size, visual->data);
 }
 
 int test_run_upfill(TestContext* tc)

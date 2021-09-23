@@ -234,10 +234,14 @@ DVZ_EXPORT int dvz_run_auto(DvzRun* run);
  * !!! note
  *     May be called from a background thread.
  *
- * @param the run instance
+ * @param canvas the canvas
+ * @param dat the dat
+ * @param offset the offset
+ * @param size the size
+ * @param data the data to upload
  */
 DVZ_EXPORT void dvz_dat_upfill(
-    DvzRun* run, DvzCanvas* canvas, DvzDat* dat, //
+    DvzCanvas* canvas, DvzDat* dat, //
     VkDeviceSize offset, VkDeviceSize size, void* data);
 
 

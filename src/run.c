@@ -200,17 +200,17 @@ int dvz_run_frame(DvzRun* run)
 /*************************************************************************************************/
 
 void dvz_dat_upfill(
-    DvzRun* run, DvzCanvas* canvas, DvzDat* dat, //
-    VkDeviceSize offset, VkDeviceSize size, void* data)
+    DvzCanvas* canvas, DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data)
 {
-    ASSERT(run != NULL);
     ASSERT(canvas != NULL);
     ASSERT(canvas->gpu != NULL);
+    ASSERT(canvas->app != NULL);
+    ASSERT(canvas->app->run != NULL);
     ASSERT(dat != NULL);
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
-    _enqueue_upfill(run, canvas, dat, offset, size, data);
+    _enqueue_upfill(canvas->app->run, canvas, dat, offset, size, data);
 }
 
 
