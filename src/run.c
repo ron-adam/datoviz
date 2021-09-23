@@ -240,15 +240,15 @@ int dvz_run_loop(DvzRun* run, uint64_t frame_count)
         // Stop the event loop if the return code of dvz_run_frame() requires it.
         if (ret == DVZ_RUN_FRAME_RETURN_STOP)
         {
-            log_debug("end event loop");
+            // log_debug("end event loop");
             break;
         }
     }
+    log_debug("end event loop after %d frames", run->global_frame_idx);
+    run->state = DVZ_RUN_STATE_PAUSED;
 
     // Wait.
     _run_flush(run);
-
-    run->state = DVZ_RUN_STATE_PAUSED;
 
     return 0;
 }
@@ -326,7 +326,6 @@ void dvz_run_destroy(DvzRun* run)
     DvzApp* app = run->app;
     ASSERT(app != NULL);
     log_debug("destroy run instance");
-    // run->destroying = true;
 
     // Wait.
     _run_flush(app->run);

@@ -472,6 +472,8 @@ int test_run_dat(TestContext* tc)
 
 static void _ubo_cursor_callback(DvzInput* input, DvzInputEvent ev, void* user_data)
 {
+    log_debug("ubo cursor callback");
+
     DvzCanvas* canvas = (DvzCanvas*)user_data;
     ASSERT(canvas != NULL);
     ASSERT(canvas->app != NULL);
@@ -479,7 +481,7 @@ static void _ubo_cursor_callback(DvzInput* input, DvzInputEvent ev, void* user_d
 
     TestVisual* visual = (TestVisual*)canvas->user_data;
     ASSERT(visual != NULL);
-    ASSERT(visual->dat != NULL);
+    ASSERT(visual->dat_u != NULL);
 
     uvec2 size = {0};
     dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);

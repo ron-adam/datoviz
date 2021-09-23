@@ -267,6 +267,21 @@ void dvz_transfers_destroy(DvzTransfers* transfers)
 
 // WARNING: do not use the functions below except for offscreen/testing purposes.
 
+static void _flush_transfers(DvzTransfers* transfers)
+{
+    ASSERT(transfers != NULL);
+    ASSERT(transfers->gpu != NULL);
+    ASSERT(transfers->gpu->app != NULL);
+
+    // Flush all queues.
+    for (uint32_t i = 0; i < transfers->deq.proc_count; i++)
+    {
+        log_debug("flush transfers deq #%d", i);
+        dvz_deq_dequeue_batch(&transfers->deq, i);
+    }
+    dvz_app_wait(transfers->gpu->app);
+}
+
 
 
 void dvz_upload_buffer(
@@ -283,6 +298,8 @@ void dvz_upload_buffer(
     ASSERT(gpu != NULL);
 
     log_debug("upload %s to a buffer", pretty_size(size));
+
+    _flush_transfers(transfers);
 
     // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
     // Furthermore, we could avoid using a staging buffer by testing if the buffer is host-visible.
@@ -315,6 +332,8 @@ void dvz_download_buffer(
     ASSERT(gpu != NULL);
 
     log_debug("download %s from a buffer", pretty_size(size));
+
+    _flush_transfers(transfers);
 
     // NOTE: not optimal at all: we create a special staging DvzBuffer and we delete it at the end.
     // Furthermore, we could avoid using a staging buffer by testing if the buffer is host-visible.
@@ -352,6 +371,8 @@ void dvz_copy_buffer(
 
     log_debug("copy %s between buffers", pretty_size(size));
 
+    _flush_transfers(transfers);
+
     // Enqueue an upload transfer task.
     _enqueue_buffer_copy(&transfers->deq, src, src_offset, dst, dst_offset, size);
     // NOTE: we need to dequeue the copy proc manually, it is not done by the background thread
@@ -385,6 +406,8 @@ void dvz_upload_image(
     ASSERT(data != NULL);
     ASSERT(size > 0);
     ASSERT(img->count == 1);
+
+    _flush_transfers(transfers);
 
     DvzGpu* gpu = transfers->gpu;
     ASSERT(gpu != NULL);
@@ -420,6 +443,8 @@ void dvz_download_image(
     {
         log_debug("note: downloading a single copy of a multiset image");
     }
+
+    _flush_transfers(transfers);
 
     DvzGpu* gpu = transfers->gpu;
     ASSERT(gpu != NULL);
@@ -461,6 +486,8 @@ void dvz_copy_image(
     ASSERT(dst->count == 1);
 
     log_debug("copy %s between images", pretty_size(size));
+
+    _flush_transfers(transfers);
 
     _enqueue_image_copy(&transfers->deq, src, src_offset, dst, dst_offset, shape);
 
