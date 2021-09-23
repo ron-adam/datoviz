@@ -568,25 +568,8 @@ static void _upfill_callback(DvzInput* input, DvzInputEvent ev, void* user_data)
     ASSERT(visual != NULL);
     ASSERT(visual->dat != NULL);
 
-    uvec2 cs = {0};
-    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, cs);
-    ASSERT(cs[0] > 0);
-    ASSERT(cs[1] > 0);
-
-    double x = ev.m.pos[0] / (double)cs[0];
-    // double y = ev.m.pos[1] / (double)cs[1];
-
-    // Change the data.
-    uint32_t N = (uint32_t)round(x * MAX_TRIANGLES);
-    N = CLIP(N, 3, MAX_TRIANGLES);
+    uint32_t N = 3 + (ev.t.tick % (MAX_TRIANGLES - 3));
     VkDeviceSize size = 3 * N * sizeof(TestVertex);
-
-    // Allocate a dat that will contain the triangle vertices.
-    // dvz_dat_resize(visual->dat, size);
-
-    // HACK: the TestVisual has both a DvzDat* and a DvzBufferRegions struct, so as to be
-    // testable by modules that do not depend on the Dat system.
-    // visual->br = visual->dat->br;
 
     TestVertex* vertices = visual->data;
     ASSERT(vertices != NULL);
@@ -654,6 +637,7 @@ int test_run_upfill(TestContext* tc)
 
     // Upload the triangle data to the dat.
     visual.data = calloc(size, 1);
+    memcpy(visual.data, (TestVertex[])TRIANGLE_VERTICES, 3 * sizeof(TestVertex));
     dvz_dat_upload(visual.dat, 0, size, visual.data, true);
 
 
@@ -666,7 +650,10 @@ int test_run_upfill(TestContext* tc)
         _refill_callback_triangle, &visual);
 
     // Upfill callback.
-    dvz_input_callback(&canvas->input, DVZ_INPUT_MOUSE_MOVE, _upfill_callback, canvas);
+    dvz_input_callback(&canvas->input, DVZ_INPUT_TIMER_TICK, _upfill_callback, canvas);
+
+    // Add a timer.
+    dvz_input_event(&canvas->input, DVZ_INPUT_TIMER_ADD, (DvzInputEvent){.ta = {.period = 1000}});
 
     // Event loop.
     dvz_run_loop(run, N_FRAMES);

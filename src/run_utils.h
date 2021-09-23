@@ -134,6 +134,87 @@ static uint32_t _enqueue_frames(DvzRun* run)
 /*  Utils for the run module                                                                     */
 /*************************************************************************************************/
 
+static bool _autorun_is_set(DvzAutorun* autorun)
+{
+    ASSERT(autorun != NULL);
+    // Enable the autorun?
+    DvzAutorun empty = {0};
+    // Enable if and only if at least one of the autorun fields is not blank.
+    return memcmp(autorun, &empty, sizeof(DvzAutorun)) != 0;
+}
+
+
+
+static void _autorun_launch(DvzRun* run)
+{
+    ASSERT(run != NULL);
+    ASSERT(run->autorun.enable);
+    DvzAutorun* ar = &run->autorun;
+    log_debug(
+        "start autorun: offscreen %d, frames %d, save %s", //
+        ar->frame_count, ar->frame_count, ar->filepath);
+
+    // TODO: implement autorun.
+}
+
+
+
+static void _run_flush(DvzRun* run)
+{
+    ASSERT(run != NULL);
+    ASSERT(run->app != NULL);
+
+    log_debug("flush run instance");
+
+    backend_poll_events(run->app->backend, NULL);
+
+    // Flush all queues.
+    for (uint32_t i = 0; i < 4; i++)
+    {
+        log_debug("flush deq #%d", i);
+        dvz_deq_dequeue_batch(&run->deq, i);
+    }
+    // for (uint32_t i = 0; i < 4; i++)
+    //     dvz_deq_wait(&run->deq, i);
+
+    dvz_app_wait(run->app);
+}
+
+
+
+static void _gpu_sync_hack(DvzApp* app)
+{
+    // BIG HACK: this call is required at every frame, otherwise the event loop randomly crashes,
+    // fences deadlock (?) and the Vulkan validation layers raise errors, causing the whole system
+    // to crash for ~20 seconds. This is probably a ugly hack and I'd appreciate any help from a
+    // Vulkan synchronization expert.
+
+    // NOTE: this has never been tested with multiple GPUs yet.
+    DvzContainerIterator iterator = dvz_container_iterator(&app->gpus);
+    DvzGpu* gpu = NULL;
+    while (iterator.item != NULL)
+    {
+        gpu = iterator.item;
+        if (!dvz_obj_is_created(&gpu->obj))
+            break;
+
+        // IMPORTANT: we need to wait for the present queue to be idle, otherwise the GPU hangs
+        // when waiting for fences (not sure why). The problem only arises when using different
+        // queues for command buffer submission and swapchain present. There has be a better
+        // way to fix this.
+        if (gpu->queues.queues[DVZ_DEFAULT_QUEUE_PRESENT] != VK_NULL_HANDLE &&
+            gpu->queues.queues[DVZ_DEFAULT_QUEUE_PRESENT] !=
+                gpu->queues.queues[DVZ_DEFAULT_QUEUE_RENDER])
+        {
+            dvz_queue_wait(gpu, DVZ_DEFAULT_QUEUE_PRESENT);
+        }
+
+        dvz_container_iter(&iterator);
+    }
+}
+
+
+
 static bool _canvas_check(DvzCanvas* canvas)
 {
     if (!dvz_obj_is_created(&canvas->obj))
@@ -254,6 +335,256 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
     _enqueue_canvas_event(run, canvas, DVZ_RUN_DEQ_PRESENT, DVZ_RUN_CANVAS_PRESENT);
 
     canvas->frame_idx++;
+}
+
+
+
+/*************************************************************************************************/
+/*  Canvas callbacks                                                                             */
+/*************************************************************************************************/
+
+static void _callback_new(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    log_debug("create new canvas");
+
+    ASSERT(deq != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+
+    DvzCanvasEventNew* ev = (DvzCanvasEventNew*)item;
+    ASSERT(ev != NULL);
+
+    // Create the canvas.
+    DvzCanvas* canvas = dvz_canvas(ev->gpu, ev->width, ev->height, ev->flags);
+    dvz_canvas_create(canvas);
+}
+
+
+
+static void _callback_frame(
+    DvzDeq* deq, DvzDeqProcBatchPosition pos, uint32_t item_count, DvzDeqItem* items,
+    void* user_data)
+{
+    ASSERT(deq != NULL);
+    log_trace("callback frame");
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+    DvzRun* run = app->run;
+    ASSERT(run != NULL);
+
+    DvzCanvasEventFrame* ev = NULL;
+    for (uint32_t i = 0; i < item_count; i++)
+    {
+        ASSERT(items[i].type == DVZ_RUN_CANVAS_FRAME);
+        ev = items[i].item;
+        ASSERT(ev != NULL);
+
+        // We enqueue another FRAME event, but in the MAIN queue: this is the event the user
+        // callbacks will subscribe to.
+        _enqueue_canvas_frame(run, ev->canvas, DVZ_RUN_DEQ_MAIN);
+
+        // TODO: optim: if multiple FRAME events for 1 canvas, make sure we call it only once.
+        // One frame for one canvas.
+        _canvas_frame(run, ev->canvas);
+    }
+}
+
+
+static void _callback_transfers(DvzDeq* deq, void* item, void* user_data)
+{
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+
+    DvzCanvasEventFrame* ev = (DvzCanvasEventFrame*)item;
+    ASSERT(item != NULL);
+
+    DvzCanvas* canvas = ev->canvas;
+    ASSERT(canvas != NULL);
+
+    uint32_t img_idx = canvas->render.swapchain.img_idx;
+
+    DvzGpu* gpu = NULL;
+
+    DvzContainerIterator iter = dvz_container_iterator(&app->gpus);
+    while (iter.item != NULL)
+    {
+        gpu = (DvzGpu*)iter.item;
+        ASSERT(gpu != NULL);
+        ASSERT(gpu->obj.type == DVZ_OBJECT_TYPE_GPU);
+        if (!dvz_obj_is_created(&gpu->obj))
+            break;
+        ASSERT(gpu->context != NULL);
+
+        // Process the pending data transfers (copies and dup transfers that require
+        // synchronization and integration with the event loop).
+        dvz_transfers_frame(&gpu->context->transfers, img_idx);
+
+        dvz_container_iter(&iter);
+    }
+}
+
+
+
+static void _callback_recreate(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    log_debug("canvas recreate");
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+    DvzRun* run = app->run;
+    ASSERT(run != NULL);
+
+    DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
+    ASSERT(item != NULL);
+    DvzCanvas* canvas = ev->canvas;
+
+    // Recreate the canvas.
+    dvz_canvas_recreate(canvas);
+
+    // Enqueue a REFILL after the canvas recreation.
+    _enqueue_to_refill(run, canvas);
+}
+
+
+
+static void _callback_delete(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+
+    DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
+    ASSERT(ev != NULL);
+    DvzCanvas* canvas = ev->canvas;
+
+    // if (!_canvas_check(canvas))
+    //     return;
+    log_debug("delete canvas");
+    // canvas->destroying = true;
+    // canvas->input.destroying = true;
+
+    // Wait before destroying the canvas.
+    _run_flush(app->run);
+
+    // Destroy the canvas.
+    dvz_canvas_destroy(canvas);
+}
+
+
+
+static void _callback_clear_color(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+
+    DvzCanvasEventClearColor* ev = (DvzCanvasEventClearColor*)item;
+    ASSERT(ev != NULL);
+    DvzCanvas* canvas = ev->canvas;
+    if (!_canvas_check(canvas))
+        return;
+    log_debug("change canvas clear color");
+
+    canvas->render.renderpass.clear_values->color = (VkClearColorValue){{ev->r, ev->g, ev->b, 1}};
+    _enqueue_to_refill(app->run, canvas);
+}
+
+
+
+static void _callback_to_refill(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    log_trace("callback to refill");
+
+    DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
+    ASSERT(ev != NULL);
+    ASSERT(ev->canvas != NULL);
+    // _canvas_refill(ev->canvas);
+
+    // Unblock all command buffers so that they are refilled one by one at the next frames.
+    memset(ev->canvas->cmds_render.blocked, 0, sizeof(ev->canvas->cmds_render.blocked));
+
+    // for (uint32_t i = 0; i < item_count; i++)
+    // {
+    //     ASSERT(items[i].type == DVZ_RUN_CANVAS_TO_REFILL);
+    //     ev = item;
+    //     ASSERT(ev != NULL);
+
+    //     // TODO: optim: if multiple REFILL events for 1 canvas, make sure we call it only once.
+    //     // One frame for one canvas.
+    //     _canvas_refill(ev->canvas);
+    // }
+}
+
+
+
+static void _callback_upfill(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+    log_info("callback to refill");
+
+    DvzCanvasEventUpfill* ev = (DvzCanvasEventUpfill*)item;
+    ASSERT(ev != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+    ASSERT(app->run != NULL);
+
+    ASSERT(ev->canvas != NULL);
+    ASSERT(ev->canvas->gpu != NULL);
+    ASSERT(ev->dat != NULL);
+    ASSERT(ev->data != NULL);
+    ASSERT(ev->size > 0);
+
+    // Stop rendering.
+    dvz_queue_wait(ev->canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
+
+    // Resize if needed.
+    dvz_dat_resize(ev->dat, ev->size);
+
+    // Upload the data and wait.
+    DvzContext* ctx = ev->canvas->gpu->context;
+    ASSERT(ctx != NULL);
+    dvz_dat_upload(ev->dat, ev->offset, ev->size, ev->data, true);
+
+    // Enqueue to refill, which will trigger refill in the current frame (in the REFILL dequeue
+    // just after the MAIN dequeue which called the current function).
+    _enqueue_to_refill(app->run, ev->canvas);
+}
+
+
+
+// backend-specific
+static void _callback_present(DvzDeq* deq, void* item, void* user_data)
+{
+    ASSERT(deq != NULL);
+
+    // frame submission for that canvas: submit cmd bufs, present swapchain
+
+    ASSERT(deq != NULL);
+
+    DvzApp* app = (DvzApp*)user_data;
+    ASSERT(app != NULL);
+    // DvzRun* run = app->run;
+    // ASSERT(run != NULL);
+
+    DvzCanvasEvent* ev = (DvzCanvasEvent*)item;
+    ASSERT(item != NULL);
+    DvzCanvas* canvas = ev->canvas;
+
+    // Process only created canvas.
+    if (!_canvas_check(canvas))
+        return;
+    // log_debug("present canvas");
+
+    // Submit the command buffers and make the swapchain rendering.
+    canvas_render(canvas);
 }
 
 
