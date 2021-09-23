@@ -51,7 +51,6 @@ static void _enqueue_upfill(
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
 
-    log_info("upfill");
     DvzCanvasEventUpfill* ev = calloc(1, sizeof(DvzCanvasEventUpfill));
     ev->canvas = canvas;
     ev->dat = dat;
@@ -70,7 +69,7 @@ static void _enqueue_to_refill(DvzRun* run, DvzCanvas* canvas)
 
     DvzCanvasEvent* ev = calloc(1, sizeof(DvzCanvasEvent));
     ev->canvas = canvas;
-    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_TO_REFILL, ev);
+    dvz_deq_enqueue_first(&run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_TO_REFILL, ev);
 }
 
 
@@ -85,7 +84,7 @@ static void _enqueue_refill(DvzRun* run, DvzCanvas* canvas, DvzCommands* cmds, u
     ev->canvas = canvas;
     ev->cmds = cmds;
     ev->cmd_idx = cmd_idx;
-    dvz_deq_enqueue_first(&run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, ev);
+    dvz_deq_enqueue(&run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, ev);
 }
 
 
@@ -227,8 +226,9 @@ static bool _canvas_check(DvzCanvas* canvas)
 
 
 
-// Perform the actual user-specified command buffer refill, for the current swapchain image only.
-static void _canvas_refill(DvzCanvas* canvas)
+// Return whether we should refill for the current frame. If so, reset the command buffer.
+// The user-specified command buffer refill callback should be called just afterwards.
+static bool _should_refill(DvzCanvas* canvas)
 {
     ASSERT(canvas != NULL);
     ASSERT(canvas->app != NULL);
@@ -237,31 +237,34 @@ static void _canvas_refill(DvzCanvas* canvas)
     ASSERT(run != NULL);
 
     if (!_canvas_check(canvas))
-        return;
+        return false;
 
     // Default command buffers for the canvas.
     DvzCommands* cmds = &canvas->cmds_render;
     uint32_t img_idx = canvas->render.swapchain.img_idx;
 
     // Check if the command buffer for the current swapchain image is blocked.
-    if (cmds->blocked[img_idx])
+    bool should_refill = !cmds->blocked[img_idx];
+
+    if (should_refill)
+        dvz_cmd_reset(cmds, img_idx);
+
+    return should_refill;
+}
+
+// Should be called right after the user-specified refill callback was called.
+// This marks the current frame's current buffer as blocked.
+static void _refill_done(DvzCanvas* canvas)
+{
+    ASSERT(canvas != NULL);
+    ASSERT(canvas->app != NULL);
+
+    if (!_canvas_check(canvas))
         return;
-    log_debug("canvas refill #%d", img_idx);
 
-    // HERE we assume the command buffer is NOT blocked, so we want to refill it immediately by
-    // calling the user callback. But first, we need to reset it.
-    dvz_cmd_reset(cmds, img_idx);
+    DvzCommands* cmds = &canvas->cmds_render;
+    uint32_t img_idx = canvas->render.swapchain.img_idx;
 
-    // HACK: here, we want to call the user callback to REFILL directly. We need to enqueue first
-    // and dequeue immediately to be sure the callback is called and the command buffer is filled.
-    // Better to have a special deq method to call the callback and bypassing the queue altogether/
-    _enqueue_refill(run, canvas, cmds, img_idx);
-    // This will call the user callback for REFILL, for the current swapchain image.
-    dvz_deq_dequeue(&run->deq, DVZ_RUN_DEQ_REFILL, true);
-
-    // Make sure the command buffer is filled.
-    // NOTE: there is a default callback registered for the REFILL event, which fills the canvas
-    // with a blank color. If there are other FILL callbacks, this default callback is discarded.
     ASSERT(dvz_obj_is_created(&cmds->obj));
 
     // Immediately block the command buffer so that it is not refilled at every frame if that's not
@@ -277,7 +280,7 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
 
-    log_trace("canvas frame #%d", canvas->frame_idx);
+    log_debug("canvas frame #%d", canvas->frame_idx);
 
     DvzApp* app = canvas->app;
     ASSERT(app != NULL);
@@ -326,8 +329,12 @@ static void _canvas_frame(DvzRun* run, DvzCanvas* canvas)
         return;
     }
 
-    // NOTE: command buffer refill actually happens here.
-    _canvas_refill(canvas);
+    // _canvas_refill(canvas);
+    // At every frame, enqueue a REFILL event in the REFILL queue, but the REFILL callback
+    // may be blocked if there was no TO_REFILL event.
+    DvzCommands* cmds = &canvas->cmds_render;
+    uint32_t img_idx = canvas->render.swapchain.img_idx;
+    _enqueue_refill(run, canvas, cmds, img_idx);
 
     // If all good, enqueue a PRESENT task for that canvas. The PRESENT callback does the rendering
     // (cmd buf submission) and send the rendered image for presentation to the swapchain.
@@ -363,6 +370,7 @@ static void _callback_new(DvzDeq* deq, void* item, void* user_data)
 
 
 
+// Batch callback from the FRAME event in the FRAME queue.
 static void _callback_frame(
     DvzDeq* deq, DvzDeqProcBatchPosition pos, uint32_t item_count, DvzDeqItem* items,
     void* user_data)
@@ -527,7 +535,7 @@ static void _callback_to_refill(DvzDeq* deq, void* item, void* user_data)
 static void _callback_upfill(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
-    log_info("callback to refill");
+    log_info("callback upfill");
 
     DvzCanvasEventUpfill* ev = (DvzCanvasEventUpfill*)item;
     ASSERT(ev != NULL);

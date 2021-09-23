@@ -653,7 +653,7 @@ int test_run_upfill(TestContext* tc)
     dvz_input_callback(&canvas->input, DVZ_INPUT_TIMER_TICK, _upfill_callback, canvas);
 
     // Add a timer.
-    dvz_input_event(&canvas->input, DVZ_INPUT_TIMER_ADD, (DvzInputEvent){.ta = {.period = 1000}});
+    dvz_input_event(&canvas->input, DVZ_INPUT_TIMER_ADD, (DvzInputEvent){.ta = {.period = 200}});
 
     // Event loop.
     dvz_run_loop(run, N_FRAMES);

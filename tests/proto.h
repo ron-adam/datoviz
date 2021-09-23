@@ -212,6 +212,7 @@ static void triangle_commands(
     uint32_t height = framebuffers->attachments[0]->shape[1];
     uint32_t n_vertices = br.size / sizeof(TestVertex);
     n_vertices = n_vertices > 0 ? n_vertices : 3;
+    log_info("refill n vertices: %d", n_vertices);
     ASSERT(n_vertices > 0);
 
     ASSERT(width > 0);

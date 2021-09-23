@@ -58,20 +58,14 @@ DvzRun* dvz_run(DvzApp* app)
     dvz_deq_proc(&run->deq, 2, 1, (uint32_t[]){DVZ_RUN_DEQ_REFILL});
     dvz_deq_proc(&run->deq, 3, 1, (uint32_t[]){DVZ_RUN_DEQ_PRESENT});
 
-    // Deq batch callbacks.
+    // FRAME queue.
+
     dvz_deq_proc_batch_callback(
         &run->deq, DVZ_RUN_DEQ_FRAME, (int)DVZ_RUN_CANVAS_FRAME, _callback_frame, app);
 
-    dvz_deq_callback(
-        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_TO_REFILL, _callback_to_refill, app);
 
-    // Default refill callback.
-    // NOTE: this is a default callback: it will be discarded if the user registers other command
-    // buffer refill callbacks.
-    dvz_deq_callback_default(
-        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _default_refill, app);
 
-    // Main callbacks.
+    // MAIN callbacks.
 
     // New canvas.
     dvz_deq_callback(&run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_NEW, _callback_new, app);
@@ -96,6 +90,23 @@ DvzRun* dvz_run(DvzApp* app)
     // swapchain image index.
     dvz_deq_callback(
         &run->deq, DVZ_RUN_DEQ_MAIN, (int)DVZ_RUN_CANVAS_FRAME, _callback_transfers, app);
+
+
+
+    // REFILL queue.
+
+    dvz_deq_callback(
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_TO_REFILL, _callback_to_refill, app);
+
+    // Default refill callback.
+    // NOTE: this is a default callback: it will be discarded if the user registers other command
+    // buffer refill callbacks.
+    dvz_deq_callback_default(
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _default_refill, app);
+
+
+
+    // PRESENT queue.
 
     // Present callbacks.
     dvz_deq_callback(
@@ -166,7 +177,9 @@ int dvz_run_frame(DvzRun* run)
     dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_PRESENT);
 
     _gpu_sync_hack(app);
-    // dvz_sleep(50);
+
+    // DEBUG
+    // dvz_sleep(100);
 
     // If no canvas is running, stop the event loop.
     if (n_canvas_running == 0)
