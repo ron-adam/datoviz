@@ -249,8 +249,8 @@ int test_run_triangle(TestContext* tc)
 
     // Refill callback.
     dvz_deq_callback(
-        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _refill_callback_triangle,
-        &visual);
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, //
+        _refill_callback_triangle, &visual);
 
     // Event loop.
     dvz_run_loop(run, N_FRAMES);
@@ -562,17 +562,33 @@ static void _upfill_callback(DvzInput* input, DvzInputEvent ev, void* user_data)
     ASSERT(canvas->app != NULL);
     ASSERT(canvas->app->run != NULL);
 
-    uvec2 size = {0};
-    dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
-    ASSERT(size[0] > 0);
-    ASSERT(size[1] > 0);
+    TestVisual* visual = (TestVisual*)canvas->user_data;
+    ASSERT(visual != NULL);
+    ASSERT(visual->dat != NULL);
 
-    double x = ev.m.pos[0] / (double)size[0];
-    double y = ev.m.pos[1] / (double)size[1];
+    // uvec2 size = {0};
+    // dvz_canvas_size(canvas, DVZ_CANVAS_SIZE_SCREEN, size);
+    // ASSERT(size[0] > 0);
+    // ASSERT(size[1] > 0);
+
+    // double x = ev.m.pos[0] / (double)size[0];
+    // double y = ev.m.pos[1] / (double)size[1];
+
+    // Change the data.
+    TestVertex* vertices = visual->data;
+    // ASSERT(vertices != NULL);
+    // float angle = 0;
+    // uint32_t N = 8;
+    // for (uint32_t i = 0; i < N; i++)
+    // {
+    //     angle = M_2PI * (float)i / N;
+    //     vertices[i].pos[0] = -sin(angle);
+    //     vertices[i].pos[1] = cos(angle);
+    // }
+    // TODO: modify the vertices.
 
     // Upfill
-    // dvz_dat_upfill(canvas->app->run, canvas, visual->dat, 0, 3 * sizeof(TestVertex),
-    // visual->data);
+    dvz_dat_upfill(canvas->app->run, canvas, visual->dat, 0, 3 * sizeof(TestVertex), visual->data);
 }
 
 int test_run_upfill(TestContext* tc)
@@ -586,6 +602,7 @@ int test_run_upfill(TestContext* tc)
 
     // Triangle visual.
     TestVisual visual = triangle(canvas, "");
+    canvas->user_data = &visual;
 
     // Bindings and graphics pipeline.
     visual.bindings = dvz_bindings(&visual.graphics.slots, 1);
@@ -594,14 +611,30 @@ int test_run_upfill(TestContext* tc)
 
     // Triangle data.
     triangle_upload(canvas, &visual);
+    // VkDeviceSize size = 8 * sizeof(TestVertex);
+
+    // // Allocate a dat that will contain the triangle vertices.
+    // visual.dat =
+    //     dvz_dat(gpu->context, DVZ_BUFFER_TYPE_VERTEX, size, DVZ_DAT_OPTIONS_PERSISTENT_STAGING);
+
+    // // HACK: the TestVisual has both a DvzDat* and a DvzBufferRegions struct, so as to be
+    // testable
+    // // by modules that do not depend on the Dat system.
+    // visual.br = visual.dat->br;
+
+    // visual.data = calloc(size, 1);
+    // memcpy(visual.data, (TestVertex[])TRIANGLE_VERTICES, 3 * sizeof(TestVertex));
+
+    // // Upload the triangle data to the dat.
+    // dvz_dat_upload(visual.dat, 0, size, visual.data, true);
 
     // Create a run instance.
     DvzRun* run = dvz_run(app);
 
     // Refill callback.
     dvz_deq_callback(
-        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, _refill_callback_triangle,
-        &visual);
+        &run->deq, DVZ_RUN_DEQ_REFILL, (int)DVZ_RUN_CANVAS_REFILL, //
+        _refill_callback_triangle, &visual);
 
     // Upfill callback.
     dvz_input_callback(&canvas->input, DVZ_INPUT_MOUSE_MOVE, _upfill_callback, canvas);

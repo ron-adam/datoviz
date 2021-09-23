@@ -513,8 +513,8 @@ int dvz_run_frame(DvzRun* run)
 /*************************************************************************************************/
 
 void dvz_dat_upfill(
-    DvzRun* run, DvzCanvas* canvas, DvzDat* dat, VkDeviceSize offset, VkDeviceSize size,
-    void* data)
+    DvzRun* run, DvzCanvas* canvas, DvzDat* dat, //
+    VkDeviceSize offset, VkDeviceSize size, void* data)
 {
     ASSERT(run != NULL);
     ASSERT(canvas != NULL);
@@ -523,17 +523,7 @@ void dvz_dat_upfill(
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
-    // Stop rendering.
-    dvz_queue_wait(canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
-
-    // Upload the data and wait.
-    DvzContext* ctx = canvas->gpu->context;
-    ASSERT(ctx != NULL);
-    dvz_dat_upload(dat, offset, size, data, true);
-
-    // Enqueue to refill, which will trigger refill in the current frame (in the REFILL dequeue
-    // just after the MAIN dequeue which called the current function).
-    _enqueue_to_refill(run, canvas);
+    _enqueue_upfill(run, canvas, dat, offset, size, data);
 }
 
 
