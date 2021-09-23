@@ -411,10 +411,10 @@ static void triangle_refill(DvzCanvas* canvas, TestVisual* visual, uint32_t idx)
     DvzCommands* cmds = &canvas->cmds_render;
     ASSERT(cmds->queue_idx == DVZ_DEFAULT_QUEUE_RENDER);
 
-    ASSERT(visual->br.buffer != NULL);
+    // ASSERT(visual->br.buffer != NULL);
     triangle_commands(
         cmds, idx, &canvas->render.renderpass, &canvas->render.framebuffers, //
-        &visual->graphics, &visual->bindings, visual->br);
+        &visual->graphics, &visual->bindings, visual->dat != NULL ? visual->dat->br : visual->br);
 }
 
 static void triangle_upload(DvzCanvas* canvas, TestVisual* visual)

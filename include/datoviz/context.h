@@ -135,6 +135,9 @@ DVZ_EXPORT void dvz_app_reset(DvzApp* app);
  *
  * Defragmentation is not implemented yet.
  *
+ * !!! important
+ *     Must be called from the main thread.
+ *
  * @param ctx the context
  * @param type the buffer type
  * @param size the buffer size
@@ -178,6 +181,9 @@ dvz_dat_download(DvzDat* dat, VkDeviceSize offset, VkDeviceSize size, void* data
  * !!! note
  *     Not implemented yet: deciding whether the existing data should be kept or not upon resizing.
  *
+ * !!! important
+ *     Must be called from the main thread.
+ *
  * @param dat the Dat
  * @param new_size the new size
  */
@@ -194,6 +200,9 @@ DVZ_EXPORT void dvz_dat_resize(DvzDat* dat, VkDeviceSize new_size);
  *
  * A Tex represents an image on the GPU. It abstracts away the underlying GPU implementation based
  * on DvzImages, itself based on VkImage.
+ *
+ * !!! important
+ *     Must be called from the main thread.
  *
  * @param ctx the context
  * @param dims the number of dimensions of the image (1D, 2D, or 3D)
@@ -233,6 +242,9 @@ dvz_tex_download(DvzTex* tex, uvec3 offset, uvec3 shape, VkDeviceSize size, void
 
 /**
  * Resize a Tex.
+ *
+ * !!! important
+ *     Must be called from the main thread.
  *
  * @param tex the Tex
  * @param new_shape the new width, height, depth

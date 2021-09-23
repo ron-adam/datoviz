@@ -296,7 +296,7 @@ static void _callback_to_refill(DvzDeq* deq, void* item, void* user_data)
 static void _callback_upfill(DvzDeq* deq, void* item, void* user_data)
 {
     ASSERT(deq != NULL);
-    log_trace("callback to refill");
+    log_info("callback to refill");
 
     DvzCanvasEventUpfill* ev = (DvzCanvasEventUpfill*)item;
     ASSERT(ev != NULL);
@@ -313,6 +313,9 @@ static void _callback_upfill(DvzDeq* deq, void* item, void* user_data)
 
     // Stop rendering.
     dvz_queue_wait(ev->canvas->gpu, DVZ_DEFAULT_QUEUE_RENDER);
+
+    // Resize if needed.
+    dvz_dat_resize(ev->dat, ev->size);
 
     // Upload the data and wait.
     DvzContext* ctx = ev->canvas->gpu->context;
@@ -463,7 +466,7 @@ int dvz_run_frame(DvzRun* run)
     DvzApp* app = run->app;
     ASSERT(app != NULL);
 
-    log_trace("frame #%06d", run->global_frame_idx);
+    log_info("frame #%06d", run->global_frame_idx);
 
     // Go through all canvases to find out which are active, and enqueue a FRAME event for them.
     uint32_t n_canvas_running = _enqueue_frames(run);
@@ -498,6 +501,7 @@ int dvz_run_frame(DvzRun* run)
     dvz_deq_dequeue_batch(&run->deq, DVZ_RUN_DEQ_PRESENT);
 
     _gpu_sync_hack(app);
+    // dvz_sleep(50);
 
     // If no canvas is running, stop the event loop.
     if (n_canvas_running == 0)

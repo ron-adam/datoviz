@@ -206,12 +206,18 @@ DVZ_EXPORT void dvz_resources_destroy(DvzResources* res);
 /**
  * Destroy a dat.
  *
+ * !!! important
+ *     Must be called from the main thread.
+ *
  * @param dat the dat
  */
 DVZ_EXPORT void dvz_dat_destroy(DvzDat* dat);
 
 /**
  * Destroy a tex.
+ *
+ * !!! important
+ *     Must be called from the main thread.
  *
  * @param tex the tex
  */

@@ -223,9 +223,23 @@ DVZ_EXPORT void dvz_run_setupenv(DvzRun* run);
  */
 DVZ_EXPORT int dvz_run_auto(DvzRun* run);
 
+
+
+/**
+ * Upload data to a Dat resource, immediately followed by a command buffer refill.
+ *
+ * Useful when modifying a vertex buffer with a different number of vertices which requires a
+ * refill.
+ *
+ * !!! note
+ *     May be called from a background thread.
+ *
+ * @param the run instance
+ */
 DVZ_EXPORT void dvz_dat_upfill(
     DvzRun* run, DvzCanvas* canvas, DvzDat* dat, //
     VkDeviceSize offset, VkDeviceSize size, void* data);
+
 
 
 #ifdef __cplusplus

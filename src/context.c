@@ -504,6 +504,12 @@ void dvz_dat_resize(DvzDat* dat, VkDeviceSize new_size)
 {
     ASSERT(dat != NULL);
     ASSERT(dat->br.buffer != NULL);
+
+    if (new_size == dat->br.size)
+    {
+        return;
+    }
+
     log_debug("resize dat to size %s", pretty_size(new_size));
     _dat_dealloc(dat);
 

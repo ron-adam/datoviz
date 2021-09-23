@@ -582,11 +582,11 @@ static void _upfill_callback(DvzInput* input, DvzInputEvent ev, void* user_data)
     VkDeviceSize size = 3 * N * sizeof(TestVertex);
 
     // Allocate a dat that will contain the triangle vertices.
-    dvz_dat_resize(visual->dat, size);
+    // dvz_dat_resize(visual->dat, size);
 
     // HACK: the TestVisual has both a DvzDat* and a DvzBufferRegions struct, so as to be
     // testable by modules that do not depend on the Dat system.
-    visual->br = visual->dat->br;
+    // visual->br = visual->dat->br;
 
     TestVertex* vertices = visual->data;
     ASSERT(vertices != NULL);
@@ -650,7 +650,7 @@ int test_run_upfill(TestContext* tc)
 
     // HACK: the TestVisual has both a DvzDat* and a DvzBufferRegions struct, so as to be
     // testable by modules that do not depend on the Dat system.
-    visual.br = visual.dat->br;
+    // visual.br = visual.dat->br;
 
     // Upload the triangle data to the dat.
     visual.data = calloc(size, 1);
